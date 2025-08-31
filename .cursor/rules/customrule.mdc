@@ -1,0 +1,80 @@
+---
+description: "Laravel 11 PHP 8.2 coding conventions & best practices"
+globs: 
+  - "app/**/*.php"
+  - "routes/**/*.php"
+  - "database/**/*.php"
+  - "config/**/*.php"
+alwaysApply: true
+---
+
+{
+  "language": "php",
+  "framework": "laravel",
+  "style": {
+    "php_version": "8.2",
+    "laravel_version": "11",
+    "coding_standard": "PSR-12",
+    "naming": {
+      "classes": "StudlyCase",
+      "methods": "camelCase",
+      "variables": "camelCase",
+      "constants": "UPPER_CASE"
+    },
+    "comments": "ngắn gọn, rõ ràng, tiếng Việt nếu có thể",
+    "docblocks": true,
+    "line_length": 120,
+    "indentation": "4 spaces",
+    "strict_types": true
+  },
+  "conventions": {
+    "controllers": "mỏng, chỉ điều phối request → service",
+    "services": "chứa logic nghiệp vụ chính",
+    "repositories": "chứa logic truy vấn database",
+    "models": "chỉ khai báo quan hệ, casts, fillable",
+    "requests": "dùng để validate dữ liệu đầu vào",
+    "resources": "dùng để format response JSON",
+    "migrations": "tách riêng, có chú thích rõ ràng, đặt tên file migration theo cú pháp chuẩn `YYYY_MM_DD_HHMMSS_name_of_migration` để đảm bảo migration được chạy theo thứ tự thời gian; tránh chỉnh sửa file migration cũ đã deploy."
+  },
+  "best_practices": {
+    "security": [
+      "luôn dùng Query Builder hoặc Eloquent, không raw query trừ khi cần thiết",
+      "escape dữ liệu khi output ra view",
+      "không hardcode secret, dùng .env",
+      "dùng CSRF protection, Auth middleware khi cần"
+    ],
+    "performance": [
+      "tránh N+1 query, dùng eager loading (with, load)",
+      "dùng cache cho query nặng hoặc config ít thay đổi",
+      "pagination thay vì lấy toàn bộ dữ liệu"
+    ],
+    "testing": [
+      "viết PHPUnit test cho service và repository",
+      "ưu tiên Feature Test hơn Unit Test với luồng quan trọng"
+    ]
+  },
+  "avoid": [
+    "không tạo function/hàm/class ngoài yêu cầu",
+    "không bịa code hoặc thêm logic không được mô tả",
+    "không sửa code không liên quan trong file",
+    "không dùng code snippet lỗi thời hoặc deprecated"
+  ],
+  "examples": {
+    "service_class": "App\\Services\\UserService",
+    "repository_class": "App\\Repositories\\UserRepository",
+    "request_class": "App\\Http\\Requests\\StoreUserRequest",
+    "resource_class": "App\\Http\\Resources\\UserResource"
+  },
+  "environment": {
+    "os": "Windows",
+    "tools": [
+      " Laragon để chạy PHP 8.2 và Laravel 11",
+      "Windows Command Prompt hoặc PowerShell để chạy lệnh Artisan"
+    ],
+    "configuration": "Cấu hình môi trường qua file .env, đảm bảo tương thích khi triển khai"
+  },
+  "validation": {
+    "rule": "curso",
+    "description": "Sử dụng rule `curso` để validate dữ liệu đầu vào trong các request classes, đảm bảo tuân thủ các quy tắc validate tùy chỉnh được định nghĩa trong dự án, tích hợp chặt chẽ với Laravel's validation system."
+  }
+}

@@ -1,0 +1,143 @@
+/* Custom Colors - Sửa màu chữ thành màu đen trên nền trắng */
+
+/* Sidebar Navigation */
+.flux-navlist-item {
+    color: #1f2937 !important; /* text-gray-800 */
+}
+
+.flux-navlist-item:hover {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+.flux-navlist-item[aria-current="true"] {
+    color: #111827 !important; /* text-gray-900 */
+    background-color: #f3f4f6 !important; /* bg-gray-100 */
+}
+
+.flux-navlist-group-heading {
+    color: #374151 !important; /* text-gray-700 */
+}
+
+/* Logo và Brand */
+.app-logo-text {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Menu Items */
+.admin-menu-item {
+    color: #374151 !important; /* text-gray-700 */
+}
+
+.admin-menu-item:hover {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+.admin-menu-item.active {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Headings */
+.sidebar-heading {
+    color: #374151 !important; /* text-gray-700 */
+}
+
+/* User Menu */
+.user-menu-text {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+.user-menu-email {
+    color: #6b7280 !important; /* text-gray-500 */
+}
+
+/* Flux UI Components Override */
+[data-flux-component="navlist.item"] {
+    color: #1f2937 !important;
+}
+
+[data-flux-component="navlist.item"]:hover {
+    color: #111827 !important;
+}
+
+[data-flux-component="navlist.item"][aria-current="true"] {
+    color: #111827 !important;
+}
+
+[data-flux-component="navlist.group"] [data-flux-component="navlist.group.heading"] {
+    color: #374151 !important;
+}
+
+/* Profile Component */
+[data-flux-component="profile"] {
+    color: #111827 !important;
+}
+
+[data-flux-component="profile"] .text-black {
+    color: #111827 !important;
+}
+
+/* Menu Items */
+[data-flux-component="menu.item"] {
+    color: #1f2937 !important;
+}
+
+[data-flux-component="menu.item"]:hover {
+    color: #111827 !important;
+}
+
+/* Dropdown */
+[data-flux-component="dropdown"] {
+    color: #111827 !important;
+}
+
+/* Force Black Text for Important Elements */
+.text-white-on-white {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+.text-invisible {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Override any white text that might be hardcoded */
+* {
+    color: inherit;
+}
+
+/* Ensure navigation text is always visible */
+nav a, nav span, nav div {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Sidebar specific overrides */
+.sidebar * {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Flux specific overrides */
+[data-flux-component] {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Ensure all text in sidebar is black */
+.flux-sidebar * {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Override any existing color classes that might be white */
+.text-white, .text-gray-50, .text-gray-100, .text-gray-200 {
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Ensure proper contrast */
+.text-gray-600 {
+    color: #374151 !important; /* text-gray-700 */
+}
+
+.text-gray-500 {
+    color: #6b7280 !important; /* text-gray-500 */
+}
+
+.text-gray-400 {
+    color: #9ca3af !important; /* text-gray-400 */
+} 

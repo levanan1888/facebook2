@@ -1,0 +1,1955 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q",
+          "mode": "list",
+          "cachedResultName": "Data facebook",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1886422578,
+          "mode": "list",
+          "cachedResultName": "Data BM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit#gid=1886422578"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.date }}",
+            "bm_id": "={{ $json.bm_id }}",
+            "bm_name": "={{ $json.bm_name }}",
+            "total_spend": "={{ $json.total_spend }}",
+            "total_reach": "={{ $json.total_reach }}",
+            "total_impressions": "={{ $json.total_impressions }}",
+            "total_clicks": "={{ $json.total_clicks }}",
+            "total_conversions": "={{ $json.total_conversions }}",
+            "total_frequency": "={{ $json.total_frequency }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bm_id",
+              "displayName": "bm_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bm_name",
+              "displayName": "bm_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_spend",
+              "displayName": "total_spend",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_reach",
+              "displayName": "total_reach",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_impressions",
+              "displayName": "total_impressions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_clicks",
+              "displayName": "total_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_conversions",
+              "displayName": "total_conversions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_frequency",
+              "displayName": "total_frequency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "5aadc2bc-53dc-41f0-923d-7ad453b4f247",
+      "name": "Ghi BM vào Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1904,
+        1264
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MYWutchSQvmubQ4z",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate data for Business Manager summary (per current BM)\n// Use execution context and node IDs to avoid name lookup issues in n8n.\n\n// 1) Get BM context\nconst exec = $execution;\nlet bmInfo = (exec && exec.data && exec.data.bm_context) || {};\ntry {\n  if (!bmInfo.bm_id) {\n    // Fallback: read the current item from 'Lặp qua BM' by node ID\n    bmInfo = $('019bf34d-b61a-497a-9d7c-6528691d15dc')?.item?.json || bmInfo;\n  }\n} catch (e) {\n  // ignore\n}\n\n// 2) Get target date from 'Thiết lập biến' by node ID\nlet targetDate;\ntry {\n  targetDate = $('537ba7e8-12e5-49a4-bf54-145f8409f9c9').first().json.target_date;\n} catch (e) {\n  targetDate = new Date().toISOString().split('T')[0];\n}\n\n// Validate input (no-throw to keep loops alive)\nif (!bmInfo || !bmInfo.bm_id) {\n  console.warn('BM info missing; using Unknown fallbacks');\n  bmInfo = { bm_id: 'Unknown', bm_name: (bmInfo && bmInfo.bm_name) ? bmInfo.bm_name : 'Unknown' };\n}\nif (!targetDate) {\n  console.warn('Target date missing; defaulting to today');\n  targetDate = new Date().toISOString().split('T')[0];\n}\n\n// 3) Collect items from 'Xử lý thống kê tài khoản quảng cáo' by node ID\nconst itemsFromAccounts = $items('d911a654-386e-4345-abcf-922dff2d82d3', 0, 0) || [];\n\nif (!itemsFromAccounts || itemsFromAccounts.length === 0) {\n  return [{\n    json: {\n      date: targetDate,\n      bm_id: bmInfo.bm_id,\n      bm_name: bmInfo.bm_name || 'Unknown',\n      total_spend: 0,\n      total_reach: 0,\n      total_impressions: 0,\n      total_clicks: 0,\n      total_conversions: 0,\n      total_frequency: 0\n    }\n  }];\n}\n\nlet totalSpend = 0;\nlet totalReach = 0;\nlet totalImpressions = 0;\nlet totalClicks = 0;\nlet totalConversions = 0;\nlet totalFrequency = 0;\nlet processedAccounts = 0;\nlet skippedAccounts = 0;\n\nfor (const it of itemsFromAccounts) {\n  const j = it.json || {};\n  if (!j.bm_id || !j.date) {\n    skippedAccounts++;\n    continue;\n  }\n  if (j.bm_id === bmInfo.bm_id && j.date === targetDate) {\n    const spend = parseFloat(j.total_spend) || 0;\n    const reach = parseInt(j.total_reach) || 0;\n    const impressions = parseInt(j.total_impressions) || 0;\n    const clicks = parseInt(j.total_clicks) || 0;\n    const conversions = parseInt(j.total_conversions) || 0;\n    const frequency = parseFloat(j.total_frequency) || 0;\n\n    totalSpend += spend;\n    totalReach += reach;\n    totalImpressions += impressions;\n    totalClicks += clicks;\n    totalConversions += conversions;\n    totalFrequency += frequency;\n    processedAccounts++;\n  }\n}\n\nreturn [{\n  json: {\n    date: targetDate,\n    bm_id: bmInfo.bm_id,\n    bm_name: bmInfo.bm_name || 'Unknown',\n    total_spend: totalSpend,\n    total_reach: totalReach,\n    total_impressions: totalImpressions,\n    total_clicks: totalClicks,\n    total_conversions: totalConversions,\n    total_frequency: totalFrequency,\n    _metadata: { processed_accounts: processedAccounts, skipped_accounts: skippedAccounts, aggregation_timestamp: new Date().toISOString() }\n  }\n}];"
+      },
+      "id": "eb525090-894c-4e88-ad00-06ab310e6418",
+      "name": "Tổng hợp dữ liệu BM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q",
+          "mode": "list",
+          "cachedResultName": "Data facebook",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 705949838,
+          "mode": "list",
+          "cachedResultName": "ad set",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit#gid=705949838"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.date }}",
+            "Ad Set ID": "={{ $json.ad_set_id }}",
+            " Ad Set Name": "={{ $json.ad_set_name }}",
+            "Ad Set Status": "={{ $json.ad_set_status }}",
+            "Optimization Goal": "={{ $json.optimization_goal }}",
+            "Ad Account ID": "={{ $json.ad_account_id }}",
+            " Ad Account Name": "={{ $json.ad_account_name }}",
+            "BM ID": "={{ $json.bm_id }}",
+            "BM Name": "={{ $json.bm_name }}",
+            "Spend": "={{ $json.spend }}",
+            "Reach": "={{ $json.reach }}",
+            "Impressions": "={{ $json.impressions }}",
+            "Clicks": "={{ $json.clicks }}",
+            "CTR": "={{ $json.ctr }}",
+            "CPC": "={{ $json.cpc }}",
+            "CPM": "={{ $json.cpm }}",
+            "Conversions": "={{ $json.conversions }}",
+            "Frequency": "={{ $json.frequency }}",
+            " Unique Clicks": "={{ $json.unique_clicks }}",
+            " Unique Actions": "={{ $json.unique_actions }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ad Set ID",
+              "displayName": "Ad Set ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Ad Set Name",
+              "displayName": " Ad Set Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ad Set Status",
+              "displayName": "Ad Set Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Optimization Goal",
+              "displayName": "Optimization Goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ad Account ID",
+              "displayName": "Ad Account ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Ad Account Name",
+              "displayName": " Ad Account Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BM ID",
+              "displayName": "BM ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BM Name",
+              "displayName": "BM Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Spend",
+              "displayName": "Spend",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reach",
+              "displayName": "Reach",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Impressions",
+              "displayName": "Impressions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Clicks",
+              "displayName": "Clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CTR",
+              "displayName": "CTR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CPC",
+              "displayName": "CPC",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CPM",
+              "displayName": "CPM",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Conversions",
+              "displayName": "Conversions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Frequency",
+              "displayName": "Frequency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Unique Clicks",
+              "displayName": " Unique Clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Unique Actions",
+              "displayName": " Unique Actions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "691a25ae-1fed-43d8-88ce-9eddc5ba3760",
+      "name": "Ghi nhóm quảng cáo vào Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2848,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MYWutchSQvmubQ4z",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q",
+          "mode": "list",
+          "cachedResultName": "Data facebook",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 887179837,
+          "mode": "list",
+          "cachedResultName": "ads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit#gid=887179837"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.date }}",
+            "bm_id": "={{ $json.bm_id }}",
+            "bm_name": "={{ $json.bm_name }}",
+            "ad_account_id": "={{ $json.ad_account_id }}",
+            "ad_account_name": "={{ $json.ad_account_name }}",
+            "campaign_id": "={{ $json.campaign_id }}",
+            "campaign_name": "={{ $json.campaign_name }}",
+            "ad_set_id": "={{ $json.ad_set_id }}",
+            "ad_set_name": "={{ $json.ad_set_name }}",
+            "ad_id": "={{ $json.ad_id }}",
+            "ad_name": "={{ $json.ad_name }}",
+            "ad_status": "={{ $json.ad_status }}",
+            "effective_status": "={{ $json.effective_status }}",
+            "creative_title": "={{ $json.creative_title }}",
+            "creative_body": "={{ $json.creative_body }}",
+            "created_time": "={{ $json.created_time }}",
+            "updated_time": "={{ $json.updated_time }}",
+            "spend": "={{ $json.spend }}",
+            "reach": "={{ $json.reach }}",
+            "impressions": "={{ $json.impressions }}",
+            "clicks": "={{ $json.clicks }}",
+            "ctr": "={{ $json.ctr }}",
+            "cpc": "={{ $json.cpc }}",
+            "cpm": "={{ $json.cpm }}",
+            "conversions": "={{ $json.conversions }}",
+            "frequency": "={{ $json.frequency }}",
+            "unique_clicks": "={{ $json.unique_clicks }}",
+            "unique_actions": "={{ $json.unique_actions }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bm_id",
+              "displayName": "bm_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bm_name",
+              "displayName": "bm_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ad_account_id",
+              "displayName": "ad_account_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ad_account_name",
+              "displayName": "ad_account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campaign_id",
+              "displayName": "campaign_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campaign_name",
+              "displayName": "campaign_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ad_set_id",
+              "displayName": "ad_set_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ad_set_name",
+              "displayName": "ad_set_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ad_id",
+              "displayName": "ad_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ad_name",
+              "displayName": "ad_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ad_status",
+              "displayName": "ad_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "effective_status",
+              "displayName": "effective_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "creative_title",
+              "displayName": "creative_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "creative_body",
+              "displayName": "creative_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_time",
+              "displayName": "created_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_time",
+              "displayName": "updated_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "spend",
+              "displayName": "spend",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reach",
+              "displayName": "reach",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "impressions",
+              "displayName": "impressions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "clicks",
+              "displayName": "clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ctr",
+              "displayName": "ctr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cpc",
+              "displayName": "cpc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cpm",
+              "displayName": "cpm",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "conversions",
+              "displayName": "conversions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "frequency",
+              "displayName": "frequency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unique_clicks",
+              "displayName": "unique_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unique_actions",
+              "displayName": "unique_actions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "44fbac91-2d25-4a07-9a12-444ea6c15de4",
+      "name": "Ghi quảng cáo vào Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        4192,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MYWutchSQvmubQ4z",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Ad insights and prepare for Google Sheets\nconst insights = $input.all()[0].json.data;\nconst adInfo = $('Tách dữ liệu quảng cáo').item.json;\nconst targetDate = $('Thiết lập biến').first().json.target_date;\n\nif (!insights || insights.length === 0) {\n  return [{\n    json: {\n      date: targetDate,\n      bm_id: adInfo.bm_id,\n      bm_name: adInfo.bm_name,\n      ad_account_id: adInfo.ad_account_id,\n      ad_account_name: adInfo.ad_account_name,\n      campaign_id: adInfo.campaign_id,\n      campaign_name: adInfo.campaign_name,\n      ad_set_id: adInfo.ad_set_id,\n      ad_set_name: adInfo.ad_set_name,\n      ad_id: adInfo.ad_id,\n      ad_name: adInfo.ad_name,\n      ad_status: adInfo.ad_status,\n      effective_status: adInfo.effective_status,\n      creative_title: adInfo.creative_title,\n      creative_body: adInfo.creative_body,\n      created_time: adInfo.created_time,\n      updated_time: adInfo.updated_time,\n      spend: 0, reach: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, frequency: 0, unique_clicks: 0, unique_actions: 0\n    }\n  }];\n}\n\nreturn insights.map(insight => {\n  let conversions = 0;\n  let uniqueActions = 0;\n  if (insight.actions) {\n    insight.actions.forEach(action => {\n      if ((action.action_type || '').includes('conversion')) {\n        conversions += parseInt(action.value) || 0;\n      }\n      uniqueActions += parseInt(action.value) || 0;\n    });\n  }\n\n  return {\n    json: {\n      date: targetDate,\n      bm_id: adInfo.bm_id,\n      bm_name: adInfo.bm_name,\n      ad_account_id: adInfo.ad_account_id,\n      ad_account_name: adInfo.ad_account_name,\n      campaign_id: adInfo.campaign_id,\n      campaign_name: adInfo.campaign_name,\n      ad_set_id: adInfo.ad_set_id,\n      ad_set_name: adInfo.ad_set_name,\n      ad_id: adInfo.ad_id,\n      ad_name: adInfo.ad_name,\n      ad_status: adInfo.ad_status,\n      effective_status: adInfo.effective_status,\n      creative_title: adInfo.creative_title,\n      creative_body: adInfo.creative_body,\n      created_time: adInfo.created_time,\n      updated_time: adInfo.updated_time,\n      spend: parseFloat(insight.spend) || 0,\n      reach: parseInt(insight.reach) || 0,\n      impressions: parseInt(insight.impressions) || 0,\n      clicks: parseInt(insight.clicks) || 0,\n      ctr: parseFloat(insight.ctr) || 0,\n      cpc: parseFloat(insight.cpc) || 0,\n      cpm: parseFloat(insight.cpm) || 0,\n      conversions,\n      frequency: parseFloat(insight.frequency) || 0,\n      unique_clicks: parseInt(insight.unique_clicks) || 0,\n      unique_actions: uniqueActions\n    }\n  };\n});"
+      },
+      "id": "1a7cc4f4-e2c7-45ff-b4de-6aae16c27330",
+      "name": "Xử lý thống kê quảng cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3968,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.ad_id }}/insights?access_token={{ $('Thiết lập biến').first().json.facebook_token }}&date_preset=yesterday&fields=spend,reach,impressions,clicks,ctr,cpc,cpm,actions,frequency,unique_clicks",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "bee11cc8-3766-4377-acc5-c3cdd24530bf",
+      "name": "Lấy thống kê quảng cáo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3744,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract Ad (Individual Post) data\n// Process all input items to maintain data integrity\nconst items = $input.all();\n\n// Get context from execution data with proper fallbacks\nlet bmInfo = {};\nlet accountInfo = {};\nlet campaignInfo = {};\nlet adSetInfo = {};\nlet targetDate = null;\n\ntry {\n  // Get context from execution data\n  const currentExecution = $execution;\n  if (currentExecution && currentExecution.data) {\n    bmInfo = currentExecution.data.bm_context || {};\n    accountInfo = currentExecution.data.account_context || {};\n    campaignInfo = currentExecution.data.campaign_context || {};\n    adSetInfo = currentExecution.data.adset_context || {};\n  }\n} catch (error) {\n  console.log('Context not available from execution data:', error.message);\n  // Keep empty objects as fallbacks\n}\n\ntry {\n  targetDate = $('Thiết lập biến').first().json.target_date;\n} catch (error) {\n  console.log('Target date not available:', error.message);\n  targetDate = new Date().toISOString().split('T')[0]; // Use current date as fallback\n}\n\n// Ensure all context objects have default values to prevent null errors\nbmInfo = bmInfo || {};\naccountInfo = accountInfo || {};\ncampaignInfo = campaignInfo || {};\nadSetInfo = adSetInfo || {};\n\n// Return all items to prevent data loss\nreturn items.map(item => {\n  const ad = item.json;\n  return {\n    json: {\n      date: targetDate,\n      bm_id: (bmInfo.bm_id || adSetInfo.bm_id || 'Unknown') || 'Unknown',\n      bm_name: (bmInfo.bm_name || adSetInfo.bm_name || 'Unknown') || 'Unknown',\n      ad_account_id: (accountInfo.ad_accout_id_1 || adSetInfo.ad_account_id || 'Unknown') || 'Unknown',\n      ad_account_name: (accountInfo.ad_account_name || adSetInfo.ad_account_name || 'Unknown') || 'Unknown',\n      campaign_id: (campaignInfo.campaign_id || adSetInfo.campaign_id || 'Unknown') || 'Unknown',\n      campaign_name: (campaignInfo.campaign_name || adSetInfo.campaign_name || 'Unknown') || 'Unknown',\n      ad_set_id: (adSetInfo.ad_set_id || ad.adset_id || 'Unknown') || 'Unknown',\n      ad_set_name: (adSetInfo.ad_set_name || ad.ad_set_name || 'Unknown') || 'Unknown',\n      ad_id: ad.id || 'Unknown',\n      ad_name: ad.name || 'Unknown',\n      ad_status: ad.status || 'UNKNOWN',\n      effective_status: ad.effective_status || 'UNKNOWN',\n      creative_title: (ad.creative && ad.creative.title) ? ad.creative.title : 'N/A',\n      creative_body: (ad.creative && ad.creative.body) ? ad.creative.body : 'N/A',\n      created_time: ad.created_time || null,\n      updated_time: ad.updated_time || null\n    }\n  };\n});"
+      },
+      "id": "6f8ce874-1814-4cd4-b67e-fbd02b15b7fe",
+      "name": "Tách dữ liệu quảng cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $json['Ad Set ID'] }}/ads?access_token={{ $('Thiết lập biến').first().json.facebook_token }}&fields=id,name,status,effective_status,adset_id,campaign_id,account_id,creative{id,title,body,object_story_spec},created_time,updated_time",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "2d85b1c3-7cbb-4342-aab8-22736440bd69",
+      "name": "Lấy quảng cáo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3072,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1952,
+        480
+      ],
+      "id": "912433c6-9d13-45b1-8a34-91ed74d5010b",
+      "name": "Lặp qua chiến dịch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract campaign data from response and attach context\nconst items = $input.all();\nconst accountInfo = $('Lặp qua tài khoản quảng cáo').item.json;\nconst targetDate = $('Thiết lập biến').first().json.target_date;\n\n// Build and return array of items\nconst processedItems = items.map(item => {\n  const campaign = item.json;\n  const campaignData = {\n    campaign_id: campaign.id,\n    campaign_name: campaign.name || 'Unknown',\n    campaign_status: campaign.status || 'UNKNOWN',\n    objective: campaign.objective || 'UNKNOWN',\n    ad_accout_id_1: accountInfo.ad_accout_id_1,\n    ad_account_id: accountInfo.ad_account_id,\n    ad_account_name: accountInfo.ad_account_name,\n    bm_id: accountInfo.bm_id,\n    bm_name: accountInfo.bm_name,\n    target_date: targetDate\n  };\n  \n  return {\n    json: campaignData\n  };\n});\n\n// Store campaign context in execution data for downstream nodes\n// Use the first campaign as context (they all belong to the same ad account)\ntry {\n  const currentExecution = $execution;\n  if (currentExecution && currentExecution.data && processedItems.length > 0) {\n    currentExecution.data.campaign_context = processedItems[0].json;\n  }\n} catch (error) {\n  console.log('Could not store campaign context:', error.message);\n}\n\n// Return all processed items to ensure the loop continues\nreturn processedItems;"
+      },
+      "id": "6c7a0af7-8d9f-4aa5-8346-276744273e41",
+      "name": "Tách dữ liệu chiến dịch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $json['Ad Account ID'] }}/campaigns?access_token={{ $('Thiết lập biến').first().json.facebook_token }}&fields=id,name,status,objective,start_time,stop_time,\n          effective_status,configured_status,updated_time,\n          daily_spend_limit,budget_remaining,\n          insights.limit(1){impressions,clicks,spend,reach,frequency,ctr,cpp,cpm}\n",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "2e12d350-87a2-41a7-bb99-688cec4eb182",
+      "name": "Lấy chiến dịch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Ad Set insights and prepare for Google Sheets\nconst insights = $input.all()[0].json.data;\nconst targetDate = $('Thiết lập biến').first().json.target_date;\n\n// Get ad set context from execution data\nlet adSetInfo = null;\ntry {\n  const currentExecution = $execution;\n  if (currentExecution && currentExecution.data && currentExecution.data.adset_context) {\n    adSetInfo = currentExecution.data.adset_context;\n  } else {\n    // Fallback to direct access if context not available\n    adSetInfo = $('Lặp qua nhóm quảng cáo').item.json;\n  }\n} catch (e) {\n  console.log('Ad set info not available:', e.message);\n  // Create fallback data structure\n  adSetInfo = {\n    ad_set_id: 'Unknown',\n    ad_set_name: 'Unknown',\n    ad_set_status: 'UNKNOWN',\n    optimization_goal: 'UNKNOWN',\n    campaign_id: 'Unknown',\n    campaign_name: 'Unknown',\n    ad_account_id: 'Unknown',\n    ad_account_name: 'Unknown',\n    bm_id: 'Unknown',\n    bm_name: 'Unknown'\n  };\n}\n\nif (!insights || insights.length === 0) {\n  return [{\n    json: {\n      date: targetDate,\n      ad_set_id: adSetInfo.ad_set_id,\n      ad_set_name: adSetInfo.ad_set_name,\n      ad_set_status: adSetInfo.ad_set_status,\n      optimization_goal: adSetInfo.optimization_goal,\n      campaign_id: adSetInfo.campaign_id,\n      campaign_name: adSetInfo.campaign_name,\n      ad_account_id: adSetInfo.ad_account_id,\n      ad_account_name: adSetInfo.ad_account_name,\n      bm_id: adSetInfo.bm_id,\n      bm_name: adSetInfo.bm_name,\n      spend: 0,\n      reach: 0,\n      impressions: 0,\n      clicks: 0,\n      ctr: 0,\n      cpc: 0,\n      cpm: 0,\n      conversions: 0,\n      frequency: 0,\n      unique_clicks: 0,\n      unique_actions: 0\n    }\n  }];\n}\n\nreturn insights.map(insight => {\n  let conversions = 0;\n  let uniqueActions = 0;\n  if (insight.actions) {\n    insight.actions.forEach(action => {\n      if ((action.action_type || '').includes('conversion')) {\n        conversions += parseInt(action.value) || 0;\n      }\n      uniqueActions += parseInt(action.value) || 0;\n    });\n  }\n  \n  return {\n    json: {\n      date: targetDate,\n      ad_set_id: adSetInfo.ad_set_id,\n      ad_set_name: adSetInfo.ad_set_name,\n      ad_set_status: adSetInfo.ad_set_status,\n      optimization_goal: adSetInfo.optimization_goal,\n      campaign_id: adSetInfo.campaign_id,\n      campaign_name: adSetInfo.campaign_name,\n      ad_account_id: adSetInfo.ad_account_id,\n      ad_account_name: adSetInfo.ad_account_name,\n      bm_id: adSetInfo.bm_id,\n      bm_name: adSetInfo.bm_name,\n      spend: parseFloat(insight.spend) || 0,\n      reach: parseInt(insight.reach) || 0,\n      impressions: parseInt(insight.impressions) || 0,\n      clicks: parseInt(insight.clicks) || 0,\n      ctr: parseFloat(insight.ctr) || 0,\n      cpc: parseFloat(insight.cpc) || 0,\n      cpm: parseFloat(insight.cpm) || 0,\n      conversions: conversions,\n      frequency: parseFloat(insight.frequency) || 0,\n      unique_clicks: parseInt(insight.unique_clicks) || 0,\n      unique_actions: uniqueActions\n    }\n  };\n});"
+      },
+      "id": "323dba51-c352-4686-ab34-46b536374bea",
+      "name": "Xử lý thống kê nhóm quảng cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.ad_set_id }}/insights?access_token={{ $('Thiết lập biến').first().json.facebook_token }}&date_preset=yesterday&fields=spend,reach,impressions,clicks,ctr,cpc,cpm,actions,frequency,unique_clicks&breakdowns=region",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "2a14eb88-a61f-4e70-8391-0fc05456166d",
+      "name": "Lấy thống kê nhóm quảng cáo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2064,
+        656
+      ],
+      "id": "f02ffa36-2b4d-4381-9c32-cccb8b610584",
+      "name": "Lặp qua nhóm quảng cáo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract ad set data and prepare for processing (under specific Campaign)\n// Process current item only, not all items\nconst currentItem = $input.item;\n\n// Get context from parent nodes with proper error handling\nlet accountInfo = {};\nlet campaignInfo = {};\nlet targetDate = null;\n\ntry {\n  // Get account info from the current execution context\n  const currentExecution = $execution;\n  if (currentExecution && currentExecution.data && currentExecution.data.account_context) {\n    accountInfo = currentExecution.data.account_context;\n  } else {\n    // Fallback to direct access\n    accountInfo = $('Lặp qua tài khoản quảng cáo').item.json || {};\n  }\n} catch (e) {\n  console.log('Account info not available:', e.message);\n  accountInfo = {};\n}\n\ntry {\n  // Get campaign info from the current execution context\n  const currentExecution = $execution;\n  if (currentExecution && currentExecution.data && currentExecution.data.campaign_context) {\n    campaignInfo = currentExecution.data.campaign_context;\n  } else {\n    // Fallback to direct access\n    campaignInfo = $('Lặp qua chiến dịch').item.json || {};\n  }\n} catch (e) {\n  console.log('Campaign info not available:', e.message);\n  campaignInfo = {};\n}\n\ntry {\n  targetDate = $('Thiết lập biến').first().json.target_date;\n} catch (e) {\n  console.log('Target date not available:', e.message);\n  targetDate = new Date().toISOString().split('T')[0]; // fallback = today\n}\n\n// Process current ad set item only\nconst adSet = currentItem.json;\nconst adSetData = {\n  ad_set_id: adSet.id,\n  ad_set_name: adSet.name || 'Unknown',\n  ad_set_status: adSet.status || 'UNKNOWN',\n  optimization_goal: adSet.optimization_goal || 'UNKNOWN',\n  campaign_id: campaignInfo.campaign_id || adSet.campaign_id || 'Unknown',\n  campaign_name: campaignInfo.campaign_name || adSet.campaign_name || 'Unknown',\n  ad_account_id: accountInfo.ad_accout_id_1 || accountInfo.ad_account_id || 'Unknown',\n  ad_account_name: accountInfo.ad_account_name || 'Unknown',\n  bm_id: accountInfo.bm_id || 'Unknown',\n  bm_name: accountInfo.bm_name || 'Unknown',\n  target_date: targetDate\n};\n\n// Store context for downstream nodes\nconst currentExecution = $execution;\nif (currentExecution && currentExecution.data) {\n  currentExecution.data.adset_context = adSetData;\n}\n\n// Return single item, not array\nreturn {\n  json: adSetData\n};"
+      },
+      "id": "e74a03a5-2b04-4e8f-a3ce-2830383f9eee",
+      "name": "Tách dữ liệu nhóm quảng cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.campaign_id }}/adsets?access_token={{ $('Thiết lập biến').first().json.facebook_token }}&fields=id,name,status,optimization_goal,campaign_id",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "9a63acca-46fc-4056-97d7-4ff17e1e5c1e",
+      "name": "Lấy nhóm quảng cáo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2176,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q",
+          "mode": "list",
+          "cachedResultName": "Data facebook",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Ad Account",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date (Ngày lấy data)": "={{ $json.date }}",
+            "Ad Account ID": "={{ $json.ad_accout_id_1 }}",
+            "BM ID": "={{ $json.bm_id }}",
+            "BM Name": "={{ $json.bm_name }}",
+            "Total Spend": "={{ $json.total_spend }}",
+            "Total Reach": "={{ $json.total_reach }}",
+            " Ad Account Name": "={{ $json.ad_account_name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date (Ngày lấy data)",
+              "displayName": "Date (Ngày lấy data)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ad Account ID",
+              "displayName": "Ad Account ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Ad Account Name",
+              "displayName": " Ad Account Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BM ID",
+              "displayName": "BM ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BM Name",
+              "displayName": "BM Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Spend",
+              "displayName": "Total Spend",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Reach",
+              "displayName": "Total Reach",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e45587d2-3f1a-44db-87c9-fd09e2c6dc37",
+      "name": "Ghi tài khoản quảng cáo vào Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1056,
+        352
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MYWutchSQvmubQ4z",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Ad Account insights and prepare for Google Sheets\nconst insights = ($input.all()[0] && $input.all()[0].json && $input.all()[0].json.data) ? $input.all()[0].json.data : [];\nconst accountInfo = (function(){ try { return $('Lặp qua tài khoản quảng cáo').item.json; } catch(e){ return null; } })();\nlet targetDate = (function(){ try { return $('Thiết lập biến').first().json.target_date; } catch(e){ return null; } })();\n\n// Use safe fallbacks instead of throwing to keep loops alive\nconst safeAccount = accountInfo || { ad_accout_id_1: 'Unknown', ad_account_id: 'Unknown', ad_account_name: 'Unknown', bm_id: 'Unknown', bm_name: 'Unknown' };\nif (!targetDate) {\n  console.warn('Target date missing; defaulting to today');\n  targetDate = new Date().toISOString().split('T')[0];\n}\n\nconsole.log(`Processing account: ${safeAccount.ad_accout_id_1} for date: ${targetDate}`);\n\nif (!insights || insights.length === 0) {\n  console.warn(`No insights data for account: ${safeAccount.ad_accout_id_1}`);\n  return [{\n    json: {\n      date: targetDate,\n      ad_accout_id_1: safeAccount.ad_accout_id_1,\n      ad_account_id: safeAccount.ad_account_id || safeAccount.ad_accout_id_1,\n      ad_account_name: safeAccount.ad_account_name || 'Unknown',\n      bm_id: safeAccount.bm_id || 'Unknown',\n      bm_name: safeAccount.bm_name || 'Unknown',\n      total_spend: 0, total_reach: 0, total_impressions: 0, total_clicks: 0, total_conversions: 0, total_frequency: 0,\n      _metadata: { has_insights: false, processing_timestamp: new Date().toISOString() }\n    }\n  }];\n}\n\nlet totalSpend = 0, totalReach = 0, totalImpressions = 0, totalClicks = 0, totalConversions = 0, totalFrequency = 0;\nlet processedInsights = 0, skippedInsights = 0;\n\ninsights.forEach((insight, index) => {\n  try {\n    if (!insight) { skippedInsights++; return; }\n    const spend = parseFloat(insight.spend) || 0;\n    const reach = parseInt(insight.reach) || 0;\n    const impressions = parseInt(insight.impressions) || 0;\n    const clicks = parseInt(insight.clicks) || 0;\n    const frequency = parseFloat(insight.frequency) || 0;\n    if (spend < 0 || reach < 0 || impressions < 0 || clicks < 0 || frequency < 0) { skippedInsights++; return; }\n    totalSpend += spend; totalReach += reach; totalImpressions += impressions; totalClicks += clicks; totalFrequency += frequency;\n    if (insight.actions && Array.isArray(insight.actions)) {\n      insight.actions.forEach(action => {\n        if (action && action.action_type && action.action_type.includes('conversion') && action.value) {\n          const conversionValue = parseInt(action.value) || 0;\n          if (conversionValue >= 0) totalConversions += conversionValue;\n        }\n      });\n    }\n    processedInsights++;\n  } catch (error) { skippedInsights++; }\n});\n\nreturn [{ json: {\n  date: targetDate, ad_accout_id_1: safeAccount.ad_accout_id_1, ad_account_id: safeAccount.ad_account_id || safeAccount.ad_accout_id_1,\n  ad_account_name: safeAccount.ad_account_name || 'Unknown', bm_id: safeAccount.bm_id || 'Unknown', bm_name: safeAccount.bm_name || 'Unknown',\n  total_spend: totalSpend, total_reach: totalReach, total_impressions: totalImpressions, total_clicks: totalClicks, total_conversions: totalConversions, total_frequency: totalFrequency,\n  _metadata: { has_insights: processedInsights > 0, processed_insights: processedInsights, skipped_insights: skippedInsights, processing_timestamp: new Date().toISOString() }\n}}];"
+      },
+      "id": "d911a654-386e-4345-abcf-922dff2d82d3",
+      "name": "Xử lý thống kê tài khoản quảng cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        1664
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.ad_accout_id_1 }}/insights\n?access_token={{ $('Thiết lập biến').first().json.facebook_token }}\n&date_preset=yesterday\n&level=account\n&fields=spend,reach,impressions,clicks,ctr,cpc,cpm,frequency,unique_clicks,actions\n&breakdowns=region\n",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "3fb2bc3e-69f5-438f-85d0-3d185b01c093",
+      "name": "Lấy thống kê tài khoản quảng cáo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        1344
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        464,
+        1040
+      ],
+      "id": "a8ed24e6-b808-4240-8671-271146b61118",
+      "name": "Lặp qua tài khoản quảng cáo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract ad account data and prepare for processing\n// Process all input items to maintain data integrity\nconst items = $input.all();\nlet targetDate = (function(){ try { return $('Thiết lập biến').first().json?.target_date || null; } catch(e){ return null; } })();\nif (!targetDate) { console.warn('Target date missing; defaulting to today'); targetDate = new Date().toISOString().split('T')[0]; }\n\nlet bmInfo = null;\ntry {\n  const currentExecution = $execution;\n  if (currentExecution && currentExecution.data && currentExecution.data.bm_context) {\n    bmInfo = currentExecution.data.bm_context;\n  } else {\n    bmInfo = $('Lặp qua BM').item.json || {};\n  }\n} catch (error) {\n  console.warn('BM info not available from execution context:', error.message);\n  bmInfo = {};\n}\nif (!bmInfo || !bmInfo.bm_id) {\n  console.warn('BM info is missing or invalid; using Unknown fallbacks');\n  bmInfo = { bm_id: 'Unknown', bm_name: 'Unknown' };\n}\n\nconsole.log(`Processing accounts for BM: ${bmInfo.bm_id} (${bmInfo.bm_name}) on date: ${targetDate}`);\n\nconst processedItems = items.map((item, index) => {\n  try {\n    const account = item.json || {};\n    if (!account.id) { return null; }\n    const accountData = {\n      ad_account_id_raw: account.id || null,\n      ad_account_id: account.account_id || null,\n      ad_accout_id_1: account.id || null,\n      ad_account_name: account.name || 'Unknown',\n      ad_account_status: (account.account_status !== undefined) ? account.account_status : null,\n      bm_id: bmInfo.bm_id || 'Unknown',\n      bm_name: bmInfo.bm_name || 'Unknown',\n      target_date: targetDate\n    };\n    if (!accountData.ad_accout_id_1 || !accountData.bm_id) { return null; }\n    return { json: accountData };\n  } catch (error) { return null; }\n}).filter(item => item !== null);\n\ntry {\n  const currentExecution = $execution;\n  if (currentExecution && currentExecution.data && processedItems.length > 0) {\n    currentExecution.data.account_context = processedItems[0].json;\n  }\n} catch (error) { console.error('Could not store account context:', error.message); }\n\nif (processedItems.length === 0) {\n  console.warn('No valid accounts processed - returning placeholder to keep loop alive');\n  return [{ json: { bm_id: bmInfo.bm_id, bm_name: bmInfo.bm_name, target_date: targetDate, _placeholder: true } }];\n}\nreturn processedItems;"
+      },
+      "id": "b4a0d3ee-0b84-45db-8b68-8e5f2a8595df",
+      "name": "Tách dữ liệu tài khoản quảng cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.bm_id }}/client_ad_accounts?access_token={{ $('Thiết lập biến').first().json.facebook_token }}&fields=id,account_id,name,account_status",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "5bf84cc9-f1fc-449e-900e-eed61c93e7d7",
+      "name": "Lấy tài khoản quảng cáo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        608,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process single BM item for sequential processing (no-throw)\nconst first = $input.all()[0];\nconst bmItem = first && first.json ? first.json : {};\nlet targetDate = (function(){ try { return $('Thiết lập biến').first().json?.target_date || null; } catch(e){ return null; } })();\nlet facebookToken = (function(){ try { return $('Thiết lập biến').first().json?.facebook_token || null; } catch(e){ return null; } })();\nconst bmId = bmItem.bm_id || bmItem.id || 'Unknown';\nconst bmName = bmItem.bm_name || bmItem.name || 'Unknown';\nif (!facebookToken) { console.warn('Facebook token not available; downstream HTTP requests may fail'); }\nif (!targetDate) { console.warn('Target date not available; defaulting to today'); targetDate = new Date().toISOString().split('T')[0]; }\nconst currentExecution = $execution;\nif (currentExecution && currentExecution.data) {\n  delete currentExecution.data.account_context;\n  delete currentExecution.data.campaign_context;\n  delete currentExecution.data.adset_context;\n  currentExecution.data.bm_context = { bm_id: bmId, bm_name: bmName };\n}\nreturn [{ json: { bm_id: bmId, bm_name: bmName, target_date: targetDate, facebook_token: facebookToken, _metadata: { processing_timestamp: new Date().toISOString(), context_stored: !!(currentExecution && currentExecution.data && currentExecution.data.bm_context) } } }];"
+      },
+      "id": "41c1c958-4f7e-4a9d-bee0-76400d301a6a",
+      "name": "Xử lý BM cho tài khoản quảng cáo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -240,
+        704
+      ],
+      "id": "019bf34d-b61a-497a-9d7c-6528691d15dc",
+      "name": "Lặp qua BM"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract business manager data and prepare for processing (no-throw)\nconst items = $input.all();\nlet targetDate = (function(){ try { return $('Thiết lập biến').first().json.target_date; } catch(e){ return null; } })();\nif (!targetDate) { targetDate = new Date().toISOString().split('T')[0]; }\nconst processedItems = items.map((item, index) => {\n  try {\n    const business = item.json || {};\n    if (!business.id) { return null; }\n    const businessData = { bm_id: business.id, bm_name: business.name || 'Unknown', verification_status: business.verification_status || 'Unknown', created_time: business.created_time || null, target_date: targetDate };\n    return { json: businessData };\n  } catch (error) { return null; }\n}).filter(item => item !== null);\nif (processedItems.length === 0) { return [{ json: { bm_id: 'Unknown', bm_name: 'Unknown', target_date: targetDate, _placeholder: true } }]; }\nreturn processedItems;"
+      },
+      "id": "ba258ca9-e1fe-46ee-a91d-c3709a2a52d0",
+      "name": "Tách dữ liệu BM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/me/businesses?access_token={{ $json.facebook_token }}&fields=id,name,verification_status,created_time",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -928,
+        672
+      ],
+      "id": "74d16268-12ea-4076-b793-321ecdd3581c",
+      "name": "Lấy Business Manager"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "facebook_token",
+              "name": "facebook_token",
+              "value": "EAAUxEYRYfw4BPCJ4OZCGGPZAmkCi5eouOgZCgMhBwiuLNSbcoNxteZBjbir3Nid8ykXDzOzcL72PKvPPOeXqtu9pZCKTZCyEvQZCS4G9N6mkdL1ndlhAEFVTPZC6VrIMjBmkN50CRyxs2SrrGqIu6FgcSZAWEeqSHOiDAb0xD0zVYK0ZBx4BegomhUvlAslyPEUiNjZCJyf0ZA7ycNpa",
+              "type": "string"
+            },
+            {
+              "id": "target_date",
+              "name": "target_date",
+              "value": "={{ $now.minus({days: 1}).toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1152,
+        672
+      ],
+      "id": "537ba7e8-12e5-49a4-bf54-145f8409f9c9",
+      "name": "Thiết lập biến"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q",
+          "mode": "list",
+          "cachedResultName": "Data facebook",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 415024553,
+          "mode": "list",
+          "cachedResultName": "ads campaign",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aquzOCTONIDvIOq-eDGC-50TVjLc2_o8Mg6YZJUQt4Q/edit#gid=415024553"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "campaign_id": "={{ $json.campaign_id }}",
+            "campaign_name": "={{ $json.campaign_name }}",
+            "campaign_status": "={{ $json.campaign_status }}",
+            "objective": "={{ $json.objective }}",
+            "ad_accout_id": "={{ $json.ad_accout_id_1 }}",
+            "ad_account_name": "={{ $json.ad_account_name }}",
+            "bm_id": "={{ $json.bm_id }}",
+            "bm_name": "={{ $json.bm_name }}",
+            "target_date": "={{ $json.target_date }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "campaign_id",
+              "displayName": "campaign_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "campaign_name",
+              "displayName": "campaign_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "campaign_status",
+              "displayName": "campaign_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "objective",
+              "displayName": "objective",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ad_accout_id",
+              "displayName": "ad_accout_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ad_account_name",
+              "displayName": "ad_account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bm_id",
+              "displayName": "bm_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bm_name",
+              "displayName": "bm_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_date",
+              "displayName": "target_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "11d17f52-ba17-4ec6-a897-debec34df443",
+      "name": "Ghi chiến dịch vào Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1952,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MYWutchSQvmubQ4z",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1376,
+        672
+      ],
+      "id": "f84765a7-75e4-441f-9d4e-6c6215312fe8",
+      "name": "Kích hoạt thủ công"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        832,
+        160
+      ],
+      "id": "c7dbf07c-787b-4e37-b579-ebc778bcd91c",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        672
+      ],
+      "id": "0f9caf3e-868d-4da6-9912-b5fdaeabcff1",
+      "name": "Split Out BM"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        352
+      ],
+      "id": "776fb2bb-729f-4c52-9cfa-17ba2297a81d",
+      "name": "Split Out Campaign"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        208
+      ],
+      "id": "8a8fe3ec-8795-4e01-960a-7829bb2acfb3",
+      "name": "Split Out Ad Set"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        400
+      ],
+      "id": "51e58ac7-eb4a-44c4-b2ab-a7b6277dfa1a",
+      "name": "Split Out Ad"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data Integrity Check and Report (fixed)\nconst bmData = (function(){ try { return $('Ghi BM vào Google Sheets').all()[0]?.json; } catch(e){ return null; } })();\nconst targetDate = (function(){ try { return $('Thiết lập biến').first().json.target_date; } catch(e){ return null; } })();\nconsole.log('=== DATA INTEGRITY CHECK ===');\nconsole.log(`Target Date: ${targetDate}`);\nlet unknownFields = [];\nif (bmData) {\n  if (bmData.bm_id === 'Unknown') unknownFields.push('bm_id');\n  if (bmData.bm_name === 'Unknown') unknownFields.push('bm_name');\n  if (bmData.total_spend === 'Unknown') unknownFields.push('total_spend');\n  if (bmData.total_reach === 'Unknown') unknownFields.push('total_reach');\n} else { console.error('No BM data found'); }\nconst report = { timestamp: new Date().toISOString(), target_date: targetDate, bm_data_present: !!bmData, bm_id: (bmData && bmData.bm_id) ? bmData.bm_id : 'MISSING', bm_name: (bmData && bmData.bm_name) ? bmData.bm_name : 'MISSING', total_spend: (bmData && bmData.total_spend) ? bmData.total_spend : 0, total_reach: (bmData && bmData.total_reach) ? bmData.total_reach : 0, has_unknown_values: unknownFields.length > 0, unknown_fields: unknownFields, data_quality_score: (function(d){ if (!d) return 0; let s = 100; ['bm_id','bm_name','total_spend','total_reach'].forEach(f=>{ if(!d[f] || d[f]==='Unknown') s -= 25; }); if (d.total_spend === 0 && d.total_reach === 0) s -= 20; return Math.max(0,s); })(bmData), recommendations: (function(d, u){ const rec=[]; if(u && u.length>0) rec.push(`Fix unknown values in fields: ${u.join(', ')}`); if(d && d.total_spend === 0 && d.total_reach === 0) rec.push('Investigate why spend and reach are both 0 - check API responses and data flow'); if(!d) rec.push('Investigate why no BM data was generated - check upstream nodes'); if(rec.length===0) rec.push('Data quality looks good - no immediate action needed'); return rec; })(bmData, unknownFields) };\nreturn [{ json: report }];"
+      },
+      "id": "6d8feccf-4837-40b0-8084-9eaf8a49e03a",
+      "name": "Kiểm tra tính toàn vẹn dữ liệu",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Workflow Execution Summary\n// This node provides a comprehensive overview of the entire workflow execution\nconst targetDate = $('Thiết lập biến').first().json.target_date;\nconst startTime = $execution?.startedAt || new Date().toISOString();\nconst endTime = new Date().toISOString();\n\nconsole.log('\\n🚀 === WORKFLOW EXECUTION SUMMARY === 🚀');\nconsole.log(`📅 Target Date: ${targetDate}`);\nconsole.log(`⏰ Start Time: ${startTime}`);\nconsole.log(`⏰ End Time: ${endTime}`);\n\n// Calculate execution duration\nconst start = new Date(startTime);\nconst end = new Date(endTime);\nconst durationMs = end - start;\nconst durationMinutes = Math.round(durationMs / 60000 * 100) / 100;\nconsole.log(`⏱️  Total Execution Time: ${durationMinutes} minutes`);\n\n// Check all major data points\nconst bmData = $('Ghi BM vào Google Sheets').all()[0]?.json;\nconst accountData = $('Ghi tài khoản quảng cáo vào Google Sheets').all();\nconst campaignData = $('Ghi chiến dịch vào Google Sheets').all();\nconst adSetData = $('Ghi nhóm quảng cáo vào Google Sheets').all();\nconst adData = $('Ghi quảng cáo vào Google Sheets').all();\n\nconsole.log('\\n📊 DATA PROCESSING SUMMARY:');\nconsole.log(`- Business Managers: ${bmData ? '✅ Processed' : '❌ Failed'}`);\nconsole.log(`- Ad Accounts: ${accountData.length} processed`);\nconsole.log(`- Campaigns: ${campaignData.length} processed`);\nconsole.log(`- Ad Sets: ${adSetData.length} processed`);\nconsole.log(`- Ads: ${adData.length} processed`);\n\n// Check for any errors or warnings\nlet errorCount = 0;\nlet warningCount = 0;\n\nif (!bmData) errorCount++;\nif (accountData.length === 0) warningCount++;\nif (campaignData.length === 0) warningCount++;\nif (adSetData.length === 0) warningCount++;\nif (adData.length === 0) warningCount++;\n\n// Generate execution summary\nconst summary = {\n  execution_id: $execution?.id || 'unknown',\n  target_date: targetDate,\n  start_time: startTime,\n  end_time: endTime,\n  duration_minutes: durationMinutes,\n  data_processed: {\n    business_managers: !!bmData,\n    ad_accounts: accountData.length,\n    campaigns: campaignData.length,\n    ad_sets: adSetData.length,\n    ads: adData.length\n  },\n  error_count: errorCount,\n  warning_count: warningCount,\n  overall_status: errorCount > 0 ? 'FAILED' : warningCount > 0 ? 'WARNING' : 'SUCCESS',\n  recommendations: generateWorkflowRecommendations(bmData, accountData, campaignData, adSetData, adData)\n};\n\nconsole.log('\\n📋 EXECUTION STATUS:');\nconsole.log(`Overall Status: ${summary.overall_status}`);\nconsole.log(`Errors: ${errorCount}, Warnings: ${warningCount}`);\n\nif (summary.recommendations.length > 0) {\n  console.log('\\n💡 RECOMMENDATIONS:');\n  summary.recommendations.forEach((rec, index) => {\n    console.log(`${index + 1}. ${rec}`);\n  });\n}\n\nconsole.log('\\n🎯 === WORKFLOW COMPLETED === 🎯');\n\nreturn [{\n  json: summary\n}];\n\nfunction generateWorkflowRecommendations(bmData, accountData, campaignData, adSetData, adData) {\n  const recommendations = [];\n  \n  if (!bmData) {\n    recommendations.push('Investigate why Business Manager data was not generated');\n  }\n  \n  if (accountData.length === 0) {\n    recommendations.push('Check if there are any ad accounts associated with the Business Manager');\n  }\n  \n  if (campaignData.length === 0) {\n    recommendations.push('Verify that campaigns exist in the ad accounts');\n  }\n  \n  if (adSetData.length === 0) {\n    recommendations.push('Check if ad sets are properly configured in campaigns');\n  }\n  \n  if (adData.length === 0) {\n    recommendations.push('Ensure ads are created and active in ad sets');\n  }\n  \n  if (recommendations.length === 0) {\n    recommendations.push('Workflow executed successfully - all data processed correctly');\n  }\n  \n  return recommendations;\n}"
+      },
+      "id": "33dd426b-49c6-443d-a7bf-05cd7e739ab1",
+      "name": "Tổng kết workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data Validation Node - Validate data before writing to Google Sheets (no-throw)\nconst inputData = $input.all();\nconst nodeName = $node.name;\nlet targetDate = (function(){ try { return $('Thiết lập biến').first().json.target_date; } catch(e){ return null; } })();\nif (!targetDate) { targetDate = new Date().toISOString().split('T')[0]; }\nlet requiredFields = []; let fieldMappings = {};\nif (nodeName.includes('BM')) { requiredFields = ['date', 'bm_id', 'bm_name', 'total_spend', 'total_reach']; fieldMappings = { 'date': 'Date field', 'bm_id': 'Business Manager ID', 'bm_name': 'Business Manager Name', 'total_spend': 'Total Spend', 'total_reach': 'Total Reach' }; }\nelse if (nodeName.includes('tài khoản')) { requiredFields = ['date', 'ad_accout_id_1', 'bm_id', 'bm_name', 'total_spend', 'total_reach']; fieldMappings = { 'date': 'Date field', 'ad_accout_id_1': 'Ad Account ID', 'bm_id': 'Business Manager ID', 'bm_name': 'Business Manager Name', 'total_spend': 'Total Spend', 'total_reach': 'Total Reach' }; }\nelse if (nodeName.includes('chiến dịch')) { requiredFields = ['campaign_id', 'campaign_name', 'ad_accout_id_1', 'bm_id', 'bm_name']; fieldMappings = { 'campaign_id': 'Campaign ID', 'campaign_name': 'Campaign Name', 'ad_accout_id_1': 'Ad Account ID', 'bm_id': 'Business Manager ID', 'bm_name': 'Business Manager Name' }; }\nelse if (nodeName.includes('nhóm quảng cáo')) { requiredFields = ['date', 'ad_set_id', 'ad_set_name', 'campaign_id', 'ad_account_id', 'bm_id']; fieldMappings = { 'date': 'Date field', 'ad_set_id': 'Ad Set ID', 'ad_set_name': 'Ad Set Name', 'campaign_id': 'Campaign ID', 'ad_account_id': 'Ad Account ID', 'bm_id': 'Business Manager ID' }; }\nelse if (nodeName.includes('quảng cáo')) { requiredFields = ['date', 'ad_id', 'ad_name', 'ad_set_id', 'campaign_id', 'ad_account_id', 'bm_id']; fieldMappings = { 'date': 'Date field', 'ad_id': 'Ad ID', 'ad_name': 'Ad Name', 'ad_set_id': 'Ad Set ID', 'campaign_id': 'Campaign ID', 'ad_account_id': 'Ad Account ID', 'bm_id': 'Business Manager ID' }; }\nconst validatedItems = []; const invalidItems = []; let totalErrors = 0;\ninputData.forEach((item, index) => {\n  try {\n    const data = item.json || {}; const errors = []; const warnings = [];\n    requiredFields.forEach(field => { if (!data[field] || data[field] === 'Unknown' || data[field] === '') { errors.push(`Missing or invalid ${fieldMappings[field] || field}: ${data[field] || 'undefined'}`); } });\n    const numericFields = ['total_spend', 'total_reach', 'total_impressions', 'total_clicks', 'spend', 'reach', 'impressions', 'clicks'];\n    numericFields.forEach(field => { if (data[field] !== undefined && data[field] !== null && data[field] !== '') { const numValue = parseFloat(data[field]); if (!isNaN(numValue) && numValue < 0) { warnings.push(`Negative value in ${field}: ${data[field]}`); } if (!isNaN(numValue) && numValue > 1000000000) { warnings.push(`Extremely large value in ${field}: ${data[field]} - possible data error`); } } });\n    if (errors.length > 0) { invalidItems.push({ index, data, errors, warnings }); totalErrors += errors.length; data._validation = { validated: false, errors, warnings, validation_timestamp: new Date().toISOString() }; validatedItems.push({ json: data }); }\n    else { data._validation = { validated: true, validation_timestamp: new Date().toISOString(), warnings: warnings.length > 0 ? warnings : undefined }; validatedItems.push({ json: data }); }\n  } catch (error) { const data = item.json || {}; data._validation = { validated: false, error: error.message, validation_timestamp: new Date().toISOString() }; validatedItems.push({ json: data }); invalidItems.push({ index, error: error.message, data: item.json }); totalErrors++; }\n});\nreturn validatedItems;"
+      },
+      "id": "64c4ef3f-4f59-424f-b2e1-b0cc2e9524c9",
+      "name": "Kiểm tra dữ liệu trước khi ghi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        1392
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4400,
+        400
+      ],
+      "id": "cb7e9623-fbfa-4e60-af61-7ddb0e111d79",
+      "name": "Wait",
+      "webhookId": "6b7db202-ac41-4199-a263-ca1037e04249"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Đảo ngược mảng\nconst reversed = items.reverse();\n\n// Trả về đúng format n8n yêu cầu\nreturn reversed;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        736
+      ],
+      "id": "2ac2874e-9762-4c40-9b66-0ece587827cd",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Tổng hợp dữ liệu BM": {
+      "main": [
+        [
+          {
+            "node": "Kiểm tra dữ liệu trước khi ghi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ghi nhóm quảng cáo vào Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Lấy quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ghi quảng cáo vào Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Xử lý thống kê quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Ghi quảng cáo vào Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy thống kê quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Xử lý thống kê quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tách dữ liệu quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Lấy thống kê quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Split Out Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lặp qua chiến dịch": {
+      "main": [
+        [
+          {
+            "node": "Lấy nhóm quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lặp qua tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tách dữ liệu chiến dịch": {
+      "main": [
+        [
+          {
+            "node": "Lặp qua chiến dịch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ghi chiến dịch vào Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy chiến dịch": {
+      "main": [
+        [
+          {
+            "node": "Split Out Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Xử lý thống kê nhóm quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Ghi nhóm quảng cáo vào Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy thống kê nhóm quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Xử lý thống kê nhóm quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lặp qua nhóm quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Lấy thống kê nhóm quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lặp qua chiến dịch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tách dữ liệu nhóm quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Lặp qua nhóm quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy nhóm quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Split Out Ad Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ghi tài khoản quảng cáo vào Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Lấy chiến dịch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Xử lý thống kê tài khoản quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Ghi tài khoản quảng cáo vào Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy thống kê tài khoản quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Xử lý thống kê tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lặp qua tài khoản quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Lấy thống kê tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tổng hợp dữ liệu BM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tách dữ liệu tài khoản quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Lặp qua tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy tài khoản quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Xử lý BM cho tài khoản quảng cáo": {
+      "main": [
+        [
+          {
+            "node": "Lấy tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lặp qua BM": {
+      "main": [
+        [
+          {
+            "node": "Xử lý BM cho tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tách dữ liệu BM": {
+      "main": [
+        [
+          {
+            "node": "Lặp qua BM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lấy Business Manager": {
+      "main": [
+        [
+          {
+            "node": "Split Out BM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Thiết lập biến": {
+      "main": [
+        [
+          {
+            "node": "Lấy Business Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kích hoạt thủ công": {
+      "main": [
+        [
+          {
+            "node": "Thiết lập biến",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Tách dữ liệu tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out BM": {
+      "main": [
+        [
+          {
+            "node": "Tách dữ liệu BM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Campaign": {
+      "main": [
+        [
+          {
+            "node": "Tách dữ liệu chiến dịch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Ad Set": {
+      "main": [
+        [
+          {
+            "node": "Tách dữ liệu nhóm quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Ad": {
+      "main": [
+        [
+          {
+            "node": "Tách dữ liệu quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kiểm tra tính toàn vẹn dữ liệu": {
+      "main": [
+        [
+          {
+            "node": "Tổng kết workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kiểm tra dữ liệu trước khi ghi": {
+      "main": [
+        [
+          {
+            "node": "Ghi BM vào Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ghi BM vào Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Lặp qua BM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Lặp qua nhóm quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Lặp qua tài khoản quảng cáo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "f4e817e4bed79fe3f007575d74c7e4052e5f550bad0f623827341b89be59ea8e"
+  }
+}
