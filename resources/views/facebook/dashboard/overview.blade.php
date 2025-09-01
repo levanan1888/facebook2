@@ -1289,7 +1289,7 @@
                         <h4 class="text-lg font-semibold text-emerald-700">Kết quả phân tích AI</h4>
                         <span class="text-xs text-gray-500">Cập nhật: ${new Date().toLocaleString()}</span>
                     </div>
-                    <div class="text-[15px] leading-7 space-y-4 max-h-[60vh] overflow-y-auto pr-2 prose prose-sm max-w-none">
+                    <div class="text-[15px] leading-7 space-y-4 prose prose-sm max-w-none overflow-y-auto max-h-[70vh] pr-2">
                         ${md}
                     </div>
                 </div>`;
@@ -1300,30 +1300,67 @@
             const modal = document.getElementById('aiSummaryPopupModal');
             if (modal) {
                 modal.classList.remove('hidden');
-                // Chỉ load AI summary nếu chưa có kết quả
                 const aiSummaryPopupContent = document.getElementById('aiSummaryPopupContent');
-                if (aiSummaryPopupContent && !aiSummaryPopupContent.innerHTML.includes('Kết quả phân tích AI')) {
-                    loadAiSummaryForPopup();
+                
+                // Luôn load full content từ AI, không dùng preview
+                const holder = document.getElementById('aiSummaryHolder');
+                if (holder && holder.innerHTML.includes('Hoàn thành')) {
+                    // Lấy full content từ AI summary đã load
+                    loadFullAiContentForPopup();
                 } else {
-                    // Nếu đã có kết quả, hiển thị ngay
-                    const holder = document.getElementById('aiSummaryHolder');
-                    if (holder && holder.innerHTML.includes('Hoàn thành')) {
-                        // Copy nội dung từ holder vào popup
-                        const previewContent = holder.querySelector('[class*="text-[15px]"]')?.innerHTML || '';
-                        if (previewContent) {
-                            aiSummaryPopupContent.innerHTML = `
-                                <div class="bg-white rounded-lg shadow-sm border border-emerald-200 p-6">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h4 class="text-lg font-semibold text-emerald-700">Kết quả phân tích AI</h4>
-                                        <span class="text-xs text-gray-500">Cập nhật: ${new Date().toLocaleString()}</span>
-                                    </div>
-                                    <div class="text-[15px] leading-7 space-y-4 max-h-[60vh] overflow-y-auto pr-2 prose prose-sm max-w-none">
-                                        ${previewContent}
-                                    </div>
-                                </div>`;
-                        }
-                    }
+                    // Nếu chưa có kết quả, load mới
+                    loadAiSummaryForPopup();
                 }
+            }
+        }
+        
+        // Hàm load full AI content cho popup
+        async function loadFullAiContentForPopup() {
+            const aiSummaryPopupContent = document.getElementById('aiSummaryPopupContent');
+            if (!aiSummaryPopupContent) return;
+            
+            aiSummaryPopupContent.innerHTML = `
+                <div class="bg-emerald-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-emerald-600 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span class="text-emerald-800 font-medium">Đang tải nội dung đầy đủ...</span>
+                    </div>
+                </div>`;
+            
+            try {
+                // Gọi API để lấy full content
+                const breakdownsData = {
+                    breakdowns: @json($data['breakdowns'] ?? []),
+                    actions: @json($data['actions'] ?? []),
+                    stats: @json($data['stats'] ?? []),
+                    totals: @json($data['totals'] ?? []),
+                    performanceStats: @json($data['performanceStats'] ?? []),
+                    last7Days: @json($data['last7Days'] ?? []),
+                    statusStats: @json($data['statusStats'] ?? [])
+                };
+                
+                const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
+                
+                const res = await fetch(url.toString(), { 
+                    method: 'POST', 
+                    headers: { 
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        breakdowns_data: breakdownsData
+                    })
+                });
+                
+                const data = await res.json();
+                const text = (data && data.summary) ? data.summary : 'Không nhận được kết quả từ AI.';
+                await renderAiSummaryPopupContent(text);
+            } catch (error) {
+                console.error('AI Summary error:', error);
+                await renderAiSummaryPopupContent('Lỗi gọi AI. Vui lòng thử lại.');
             }
         }
         
@@ -1405,8 +1442,8 @@
             return out;
         }
 
-        // Filter Logic
-        document.addEventListener('DOMContentLoaded', function() {
+        // Filter Logic - Sửa lỗi SPA conflict
+        function initPage() {
             ensureChartAndInit(); 
             // Chỉ gọi AI summary một lần khi trang load
             if (!window.aiSummaryLoaded) {
@@ -1414,14 +1451,21 @@
                 window.aiSummaryLoaded = true;
             }
             initFilterLogic();
-        });
-        
-        // Đảm bảo filter logic được khởi tạo ngay cả khi DOM đã load
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initFilterLogic);
-        } else {
-            initFilterLogic();
         }
+        
+        // Khởi tạo khi DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPage);
+        } else {
+            initPage();
+        }
+        
+        // Khởi tạo lại khi Livewire navigate (SPA)
+        document.addEventListener('livewire:navigated', function() {
+            // Reset flag để có thể load lại
+            window.aiSummaryLoaded = false;
+            initPage();
+        });
         
         function initFilterLogic() {
             const btnToggleFilter = document.getElementById('btnToggleFilter');
@@ -1472,12 +1516,8 @@
                     filterCampaignsByAccount('');
                     updateFilterCount();
                     
-                    // Auto submit form ngay lập tức khi business thay đổi
-                    if (filterForm) {
-                        console.log('Auto submitting form due to business filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    // Không auto submit, chỉ cập nhật filter count
+                    console.log('Business filter changed, waiting for manual submit');
                 });
             }
 
@@ -1488,12 +1528,8 @@
                     filterCampaignsByAccount(selectedAccountId);
                     updateFilterCount();
                     
-                    // Auto submit form ngay lập tức khi account thay đổi
-                    if (filterForm) {
-                        console.log('Auto submitting form due to account filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    // Không auto submit, chỉ cập nhật filter count
+                    console.log('Account filter changed, waiting for manual submit');
                 });
             }
 
@@ -1502,19 +1538,16 @@
                 campaignFilter.addEventListener('change', function() {
                     updateFilterCount();
                     
-                    // Auto submit form ngay lập tức khi campaign thay đổi
-                    if (filterForm) {
-                        console.log('Auto submitting form due to campaign filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    // Không auto submit, chỉ cập nhật filter count
+                    console.log('Campaign filter changed, waiting for manual submit');
                 });
             }
 
-            // Form submit
+            // Form submit - Chỉ submit khi nhấn "Áp dụng bộ lọc"
             if (filterForm) {
                 filterForm.addEventListener('submit', function(e) {
                     updateFilterCount();
+                    showFilterLoading();
                     
                     // Scroll to results after form submit
                     setTimeout(function() {
@@ -1529,7 +1562,7 @@
                 });
             }
 
-            // Auto submit cho các filter khác
+            // Các filter khác - Không auto submit
             const contentTypeFilter = document.querySelector('select[name="content_type"]');
             const statusFilter = document.querySelector('select[name="status"]');
             const fromFilter = document.querySelector('input[name="from"]');
@@ -1538,44 +1571,28 @@
             if (contentTypeFilter) {
                 contentTypeFilter.addEventListener('change', function() {
                     updateFilterCount();
-                    if (filterForm) {
-                        console.log('Auto submitting form due to content type filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    console.log('Content type filter changed, waiting for manual submit');
                 });
             }
             
             if (statusFilter) {
                 statusFilter.addEventListener('change', function() {
                     updateFilterCount();
-                    if (filterForm) {
-                        console.log('Auto submitting form due to status filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    console.log('Status filter changed, waiting for manual submit');
                 });
             }
             
             if (fromFilter) {
                 fromFilter.addEventListener('change', function() {
                     updateFilterCount();
-                    if (filterForm) {
-                        console.log('Auto submitting form due to from date filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    console.log('From date filter changed, waiting for manual submit');
                 });
             }
             
             if (toFilter) {
                 toFilter.addEventListener('change', function() {
                     updateFilterCount();
-                    if (filterForm) {
-                        console.log('Auto submitting form due to to date filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    console.log('To date filter changed, waiting for manual submit');
                 });
             }
 
@@ -1647,14 +1664,10 @@
             if (pageFilter) {
                 pageFilter.value = '';
                 
-                // Auto submit form ngay lập tức khi page thay đổi
+                // Không auto submit khi page thay đổi
                 pageFilter.addEventListener('change', function() {
                     updateFilterCount();
-                    if (filterForm) {
-                        console.log('Auto submitting form due to page filter change');
-                        showFilterLoading();
-                        filterForm.submit();
-                    }
+                    console.log('Page filter changed, waiting for manual submit');
                 });
             }
         }
