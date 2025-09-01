@@ -12,6 +12,7 @@ use App\Models\FacebookCampaign;
 use App\Models\FacebookAdInsight;
 use App\Models\FacebookPost;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
