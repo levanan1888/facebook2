@@ -22,8 +22,8 @@ use Illuminate\Support\Facades\Schema;
 
 class FacebookAdsSyncService
 {
-    private const API_VERSION = 'v19.0';
-    private const BATCH_SIZE = 100;
+    private const API_VERSION = 'v23.0';
+    private const BATCH_SIZE = 1000;
     private const RATE_LIMIT_DELAY = 1; // 1 giây giữa các API calls
     private ?int $lastProcessedAdInsightId = null;
     
