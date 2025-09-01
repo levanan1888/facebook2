@@ -95,6 +95,7 @@
                             <select name="campaign_id" id="campaignFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Tất cả chiến dịch</option>
                                 @foreach(($data['filters']['campaigns'] ?? []) as $c)
+
                                     <option value="{{ $c->id }}" data-ad-account="{{ $c->ad_account_id ?? '' }}" {{ ($data['filters']['campaign_id'] ?? null) == $c->id ? 'selected' : '' }}>
                                         {{ $c->name }}
                                     </option>

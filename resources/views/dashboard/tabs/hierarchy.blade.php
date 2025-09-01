@@ -568,8 +568,8 @@ class FacebookHierarchy {
                                         <div class="text-xs text-gray-500">${new Date(post.created_time).toLocaleDateString()}</div>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <div class="font-medium">${post.page_name}</div>
-                                        <div class="text-xs text-gray-500">${post.page_id}</div>
+                                        <div class="font-medium">${post.page_id || 'N/A'}</div>
+                                        <div class="text-xs text-gray-500">Page ID</div>
                                     </td>
                                     <td class="px-4 py-3">
                                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">

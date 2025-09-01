@@ -147,9 +147,9 @@ class FacebookDashboardController extends Controller
         // Lấy businesses cho filter
         $businesses = FacebookBusiness::select('id', 'name')->get();
         
-        // Lấy pages cho filter
+        // Lấy pages cho filter - chỉ lấy page_id vì không có page_name trong bảng này
         $pages = FacebookAdInsight::whereNotNull('page_id')
-            ->select('page_id as id', 'page_name as name')
+            ->select('page_id as id', 'page_id as name')
             ->distinct()
             ->get();
 
