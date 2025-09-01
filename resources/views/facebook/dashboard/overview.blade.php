@@ -423,61 +423,106 @@
             @endif
         </div>
 
+        <!-- Guide Modal - Hiển thị hướng dẫn cho 2 màn hình trong sidebar -->
         <div id="guideModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-            <div class="relative top-10 mx-auto p-6 border w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+            <div class="relative top-10 mx-auto p-6 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-xl font-semibold text-gray-900">Hướng dẫn xem dữ liệu Facebook</h3>
+                        <h3 class="text-xl font-semibold text-gray-900">Hướng dẫn sử dụng Facebook Dashboard</h3>
                         <button id="closeGuideModal" class="text-gray-400 hover:text-gray-600 transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>
-                    <div class="space-y-4 text-sm text-gray-600">
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-blue-900 mb-2">📊 Tổng quan (Overview)</h4>
-                            <ul class="list-disc list-inside space-y-1 ml-4">
-                                <li>Xem thống kê tổng hợp: Business Managers, Ad Accounts, Campaigns, Posts</li>
-                                <li>Biểu đồ hoạt động 7 ngày gần nhất</li>
-                                <li>Phân bố trạng thái Campaigns</li>
-                                <li>Top 5 Campaigns và Posts theo hiệu suất</li>
-                            </ul>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-green-900 mb-2">📋 Dữ liệu thô (Data Raw)</h4>
-                            <ul class="list-disc list-inside space-y-1 ml-4">
-                                <li>Xem danh sách chi tiết tất cả dữ liệu đã đồng bộ</li>
-                                <li>Nhấn "Đồng bộ Facebook" để cập nhật dữ liệu mới</li>
-                                <li>Theo dõi tiến độ đồng bộ real-time</li>
-                                <li>Xem lỗi nếu có trong quá trình đồng bộ</li>
-                            </ul>
-                        </div>
-                        <div class="bg-purple-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-purple-900 mb-2">🔗 Phân cấp (Hierarchy)</h4>
-                            <ul class="list-disc list-inside space-y-1 ml-4">
-                                <li>Điều hướng theo cấu trúc: Business Manager → Ad Accounts → Campaigns → Ad Sets → Posts</li>
-                                <li>Click vào từng mục để xem chi tiết cấp con</li>
-                                <li>Xem thống kê tổng hợp cho mỗi cấp</li>
-                            </ul>
-                        </div>
-                        <div class="bg-orange-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-orange-900 mb-2">📈 Phân tích (Analytics)</h4>
-                            <ul class="list-disc list-inside space-y-1 ml-4">
-                                <li>Xem metrics hiệu suất: Spend, Impressions, Clicks, Reach</li>
-                                <li>Phân tích CTR, CPC, CPM</li>
-                                <li>Đánh giá hiệu quả chi phí</li>
-                                <li>Nhận khuyến nghị cải thiện</li>
-                            </ul>
-                        </div>
-                        <div class="bg-yellow-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-yellow-900 mb-2">💡 Mẹo sử dụng</h4>
-                            <ul class="list-disc list-inside space-y-1 ml-4">
-                                <li>Sử dụng nút "Làm mới" để cập nhật dữ liệu mà không reload trang</li>
-                                <li>Đồng bộ dữ liệu thường xuyên để có thông tin mới nhất</li>
-                                <li>Kiểm tra trang "Data Raw" để xem dữ liệu chi tiết</li>
-                                <li>Sử dụng trang "Hierarchy" để điều hướng dữ liệu theo cấu trúc</li>
-                            </ul>
+                    
+                    <!-- Tab Navigation -->
+                    <div class="border-b border-gray-200 mb-6">
+                        <nav class="flex space-x-8" aria-label="Tabs">
+                            <button id="overviewTab" class="border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600 tab-button active">
+                                📊 Facebook Overview
+                            </button>
+                            <button id="dataManagementTab" class="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 tab-button">
+                                📋 Data Management
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    <!-- Tab Content -->
+                    <div id="overviewContent" class="tab-content active">
+                        <div class="space-y-4 text-sm text-gray-600">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-900 mb-2">🎯 Màn hình Tổng quan (Overview)</h4>
+                                <p class="text-blue-800 mb-2">Đây là màn hình chính để xem tổng quan toàn bộ hệ thống Facebook Ads:</p>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li><strong>Thống kê tổng hợp:</strong> Business Managers, Ad Accounts, Campaigns, Posts</li>
+                                    <li><strong>Biểu đồ hoạt động:</strong> Theo dõi xu hướng 7 ngày gần nhất</li>
+                                    <li><strong>Phân bố trạng thái:</strong> Campaigns theo trạng thái hoạt động</li>
+                                    <li><strong>Top performers:</strong> 5 Campaigns và Posts hiệu suất cao nhất</li>
+                                    <li><strong>Phân tích Actions:</strong> Các hành động người dùng thực hiện</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-900 mb-2">🔧 Tính năng chính</h4>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li><strong>Bộ lọc nâng cao:</strong> Lọc theo thời gian, Business, Account, Campaign, Page</li>
+                                    <li><strong>Phân tích AI:</strong> Nhận đánh giá và khuyến nghị từ AI</li>
+                                    <li><strong>Làm mới dữ liệu:</strong> Cập nhật thông tin mới nhất</li>
+                                    <li><strong>Xuất báo cáo:</strong> Tải về dữ liệu phân tích</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="bg-purple-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-purple-900 mb-2">💡 Cách sử dụng hiệu quả</h4>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li>Kiểm tra <strong>Business Overview</strong> để nắm tổng quan hệ thống</li>
+                                    <li>Sử dụng <strong>Filter Panel</strong> để lọc dữ liệu theo nhu cầu</li>
+                                    <li>Nhấn <strong>Phân tích AI</strong> để nhận khuyến nghị cải thiện</li>
+                                    <li>Theo dõi <strong>Performance Charts</strong> để đánh giá hiệu suất</li>
+                                    <li>Xem <strong>Top Posts</strong> để học hỏi từ nội dung thành công</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
+                    
+                    <div id="dataManagementContent" class="tab-content hidden">
+                        <div class="space-y-4 text-sm text-gray-600">
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-900 mb-2">📊 Màn hình Quản lý dữ liệu (Data Management)</h4>
+                                <p class="text-green-800 mb-2">Màn hình này cung cấp công cụ quản lý và phân tích dữ liệu chi tiết:</p>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li><strong>Danh sách Posts:</strong> Xem tất cả bài viết với metrics chi tiết</li>
+                                    <li><strong>Chi tiết Post:</strong> Phân tích breakdown và insights sâu</li>
+                                    <li><strong>Đồng bộ dữ liệu:</strong> Cập nhật từ Facebook API</li>
+                                    <li><strong>Phân tích Breakdown:</strong> Theo độ tuổi, giới tính, vị trí, thiết bị</li>
+                                    <li><strong>Video Metrics:</strong> Thống kê chi tiết về video content</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-900 mb-2">🔍 Tính năng phân tích</h4>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li><strong>Breakdown Analysis:</strong> Phân tích theo nhiều tiêu chí khác nhau</li>
+                                    <li><strong>Performance Tracking:</strong> Theo dõi hiệu suất theo thời gian</li>
+                                    <li><strong>Action Insights:</strong> Phân tích hành động người dùng</li>
+                                    <li><strong>Comparative Analysis:</strong> So sánh hiệu suất giữa các posts</li>
+                                    <li><strong>Export Data:</strong> Xuất dữ liệu để phân tích nâng cao</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="bg-orange-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-orange-900 mb-2">📈 Cách sử dụng Data Management</h4>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li>Vào <strong>Data Management</strong> từ sidebar để xem danh sách posts</li>
+                                    <li>Click vào <strong>Post ID</strong> để xem chi tiết và breakdown</li>
+                                    <li>Sử dụng <strong>Filter</strong> để tìm posts cụ thể</li>
+                                    <li>Xem <strong>Breakdown Charts</strong> để hiểu audience insights</li>
+                                    <li>Phân tích <strong>Video Metrics</strong> nếu có nội dung video</li>
+                                    <li>Xuất <strong>Reports</strong> để chia sẻ với team</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="flex justify-end mt-6">
                         <button id="closeGuideModalBtn" class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">Đã hiểu</button>
                     </div>
@@ -485,6 +530,96 @@
             </div>
         </div>
 
+        <!-- AI Analysis Modal - Hiển thị popup khi nhấn Phân tích AI -->
+        <div id="aiAnalysisModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+            <div class="relative top-5 mx-auto p-6 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-white max-h-[95vh] overflow-y-auto">
+                <div class="mt-3">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold text-emerald-700">Phân tích AI - Đánh giá tổng quan</h3>
+                        <button id="closeAiModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div id="aiModalContent" class="space-y-4">
+                        <div class="bg-emerald-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+                                </svg>
+                                <span class="text-emerald-800 font-medium">Đang phân tích dữ liệu...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end mt-6">
+                        <button id="closeAiModalBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+        /* Tab Navigation Styling */
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        
+        .tab-button:hover {
+            color: #1d4ed8;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #2563eb;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Modal Styling */
+        .modal-overlay {
+            backdrop-filter: blur(4px);
+        }
+        
+        /* AI Modal Content Styling */
+        .prose {
+            color: #374151;
+        }
+        
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            color: #111827;
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        
+        .prose p {
+            margin-bottom: 1em;
+            line-height: 1.7;
+        }
+        
+        .prose ul, .prose ol {
+            margin-bottom: 1em;
+            padding-left: 1.5em;
+        }
+        
+        .prose li {
+            margin-bottom: 0.5em;
+        }
+        
+        .prose strong {
+            color: #111827;
+            font-weight: 600;
+        }
+        </style>
+        
         <script>
         function initFacebookOverviewCharts() {
             // modal/UX handlers (once)
@@ -496,13 +631,62 @@
             const btnAiSummary = document.getElementById('btnAiSummary');
             const btnToggleFilter = document.getElementById('btnToggleFilter');
             const filterPanel = document.getElementById('filterPanel');
+            
+            // AI Analysis Modal
+            const aiAnalysisModal = document.getElementById('aiAnalysisModal');
+            const closeAiModal = document.getElementById('closeAiModal');
+            const closeAiModalBtn = document.getElementById('closeAiModalBtn');
+            const aiModalContent = document.getElementById('aiModalContent');
+            
+            // Tab Navigation
+            const overviewTab = document.getElementById('overviewTab');
+            const dataManagementTab = document.getElementById('dataManagementTab');
+            const overviewContent = document.getElementById('overviewContent');
+            const dataManagementContent = document.getElementById('dataManagementContent');
 
+            // Guide Modal handlers
             if (btnGuide && guideModal && closeGuideModal && closeGuideModalBtn) {
                 btnGuide.onclick = () => guideModal.classList.remove('hidden');
                 const closeModal = () => guideModal.classList.add('hidden');
                 closeGuideModal.onclick = closeModal;
                 closeGuideModalBtn.onclick = closeModal;
                 guideModal.onclick = (e) => { if (e.target === guideModal) closeModal(); };
+            }
+            
+            // AI Analysis Modal handlers
+            if (btnAiSummary && aiAnalysisModal && closeAiModal && closeAiModalBtn) {
+                btnAiSummary.onclick = async () => {
+                    aiAnalysisModal.classList.remove('hidden');
+                    await requestAiSummaryForModal();
+                };
+                
+                const closeAiModal = () => aiAnalysisModal.classList.add('hidden');
+                closeAiModal.onclick = closeAiModal;
+                closeAiModalBtn.onclick = closeAiModal;
+                aiAnalysisModal.onclick = (e) => { if (e.target === aiAnalysisModal) closeAiModal(); };
+            }
+            
+            // Tab Navigation handlers
+            if (overviewTab && dataManagementTab && overviewContent && dataManagementContent) {
+                overviewTab.onclick = () => {
+                    overviewTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                    overviewTab.classList.remove('border-transparent', 'text-gray-500');
+                    dataManagementTab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                    dataManagementTab.classList.add('border-transparent', 'text-gray-500');
+                    
+                    overviewContent.classList.remove('hidden');
+                    dataManagementContent.classList.add('hidden');
+                };
+                
+                dataManagementTab.onclick = () => {
+                    dataManagementTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                    dataManagementTab.classList.remove('border-transparent', 'text-gray-500');
+                    overviewTab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                    overviewTab.classList.add('border-transparent', 'text-gray-500');
+                    
+                    dataManagementContent.classList.remove('hidden');
+                    overviewContent.classList.add('hidden');
+                };
             }
 
             if (btnRefresh) {
@@ -515,7 +699,8 @@
             }
 
             if (btnAiSummary) {
-                btnAiSummary.onclick = async function() { await requestAiSummary(true); };
+                // AI Summary button now handled in modal handlers above
+                // This is kept for backward compatibility
             }
 
             // Filter toggle handled in initFilterLogic() to avoid duplicate event listeners
@@ -528,12 +713,142 @@
                 const activityCtx = activityEl.getContext('2d');
                 const activityData = @json($data['last7Days']);
                 window.__fbCharts.activity && window.__fbCharts.activity.destroy();
-                window.__fbCharts.activity = new Chart(activityCtx, { type: 'line', data: { labels: activityData.map(item => item.date), datasets: [
-                    { label: 'Chiến dịch', data: activityData.map(item => item.campaigns), borderColor: 'rgb(59,130,246)', backgroundColor: 'rgba(59,130,246,0.15)', pointRadius: 3, borderWidth: 2, fill: true, tension: 0.35 },
-                    { label: 'Quảng cáo', data: activityData.map(item => item.ads), borderColor: 'rgb(16,185,129)', backgroundColor: 'rgba(16,185,129,0.15)', pointRadius: 3, borderWidth: 2, fill: true, tension: 0.35 },
-                    { label: 'Bài đăng', data: activityData.map(item => item.posts), borderColor: 'rgb(245,158,11)', backgroundColor: 'rgba(245,158,11,0.15)', pointRadius: 3, borderWidth: 2, fill: true, tension: 0.35 },
-                    { label: 'Chi tiêu ($)', data: activityData.map(item => item.spend || 0), borderColor: 'rgb(239,68,68)', backgroundColor: 'rgba(239,68,68,0.15)', pointRadius: 3, borderWidth: 2, fill: true, tension: 0.35, yAxisID: 'y1' }
-                ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, tooltip: { mode: 'index', intersect: false } }, interaction: { mode: 'index', intersect: false }, scales: { y: { type: 'linear', display: true, position: 'left', beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, y1: { type: 'linear', display: true, position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } }, x: { grid: { display: false } } }, plugins: { title: { display: true, text: 'Hoạt động 30 ngày gần nhất' } } } });
+                window.__fbCharts.activity = new Chart(activityCtx, { 
+                    type: 'bar', 
+                    data: { 
+                        labels: activityData.map(item => item.date), 
+                        datasets: [
+                            { 
+                                label: 'Chiến dịch', 
+                                data: activityData.map(item => item.campaigns), 
+                                backgroundColor: 'rgba(59,130,246,0.8)', 
+                                borderColor: 'rgb(59,130,246)', 
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
+                            },
+                            { 
+                                label: 'Quảng cáo', 
+                                data: activityData.map(item => item.ads), 
+                                backgroundColor: 'rgba(16,185,129,0.8)', 
+                                borderColor: 'rgb(16,185,129)', 
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
+                            },
+                            { 
+                                label: 'Bài đăng', 
+                                data: activityData.map(item => item.posts), 
+                                backgroundColor: 'rgba(245,158,11,0.8)', 
+                                borderColor: 'rgb(245,158,11)', 
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
+                            },
+                            { 
+                                label: 'Chi tiêu ($)', 
+                                data: activityData.map(item => item.spend || 0), 
+                                backgroundColor: 'rgba(239,68,68,0.8)', 
+                                borderColor: 'rgb(239,68,68)', 
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false,
+                                yAxisID: 'y1' 
+                            }
+                        ] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }, 
+                            tooltip: { 
+                                mode: 'index', 
+                                intersect: false,
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(255,255,255,0.2)',
+                                borderWidth: 1
+                            } 
+                        }, 
+                        interaction: { 
+                            mode: 'index', 
+                            intersect: false 
+                        }, 
+                        scales: { 
+                            y: { 
+                                type: 'linear', 
+                                display: true, 
+                                position: 'left', 
+                                beginAtZero: true, 
+                                grid: { 
+                                    color: 'rgba(0,0,0,0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: 'rgba(0,0,0,0.6)',
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }, 
+                            y1: { 
+                                type: 'linear', 
+                                display: true, 
+                                position: 'right', 
+                                beginAtZero: true, 
+                                grid: { 
+                                    drawOnChartArea: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: 'rgba(0,0,0,0.6)',
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }, 
+                            x: { 
+                                grid: { 
+                                    display: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: 'rgba(0,0,0,0.6)',
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            } 
+                        }, 
+                        plugins: { 
+                            title: { 
+                                display: true, 
+                                text: 'Hoạt động 30 ngày gần nhất',
+                                color: 'rgba(0,0,0,0.8)',
+                                font: {
+                                    size: 16,
+                                    weight: 'bold'
+                                }
+                            } 
+                        },
+                        layout: {
+                            padding: {
+                                top: 20,
+                                right: 20,
+                                bottom: 20,
+                                left: 20
+                            }
+                        }
+                    } 
+                });
             }
             if (statusEl) {
                 const statusCtx = statusEl.getContext('2d');
@@ -632,6 +947,63 @@
                 }
             }
         }
+        
+        // Hàm mới để xử lý AI Summary trong Modal
+        async function requestAiSummaryForModal() {
+            const aiModalContent = document.getElementById('aiModalContent');
+            if (!aiModalContent) return;
+            
+            aiModalContent.innerHTML = `
+                <div class="bg-emerald-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-emerald-600 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span class="text-emerald-800 font-medium">Đang phân tích dữ liệu...</span>
+                    </div>
+                </div>`;
+            
+            try {
+                // Chuẩn bị data breakdowns từ view để gửi cho AI
+                const breakdownsData = {
+                    breakdowns: @json($data['breakdowns'] ?? []),
+                    actions: @json($data['actions'] ?? []),
+                    stats: @json($data['stats'] ?? []),
+                    totals: @json($data['totals'] ?? []),
+                    performanceStats: @json($data['performanceStats'] ?? []),
+                    last7Days: @json($data['last7Days'] ?? []),
+                    statusStats: @json($data['statusStats'] ?? [])
+                };
+                
+                const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
+                if (window._aiDebug) url.searchParams.set('debug','1');
+                
+                const res = await fetch(url.toString(), { 
+                    method: 'POST', 
+                    headers: { 
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        breakdowns_data: breakdownsData
+                    })
+                });
+                
+                const data = await res.json();
+                if (data && data.debug) {
+                    console.log('AI metrics (debug):', data.metrics);
+                    console.log('Breakdowns data sent:', breakdownsData);
+                    await renderAiModalContent('Đang ở chế độ debug – xem metrics trong console.');
+                } else {
+                    const text = (data && data.summary) ? data.summary : 'Không nhận được kết quả từ AI.';
+                    await renderAiModalContent(text);
+                }
+            } catch (error) {
+                console.error('AI Analysis error:', error);
+                await renderAiModalContent('Lỗi gọi AI. Vui lòng thử lại.');
+            }
+        }
 
         function ensureChartAndInit() {
             if (window.Chart) { initFacebookOverviewCharts(); return; }
@@ -662,6 +1034,35 @@
                     <div class=\"text-[15px] leading-7 space-y-3 max-h-[200px] overflow-y-auto pr-2\">${md}</div>
                 </div>`;
             holder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Hàm mới để render AI content trong modal
+        async function renderAiModalContent(content) {
+            const aiModalContent = document.getElementById('aiModalContent');
+            if (!aiModalContent) return;
+            
+            // Load a tiny markdown parser for clean output if needed
+            async function ensureMarked() {
+                if (window.marked) return;
+                await new Promise((resolve) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+                    s.onload = resolve; document.head.appendChild(s);
+                });
+            }
+            await ensureMarked();
+            const md = (window.marked && window.marked.parse) ? window.marked.parse(content) : sanitizePlain(content);
+            
+            aiModalContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-sm border border-emerald-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-semibold text-emerald-700">Kết quả phân tích AI</h4>
+                        <span class="text-xs text-gray-500">Cập nhật: ${new Date().toLocaleString()}</span>
+                    </div>
+                    <div class="text-[15px] leading-7 space-y-4 max-h-[60vh] overflow-y-auto pr-2 prose prose-sm max-w-none">
+                        ${md}
+                    </div>
+                </div>`;
         }
 
         function sanitizePlain(t) {
