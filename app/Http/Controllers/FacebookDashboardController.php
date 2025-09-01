@@ -184,7 +184,7 @@ class FacebookDashboardController extends Controller
         $uniquePageIds = FacebookAdInsight::whereNotNull('page_id')->distinct('page_id')->pluck('page_id');
         $pages = $uniquePageIds->map(function($pageId) {
             // Tìm business_id của page này từ insights data
-            $pageInsights = FacebookAdInsight::where('page_id', $pageId)
+            $pageInsights = FacebookAdInsight::where('facebook_ad_insights.page_id', $pageId)
                 ->join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
                 ->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
                 ->first();
