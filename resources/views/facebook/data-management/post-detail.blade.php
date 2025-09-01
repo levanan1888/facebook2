@@ -97,7 +97,38 @@
             </div>
         </div>
     </div>
-
+<!-- Insights Charts -->
+    @if(!empty($insights['daily_data']))
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Phân tích theo thời gian</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Performance Over Time -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">Hiệu suất theo thời gian</h4>
+                    <canvas id="performance-chart" width="400" height="200"></canvas>
+                </div>
+                
+                <!-- Spend Over Time -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">Chi phí theo thời gian</h4>
+                    <canvas id="spend-time-chart" width="400" height="200"></canvas>
+                </div>
+                
+                <!-- Video Metrics Over Time -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">Video Metrics theo thời gian</h4>
+                    <canvas id="video-metrics-chart" width="400" height="200"></canvas>
+                </div>
+                
+                <!-- CTR Over Time -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">CTR theo thời gian</h4>
+                    <canvas id="ctr-time-chart" width="400" height="200"></canvas>
+            </div>
+        </div>
+            </div>
+    @endif
     <!-- Detailed Breakdown Data -->
     @if(!empty($detailedBreakdowns))
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">

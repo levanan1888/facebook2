@@ -8,6 +8,9 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 use Illuminate\Support\Facades\View;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Redirect;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Cấu hình redirect mặc định sau khi login
+        $this->configureDefaultRedirects();
+        
         // Đăng ký Blade directives cho permission
         Blade::directive('role', function ($role) {
             return "<?php if(auth()->check() && auth()->user()->hasRole({$role})): ?>";
@@ -75,5 +81,19 @@ class AppServiceProvider extends ServiceProvider
                 }
             };
         });
+    }
+    
+    /**
+     * Cấu hình redirect mặc định sau khi login
+     */
+    protected function configureDefaultRedirects(): void
+    {
+        // Đảm bảo redirect về facebook.overview sau khi login
+        if (class_exists(\Illuminate\Contracts\Auth\StatefulGuard::class)) {
+            // Cấu hình redirect mặc định cho authentication
+            $this->app->singleton('auth.redirect', function () {
+                return route('facebook.overview');
+            });
+        }
     }
 }

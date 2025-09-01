@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission.404' => \App\Http\Middleware\PermissionOr404::class,
             'redirect.after.login' => \App\Http\Middleware\RedirectAfterLogin::class,
         ]);
+        
+        // Áp dụng middleware redirect.after.login cho tất cả các request
+        $middleware->append(\App\Http\Middleware\RedirectAfterLogin::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

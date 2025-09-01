@@ -40,7 +40,9 @@ new #[Layout('components.layouts.auth')] class extends Component {
         RateLimiter::clear($this->throttleKey());
         Session::regenerate();
 
-        $this->redirectIntended(default: route('facebook.overview', absolute: false), navigate: true);
+        // Luôn redirect về facebook.overview thay vì dùng redirectIntended
+        // để tránh redirect về API endpoint
+        $this->redirect(route('facebook.overview'), navigate: true);
     }
 
     /**

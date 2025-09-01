@@ -26,6 +26,12 @@ class RedirectAfterLogin
             return redirect()->route('facebook.overview');
         }
 
+        // Kiểm tra nếu user đang truy cập API endpoint và đã đăng nhập
+        // thì redirect về trang chính thay vì trả về JSON
+        if (Auth::check() && $request->is('api/*') && $request->expectsJson() === false) {
+            return redirect()->route('facebook.overview');
+        }
+
         return $response;
     }
 }
