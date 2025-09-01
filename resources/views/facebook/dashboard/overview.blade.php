@@ -1053,6 +1053,12 @@
             const holder = document.getElementById('aiSummaryHolder');
             const statusElement = document.getElementById('aiSummaryStatus');
             
+            // Kiểm tra xem đã có kết quả AI chưa
+            if (!isManual && holder && holder.innerHTML.includes('Hoàn thành')) {
+                console.log('AI summary already loaded, skipping...');
+                return;
+            }
+            
             if (statusElement) {
                 statusElement.textContent = 'Đang phân tích...';
             }
@@ -1294,8 +1300,30 @@
             const modal = document.getElementById('aiSummaryPopupModal');
             if (modal) {
                 modal.classList.remove('hidden');
-                // Tự động load AI summary khi mở popup
-                loadAiSummaryForPopup();
+                // Chỉ load AI summary nếu chưa có kết quả
+                const aiSummaryPopupContent = document.getElementById('aiSummaryPopupContent');
+                if (aiSummaryPopupContent && !aiSummaryPopupContent.innerHTML.includes('Kết quả phân tích AI')) {
+                    loadAiSummaryForPopup();
+                } else {
+                    // Nếu đã có kết quả, hiển thị ngay
+                    const holder = document.getElementById('aiSummaryHolder');
+                    if (holder && holder.innerHTML.includes('Hoàn thành')) {
+                        // Copy nội dung từ holder vào popup
+                        const previewContent = holder.querySelector('[class*="text-[15px]"]')?.innerHTML || '';
+                        if (previewContent) {
+                            aiSummaryPopupContent.innerHTML = `
+                                <div class="bg-white rounded-lg shadow-sm border border-emerald-200 p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h4 class="text-lg font-semibold text-emerald-700">Kết quả phân tích AI</h4>
+                                        <span class="text-xs text-gray-500">Cập nhật: ${new Date().toLocaleString()}</span>
+                                    </div>
+                                    <div class="text-[15px] leading-7 space-y-4 max-h-[60vh] overflow-y-auto pr-2 prose prose-sm max-w-none">
+                                        ${previewContent}
+                                    </div>
+                                </div>`;
+                        }
+                    }
+                }
             }
         }
         
@@ -1380,7 +1408,11 @@
         // Filter Logic
         document.addEventListener('DOMContentLoaded', function() {
             ensureChartAndInit(); 
-            requestAiSummary(false);
+            // Chỉ gọi AI summary một lần khi trang load
+            if (!window.aiSummaryLoaded) {
+                requestAiSummary(false);
+                window.aiSummaryLoaded = true;
+            }
             initFilterLogic();
         });
         
@@ -1439,6 +1471,11 @@
                     filterAccountsByBusiness(selectedBusinessId);
                     filterCampaignsByAccount('');
                     updateFilterCount();
+                    
+                    // Auto submit form khi business thay đổi để cập nhật data
+                    if (filterForm) {
+                        filterForm.submit();
+                    }
                 });
             }
 
@@ -1448,6 +1485,11 @@
                     const selectedAccountId = this.value;
                     filterCampaignsByAccount(selectedAccountId);
                     updateFilterCount();
+                    
+                    // Auto submit form khi account thay đổi để cập nhật data
+                    if (filterForm) {
+                        filterForm.submit();
+                    }
                 });
             }
 
@@ -1455,13 +1497,29 @@
             if (campaignFilter) {
                 campaignFilter.addEventListener('change', function() {
                     updateFilterCount();
+                    
+                    // Auto submit form khi campaign thay đổi để cập nhật data
+                    if (filterForm) {
+                        filterForm.submit();
+                    }
                 });
             }
 
             // Form submit
             if (filterForm) {
-                filterForm.addEventListener('submit', function() {
+                filterForm.addEventListener('submit', function(e) {
                     updateFilterCount();
+                    
+                    // Scroll to results after form submit
+                    setTimeout(function() {
+                        const resultsSection = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-4.gap-6');
+                        if (resultsSection) {
+                            resultsSection.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'start' 
+                            });
+                        }
+                    }, 100);
                 });
             }
 
@@ -1532,6 +1590,14 @@
             const pageFilter = document.querySelector('select[name="page_id"]');
             if (pageFilter) {
                 pageFilter.value = '';
+                
+                // Auto submit form khi page thay đổi để cập nhật data
+                pageFilter.addEventListener('change', function() {
+                    updateFilterCount();
+                    if (filterForm) {
+                        filterForm.submit();
+                    }
+                });
             }
         }
 
