@@ -73,20 +73,40 @@ class UnifiedDataService
             ];
         });
 
-        // Top posts - Sử dụng dữ liệu từ facebook_ads thay vì facebook_posts đã bị xóa
+        // Top posts - Sử dụng dữ liệu từ facebook_ads với cấu trúc bảng thực tế
         $topPosts = \App\Models\FacebookAd::select([
                 'facebook_ads.id as ad_id', 
-                'facebook_ads.post_message as post_message', 
-                'facebook_ads.post_type as post_type',
-                'facebook_ads.post_likes as post_likes',
-                'facebook_ads.post_shares as post_shares',
-                'facebook_ads.post_comments as post_comments'
+                'facebook_ads.name as ad_name',
+                'facebook_ads.post_id',
+                'facebook_ads.post_meta',
+                'facebook_ads.page_id',
+                'facebook_ads.page_meta',
+                'facebook_ads.creative_json',
+                'facebook_ads.last_insights_sync'
             ])
             ->whereNotNull('post_id')
-            ->whereNotNull('post_message')
-            ->orderByRaw('(facebook_ads.post_likes + facebook_ads.post_shares + facebook_ads.post_comments) DESC')
+            ->whereNotNull('post_meta')
+            ->orderBy('facebook_ads.last_insights_sync', 'DESC')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function ($ad) {
+                // Parse post_meta để lấy thông tin post
+                $postMeta = json_decode($ad->post_meta, true) ?: [];
+                $creativeData = json_decode($ad->creative_json, true) ?: [];
+                
+                return [
+                    'ad_id' => $ad->ad_id,
+                    'ad_name' => $ad->ad_name,
+                    'post_id' => $ad->post_id,
+                    'post_message' => $postMeta['message'] ?? $creativeData['message'] ?? 'Không có nội dung',
+                    'post_type' => $postMeta['type'] ?? $creativeData['type'] ?? 'unknown',
+                    'post_likes' => $postMeta['likes_count'] ?? 0,
+                    'post_shares' => $postMeta['shares_count'] ?? 0,
+                    'post_comments' => $postMeta['comments_count'] ?? 0,
+                    'page_id' => $ad->page_id,
+                    'last_sync' => $ad->last_insights_sync
+                ];
+            });
 
         return [
             'totals' => $totals,
@@ -206,7 +226,7 @@ class UnifiedDataService
     public function getDailyStats(string $date): array
     {
         $insights = \App\Models\FacebookAdInsight::whereDate('date', $date)->first();
-        $posts = \App\Models\FacebookAd::whereDate('post_created_time', $date)
+        $posts = \App\Models\FacebookAd::whereDate('last_insights_sync', $date)
             ->whereNotNull('post_id')
             ->get();
 
@@ -219,13 +239,16 @@ class UnifiedDataService
                 'reach' => $insights->reach ?? 0,
             ] : null,
             'posts' => $posts->map(function ($post) {
+                $postMeta = json_decode($post->post_meta, true) ?: [];
+                $creativeData = json_decode($post->creative_json, true) ?: [];
+                
                 return [
                     'post_id' => $post->post_id,
-                    'message' => $post->post_message,
-                    'type' => $post->post_type,
-                    'likes' => $post->post_likes ?? 0,
-                    'shares' => $post->post_shares ?? 0,
-                    'comments' => $post->post_comments ?? 0,
+                    'message' => $postMeta['message'] ?? $creativeData['message'] ?? 'Không có nội dung',
+                    'type' => $postMeta['type'] ?? $creativeData['type'] ?? 'unknown',
+                    'likes' => $postMeta['likes_count'] ?? 0,
+                    'shares' => $postMeta['shares_count'] ?? 0,
+                    'comments' => $postMeta['comments_count'] ?? 0,
                 ];
             }),
         ];
@@ -239,12 +262,16 @@ class UnifiedDataService
             'total_spend' => \App\Models\FacebookAdInsight::where('date', '>=', $startDate)->sum('spend') ?? 0,
             'total_impressions' => \App\Models\FacebookAdInsight::where('date', '>=', $startDate)->sum('impressions') ?? 0,
             'avg_ctr' => \App\Models\FacebookAdInsight::where('date', '>=', $startDate)->avg('ctr') ?? 0,
-            'total_posts' => \App\Models\FacebookAd::where('post_created_time', '>=', $startDate)
+            'total_posts' => \App\Models\FacebookAd::where('last_insights_sync', '>=', $startDate)
                 ->whereNotNull('post_id')
                 ->count(),
-            'total_engagement' => \App\Models\FacebookAd::where('post_created_time', '>=', $startDate)
+            'total_engagement' => \App\Models\FacebookAd::where('last_insights_sync', '>=', $startDate)
                 ->whereNotNull('post_id')
-                ->sum(\Illuminate\Support\Facades\DB::raw('post_likes + post_shares + post_comments')),
+                ->get()
+                ->sum(function ($ad) {
+                    $postMeta = json_decode($ad->post_meta, true) ?: [];
+                    return ($postMeta['likes_count'] ?? 0) + ($postMeta['shares_count'] ?? 0) + ($postMeta['comments_count'] ?? 0);
+                }),
         ];
     }
 

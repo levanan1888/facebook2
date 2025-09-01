@@ -106,7 +106,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                             Địa chỉ email
                         </label>
                         <input wire:model="email" id="email" type="email" required 
-                               class="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200"
                                placeholder="Nhập email của bạn">
                         @error('email') 
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -118,7 +118,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                             Mật khẩu
                         </label>
                         <input wire:model="password" id="password" type="password" required 
-                               class="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200"
                                placeholder="Nhập mật khẩu của bạn">
                         @error('password') 
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -128,14 +128,14 @@ new #[Layout('components.layouts.auth')] class extends Component {
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
                             <input wire:model="remember" id="remember" type="checkbox" 
-                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                   class="h-4 w-4 text-sky-600 focus:ring-sky-500 border-gray-300 rounded">
                             <label for="remember" class="ml-2 block text-sm text-gray-700">
                                 Ghi nhớ đăng nhập
                             </label>
                         </div>
 
                         <div class="text-sm">
-                            <a href="{{ route('password.request') }}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200">
+                            <a href="{{ route('password.request') }}" class="font-medium text-sky-600 hover:text-sky-500 transition-colors duration-200">
                                 Quên mật khẩu?
                             </a>
                         </div>
@@ -143,9 +143,9 @@ new #[Layout('components.layouts.auth')] class extends Component {
 
                     <div>
                         <button type="submit" 
-                                class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                                class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                             <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                                <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-5 w-5 text-sky-400 group-hover:text-sky-300 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                             </span>
@@ -188,7 +188,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 <div class="mt-6 text-center">
                     <p class="text-sm text-gray-600">
                         Chưa có tài khoản? 
-                        <a href="{{ route('register') }}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200">
+                        <a href="{{ route('register') }}" class="font-medium text-sky-600 hover:text-sky-500 transition-colors duration-200">
                             Đăng ký ngay
                         </a>
                     </p>

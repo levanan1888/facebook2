@@ -56,7 +56,7 @@
                 </div>
             </div>
 
-            <!-- Facebook Posts -->
+            <!-- Facebook Posts Data -->
             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center space-x-3">
@@ -66,8 +66,8 @@
                             </svg>
                         </div>
                         <div>
-                            <h3 class="font-semibold text-gray-900">Facebook Posts</h3>
-                            <p class="text-sm text-gray-600">Bài đăng & Engagement</p>
+                            <h3 class="font-semibold text-gray-900">Facebook Posts Data</h3>
+                            <p class="text-sm text-gray-600">Dữ liệu bài đăng từ Ads</p>
                         </div>
                     </div>
                     <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
@@ -83,7 +83,7 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Dữ liệu:</span>
-                        <span class="text-gray-900">{{ number_format($data['totals']['posts'] ?? 0) }} posts</span>
+                        <span class="text-gray-900">{{ number_format($data['totals']['ads_with_posts'] ?? 0) }} ads có posts</span>
                     </div>
                 </div>
                 <div class="mt-4 flex space-x-2">
@@ -326,7 +326,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chỉ số</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facebook Ads</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facebook Posts</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facebook Posts Data</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Google Ads</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TikTok Ads</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng</th>
