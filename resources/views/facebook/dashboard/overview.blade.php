@@ -464,26 +464,7 @@
                 </div>
             </div>
 
-            <!-- Actions Data -->
-            @if(!empty($data['actions']['summary']))
-                <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
-                    <div class="bg-white rounded-lg shadow">
-                        <div class="p-6 border-b border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">Phân tích Actions</h3>
-                        </div>
-                        <div class="p-6">
-                            <div class="grid grid-cols-2 gap-4">
-                                @foreach($data['actions']['summary'] as $actionType => $value)
-                                    <div class="text-center p-3 bg-blue-50 rounded-lg">
-                                        <div class="text-xl font-bold text-blue-600">{{ number_format($value) }}</div>
-                                        <div class="text-sm text-gray-600">{{ ucfirst(str_replace('_', ' ', $actionType)) }}</div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
+
         </div>
 
         <!-- Guide Modal - Hiển thị hướng dẫn cho 2 màn hình trong sidebar -->
@@ -520,7 +501,6 @@
                                     <li><strong>Biểu đồ hoạt động:</strong> Theo dõi xu hướng 7 ngày gần nhất</li>
                                     <li><strong>Phân bố trạng thái:</strong> Campaigns theo trạng thái hoạt động</li>
                                     <li><strong>Top performers:</strong> 5 Campaigns và Posts hiệu suất cao nhất</li>
-                                    <li><strong>Phân tích Actions:</strong> Các hành động người dùng thực hiện</li>
                                 </ul>
                             </div>
                             

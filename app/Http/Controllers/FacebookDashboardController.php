@@ -53,15 +53,25 @@ class FacebookDashboardController extends Controller
         $request = $request ?? request();
         $from = $request->get('from');
         $to = $request->get('to');
-        if (!$from || !$to) {
-            // Mặc định lấy 36 tháng gần nhất để tránh thiếu số liệu khi AI tổng hợp
-            $to = now()->toDateString();
-            $from = now()->subMonthsNoOverflow(36)->toDateString();
-        }
         $selectedBusinessId = $request->get('business_id');
         $selectedAccountId = $request->get('account_id');
         $selectedCampaignId = $request->get('campaign_id');
         $selectedPageId = $request->get('page_id');
+
+        // Kiểm tra xem có filter nào được áp dụng không
+        $hasFilters = $from || $to || $selectedBusinessId || $selectedAccountId || $selectedCampaignId || $selectedPageId;
+
+        // Nếu không có filter, lấy dữ liệu tổng hợp toàn bộ
+        if (!$hasFilters) {
+            $from = null;
+            $to = null;
+        } else {
+            // Nếu có filter nhưng không có khoảng thời gian, mặc định 36 tháng gần nhất
+            if (!$from || !$to) {
+                $to = now()->toDateString();
+                $from = now()->subMonthsNoOverflow(36)->toDateString();
+            }
+        }
 
         // Tính totals theo filter đã chọn
         $totals = $this->calculateFilteredTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
@@ -85,7 +95,12 @@ class FacebookDashboardController extends Controller
             $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
         }
         
-        $insightsData = $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to])->get();
+        // Chỉ áp dụng filter thời gian nếu có filter
+        if ($from && $to) {
+            $insightsData = $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to])->get();
+        } else {
+            $insightsData = $insightsQuery->get();
+        }
 
         // Chuỗi hoạt động từ trước tới nay (theo dải from/to đã xác định ở trên)
         $activityAll = [];
@@ -125,8 +140,7 @@ class FacebookDashboardController extends Controller
         // Lấy breakdown data cho overview - áp dụng filter
         $breakdowns = $this->getFilteredBreakdowns($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
         
-        // Lấy actions data cho overview - áp dụng filter  
-        $actions = $this->getFilteredActions($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
+
 
         // Lấy accounts và campaigns cho filter
         $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
@@ -170,7 +184,6 @@ class FacebookDashboardController extends Controller
             'topAds' => $topAds,
             'topPosts' => $topPosts,
             'breakdowns' => $breakdowns,
-            'actions' => $actions,
             'statusStats' => $statusStats,
             'performanceStats' => $performanceStats,
             'filters' => [
@@ -193,9 +206,8 @@ class FacebookDashboardController extends Controller
      */
     private function calculateFilteredTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
     {
-        // Base query cho insights trong khoảng thời gian
-        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
-            ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+        // Base query cho insights
+        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
         
         // Apply filters
         if ($selectedBusinessId) {
@@ -213,6 +225,11 @@ class FacebookDashboardController extends Controller
         
         if ($selectedPageId) {
             $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+        }
+        
+        // Chỉ áp dụng filter thời gian nếu có
+        if ($from && $to) {
+            $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
         }
         
         $insightsData = $insightsQuery->get();
@@ -327,9 +344,8 @@ class FacebookDashboardController extends Controller
      */
     private function getFilteredTopAds($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to)
     {
-        // Base query cho insights trong khoảng thời gian
-        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
-            ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+        // Base query cho insights
+        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
         
         // Apply filters
         if ($selectedBusinessId) {
@@ -349,6 +365,11 @@ class FacebookDashboardController extends Controller
             $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
         }
         
+        // Chỉ áp dụng filter thời gian nếu có
+        if ($from && $to) {
+            $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
+        }
+        
         $insightsData = $insightsQuery->get();
         
         if ($insightsData->count() === 0) {
@@ -359,9 +380,12 @@ class FacebookDashboardController extends Controller
         $uniqueAdIds = $insightsData->pluck('ad_id')->unique();
         
         // Lấy top ads với insights data
-        return FacebookAd::with(['campaign', 'adSet'])
-            ->whereIn('id', $uniqueAdIds)
-            ->withSum(['insights as total_spend' => function ($query) use ($from, $to) {
+        $adsQuery = FacebookAd::with(['campaign', 'adSet'])
+            ->whereIn('id', $uniqueAdIds);
+            
+        // Chỉ áp dụng filter thời gian cho withSum nếu có filter
+        if ($from && $to) {
+            $adsQuery->withSum(['insights as total_spend' => function ($query) use ($from, $to) {
                 $query->whereBetween('date', [$from, $to]);
             }], 'spend')
             ->withSum(['insights as total_impressions' => function ($query) use ($from, $to) {
@@ -369,8 +393,14 @@ class FacebookDashboardController extends Controller
             }], 'impressions')
             ->withSum(['insights as total_clicks' => function ($query) use ($from, $to) {
                 $query->whereBetween('date', [$from, $to]);
-            }], 'clicks')
-            ->orderByDesc('total_spend')
+            }], 'clicks');
+        } else {
+            $adsQuery->withSum('insights as total_spend', 'spend')
+            ->withSum('insights as total_impressions', 'impressions')
+            ->withSum('insights as total_clicks', 'clicks');
+        }
+        
+        return $adsQuery->orderByDesc('total_spend')
             ->limit(5)
             ->get();
     }
@@ -380,9 +410,8 @@ class FacebookDashboardController extends Controller
      */
     private function getFilteredTopPosts($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to)
     {
-        // Base query cho insights trong khoảng thời gian
+        // Base query cho insights
         $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
-            ->whereBetween('facebook_ad_insights.date', [$from, $to])
             ->whereNotNull('facebook_ad_insights.post_id');
         
         // Apply filters
@@ -401,6 +430,11 @@ class FacebookDashboardController extends Controller
         
         if ($selectedPageId) {
             $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+        }
+        
+        // Chỉ áp dụng filter thời gian nếu có
+        if ($from && $to) {
+            $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
         }
         
         $insightsData = $insightsQuery->get();
@@ -437,9 +471,8 @@ class FacebookDashboardController extends Controller
     private function getFilteredBreakdowns($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
     {
         try {
-            // Base query cho insights trong khoảng thời gian
-            $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
-                ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+            // Base query cho insights
+            $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
             
             // Apply filters
             if ($selectedBusinessId) {
@@ -457,6 +490,11 @@ class FacebookDashboardController extends Controller
             
             if ($selectedPageId) {
                 $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+            }
+            
+            // Chỉ áp dụng filter thời gian nếu có
+            if ($from && $to) {
+                $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
             }
             
             // Lấy danh sách insight IDs
@@ -512,84 +550,7 @@ class FacebookDashboardController extends Controller
         }
     }
 
-    /**
-     * Lấy actions theo filter đã chọn
-     */
-    private function getFilteredActions($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
-    {
-        try {
-            // Base query cho insights trong khoảng thời gian
-            $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
-                ->whereBetween('facebook_ad_insights.date', [$from, $to]);
-            
-            // Apply filters
-            if ($selectedBusinessId) {
-                $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
-                              ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
-            }
-            
-            if ($selectedAccountId) {
-                $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
-            }
-            
-            if ($selectedCampaignId) {
-                $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
-            }
-            
-            if ($selectedPageId) {
-                $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
-            }
-            
-            $insightsData = $insightsQuery->get();
-            
-            $result = [
-                'daily_actions' => [],
-                'summary' => []
-            ];
-            
-            foreach ($insightsData as $insight) {
-                $date = $insight->date;
-                $dateString = $date instanceof \Carbon\Carbon ? $date->toDateString() : (string) $date;
-                $actions = $insight->actions ?? [];
-                
-                if (!isset($result['daily_actions'][$dateString])) {
-                    $result['daily_actions'][$dateString] = [];
-                }
-                
-                foreach ($actions as $action) {
-                    if (!is_array($action)) {
-                        continue;
-                    }
-                    
-                    $actionType = $action['action_type'] ?? 'unknown';
-                    $value = $action['value'] ?? 0;
-                    
-                    // Thêm vào daily actions
-                    if (!isset($result['daily_actions'][$dateString][$actionType])) {
-                        $result['daily_actions'][$dateString][$actionType] = 0;
-                    }
-                    $result['daily_actions'][$dateString][$actionType] += $value;
-                    
-                    // Thêm vào summary
-                    if (!isset($result['summary'][$actionType])) {
-                        $result['summary'][$actionType] = 0;
-                    }
-                    $result['summary'][$actionType] += $value;
-                }
-            }
-            
-            return $result;
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error in getFilteredActions', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return [
-                'daily_actions' => [],
-                'summary' => []
-            ];
-        }
-    }
+
 
     /**
      * Gọi AI tóm tắt tổng quan dashboard
