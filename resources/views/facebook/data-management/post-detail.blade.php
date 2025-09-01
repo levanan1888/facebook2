@@ -343,43 +343,50 @@
                 </div>
     @endif
 
-    <!-- Breakdown Charts -->
+    <!-- Breakdown Charts - Chỉ hiển thị các breakdown quan trọng -->
     @if(!empty($breakdowns))
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Biểu đồ Breakdown</h2>
             
+            @php
+                // Chỉ hiển thị các breakdown type quan trọng
+                $importantBreakdowns = ['age', 'gender', 'country', 'region', 'publisher_platform', 'device_platform'];
+            @endphp
+            
             @foreach($breakdowns as $breakdownType => $breakdownData)
-                <div class="mb-8">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">{{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h3>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Spend Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">Chi phí theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="spend-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
-                        </div>
+                @if(in_array($breakdownType, $importantBreakdowns))
+                    <div class="mb-8">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">{{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h3>
                         
-                        <!-- Impressions Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">Hiển thị theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="impressions-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
-                        </div>
-                        
-                        <!-- CTR Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">CTR theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="ctr-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
-                        </div>
-                        
-                        <!-- Video Views Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">Video Views theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="video-views-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Spend Chart -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-md font-medium text-gray-700 mb-3">Chi phí theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                                <canvas id="spend-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                            </div>
+                            
+                            <!-- Impressions Chart -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-md font-medium text-gray-700 mb-3">Hiển thị theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                                <canvas id="impressions-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                            </div>
+                            
+                            <!-- CTR Chart -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-md font-medium text-gray-700 mb-3">CTR theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                                <canvas id="ctr-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                            </div>
+                            
+                            <!-- Video Views Chart -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-md font-medium text-gray-700 mb-3">Video Views theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                                <canvas id="video-views-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
             @endforeach
-            </div>
+        </div>
     @endif
 
 
@@ -561,124 +568,131 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/\n/g, '<br>');
         return html;
     }
-    // Breakdown Charts
+    // Breakdown Charts - Chỉ tạo biểu đồ cho các breakdown quan trọng
     @if(!empty($breakdowns))
+        @php
+            // Chỉ tạo biểu đồ cho các breakdown type quan trọng
+            $importantBreakdowns = ['age', 'gender', 'country', 'region', 'publisher_platform', 'device_platform'];
+        @endphp
+        
         @foreach($breakdowns as $breakdownType => $breakdownData)
-            // Spend Chart
-            const spendCtx{{ $loop->index }} = document.getElementById('spend-chart-{{ $breakdownType }}').getContext('2d');
-            new Chart(spendCtx{{ $loop->index }}, {
-                type: 'bar',
-                data: {
-                    labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
-                    datasets: [{
-                        label: 'Chi phí (VND)',
-                        data: {!! json_encode(array_column($breakdownData, 'spend')) !!},
-                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                        borderColor: 'rgba(239, 68, 68, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+            @if(in_array($breakdownType, $importantBreakdowns))
+                // Spend Chart
+                const spendCtx{{ $loop->index }} = document.getElementById('spend-chart-{{ $breakdownType }}').getContext('2d');
+                new Chart(spendCtx{{ $loop->index }}, {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
+                        datasets: [{
+                            label: 'Chi phí (VND)',
+                            data: {!! json_encode(array_column($breakdownData, 'spend')) !!},
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
-            });
+                });
 
-            // Impressions Chart
-            const impressionsCtx{{ $loop->index }} = document.getElementById('impressions-chart-{{ $breakdownType }}').getContext('2d');
-            new Chart(impressionsCtx{{ $loop->index }}, {
-                type: 'bar',
-                data: {
-                    labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
-                    datasets: [{
-                        label: 'Hiển thị',
-                        data: {!! json_encode(array_column($breakdownData, 'impressions')) !!},
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+                // Impressions Chart
+                const impressionsCtx{{ $loop->index }} = document.getElementById('impressions-chart-{{ $breakdownType }}').getContext('2d');
+                new Chart(impressionsCtx{{ $loop->index }}, {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
+                        datasets: [{
+                            label: 'Hiển thị',
+                            data: {!! json_encode(array_column($breakdownData, 'impressions')) !!},
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
-            });
+                });
 
-            // CTR Chart
-            const ctrCtx{{ $loop->index }} = document.getElementById('ctr-chart-{{ $breakdownType }}').getContext('2d');
-            new Chart(ctrCtx{{ $loop->index }}, {
-                type: 'bar',
-                data: {
-                    labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
-                    datasets: [{
-                        label: 'CTR (%)',
-                        data: {!! json_encode(array_map(function($item) { return ($item['ctr'] ?? 0) * 100; }, $breakdownData)) !!},
-                        backgroundColor: 'rgba(168, 85, 247, 0.8)',
-                        borderColor: 'rgba(168, 85, 247, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+                // CTR Chart
+                const ctrCtx{{ $loop->index }} = document.getElementById('ctr-chart-{{ $breakdownType }}').getContext('2d');
+                new Chart(ctrCtx{{ $loop->index }}, {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
+                        datasets: [{
+                            label: 'CTR (%)',
+                            data: {!! json_encode(array_map(function($item) { return ($item['ctr'] ?? 0) * 100; }, $breakdownData)) !!},
+                            backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                            borderColor: 'rgba(168, 85, 247, 1)',
+                            borderWidth: 1
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
-            });
+                });
 
-            // Video Views Chart
-            const videoViewsCtx{{ $loop->index }} = document.getElementById('video-views-chart-{{ $breakdownType }}').getContext('2d');
-            new Chart(videoViewsCtx{{ $loop->index }}, {
-                type: 'bar',
-                data: {
-                    labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
-                    datasets: [{
-                        label: 'Video Views',
-                        data: {!! json_encode(array_column($breakdownData, 'video_views')) !!},
-                        backgroundColor: 'rgba(251, 146, 60, 0.8)',
-                        borderColor: 'rgba(251, 146, 60, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+                // Video Views Chart
+                const videoViewsCtx{{ $loop->index }} = document.getElementById('video-views-chart-{{ $breakdownType }}').getContext('2d');
+                new Chart(videoViewsCtx{{ $loop->index }}, {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode(array_column($breakdownData, 'breakdown_value')) !!},
+                        datasets: [{
+                            label: 'Video Views',
+                            data: {!! json_encode(array_column($breakdownData, 'video_views')) !!},
+                            backgroundColor: 'rgba(251, 146, 60, 0.8)',
+                            borderColor: 'rgba(251, 146, 60, 1)',
+                            borderWidth: 1
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
                         }
                     }
-                }
-            });
+                });
+            @endif
         @endforeach
     @endif
 
