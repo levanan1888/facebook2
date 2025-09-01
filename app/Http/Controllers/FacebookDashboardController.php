@@ -57,6 +57,7 @@ class FacebookDashboardController extends Controller
             $to = now()->toDateString();
             $from = now()->subMonthsNoOverflow(36)->toDateString();
         }
+        $selectedBusinessId = $request->get('business_id');
         $selectedAccountId = $request->get('account_id');
         $selectedCampaignId = $request->get('campaign_id');
 
@@ -75,6 +76,13 @@ class FacebookDashboardController extends Controller
         // Lấy dữ liệu từ facebook_ad_insights
         $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
         
+        if ($selectedBusinessId) {
+            $insightsQuery->whereHas('ad', function($query) use ($selectedBusinessId) {
+                $query->whereHas('account', function($q) use ($selectedBusinessId) {
+                    $q->where('business_id', $selectedBusinessId);
+                });
+            });
+        }
         if ($selectedAccountId) {
             $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
         }
@@ -141,8 +149,11 @@ class FacebookDashboardController extends Controller
         $actions = $facebookDataService->getOverviewActions(null, $from, $to);
 
         // Lấy accounts và campaigns cho filter
-        $accounts = FacebookAdAccount::select('id', 'name', 'account_id')->get();
-        $campaigns = FacebookCampaign::select('id', 'name')->get();
+        $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
+        $campaigns = FacebookCampaign::select('id', 'name', 'ad_account_id')->get();
+        
+        // Lấy Business Managers cho filter
+        $businesses = FacebookBusiness::select('id', 'name')->get();
 
         // Thống kê trạng thái cho biểu đồ donut
         $statusStats = [
@@ -184,8 +195,10 @@ class FacebookDashboardController extends Controller
                 'to' => $to,
                 'account_id' => $selectedAccountId,
                 'campaign_id' => $selectedCampaignId,
+                'business_id' => $request->get('business_id'),
                 'accounts' => $accounts,
                 'campaigns' => $campaigns,
+                'businesses' => $businesses,
             ]
         ];
     }

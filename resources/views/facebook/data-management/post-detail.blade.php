@@ -123,6 +123,16 @@
                     Dữ liệu được nhóm theo ngày để tránh trùng lặp thời gian và hiển thị rõ ràng hơn. 
                     <span class="font-medium text-blue-600">Hover vào biểu đồ để xem chi tiết từng thời điểm.</span>
                 </p>
+                <div id="time-data-notice" class="hidden mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <span class="text-sm text-yellow-800">
+                            <strong>Lưu ý:</strong> Tất cả dữ liệu có cùng thời gian. Biểu đồ hiển thị dữ liệu thực tế từ database.
+                        </span>
+                    </div>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -744,8 +754,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const uniqueTimestamps = new Set(sortedData.map(item => item.date));
             
             if (uniqueTimestamps.size === 1) {
-                // Nếu tất cả cùng timestamp, tạo ra các điểm thời gian giả lập để hiển thị
-                console.log('Tất cả dữ liệu có cùng timestamp, tạo điểm thời gian giả lập');
+                // Nếu tất cả cùng timestamp, hiển thị dữ liệu thực tế thay vì fake
+                console.log('Tất cả dữ liệu có cùng timestamp, hiển thị dữ liệu thực tế');
                 
                 // Hiển thị thông báo cho người dùng
                 const noticeElement = document.getElementById('time-data-notice');
@@ -754,59 +764,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 const baseDate = new Date(sortedData[0].date);
-                const fakeLabels = [];
-                const fakeImpressions = [];
-                const fakeClicks = [];
-                const fakeSpend = [];
-                const fakeVideoViews = [];
-                const fakeVideoP75 = [];
-                const fakeVideoP100 = [];
-                const fakeCtr = [];
-                
-                // Tạo 7 điểm thời gian giả lập (7 ngày gần nhất)
-                for (let i = 6; i >= 0; i--) {
-                    const fakeDate = new Date(baseDate);
-                    fakeDate.setDate(fakeDate.getDate() - i);
-                    
-                    // Tạo label hiển thị
-                    if (i === 6) {
-                        fakeLabels.push('6 ngày trước');
-                    } else if (i === 5) {
-                        fakeLabels.push('5 ngày trước');
-                    } else if (i === 4) {
-                        fakeLabels.push('4 ngày trước');
-                    } else if (i === 3) {
-                        fakeLabels.push('3 ngày trước');
-                    } else if (i === 2) {
-                        fakeLabels.push('2 ngày trước');
-                    } else if (i === 1) {
-                        fakeLabels.push('Hôm qua');
-                    } else {
-                        fakeLabels.push('Hôm nay');
-                    }
-                    
-                    // Phân bố dữ liệu theo thời gian (giả lập)
-                    const progress = (7 - i) / 7; // Từ 0 đến 1
-                    const randomFactor = 0.8 + (Math.random() * 0.4); // 0.8 đến 1.2
-                    
-                    fakeImpressions.push(Math.round((sortedData[0].impressions || 0) * progress * randomFactor));
-                    fakeClicks.push(Math.round((sortedData[0].clicks || 0) * progress * randomFactor));
-                    fakeSpend.push(Math.round((sortedData[0].spend || 0) * progress * randomFactor));
-                    fakeVideoViews.push(Math.round((sortedData[0].video_views || 0) * progress * randomFactor));
-                    fakeVideoP75.push(Math.round((sortedData[0].video_p75_watched_actions || 0) * progress * randomFactor));
-                    fakeVideoP100.push(Math.round((sortedData[0].video_p100_watched_actions || 0) * progress * randomFactor));
-                    fakeCtr.push((sortedData[0].ctr || 0) * progress * randomFactor);
-                }
+                const realLabel = baseDate.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
                 
                 return {
-                    labels: fakeLabels,
-                    impressions: fakeImpressions,
-                    clicks: fakeClicks,
-                    spend: fakeSpend,
-                    videoViews: fakeVideoViews,
-                    videoP75: fakeVideoP75,
-                    videoP100: fakeVideoP100,
-                    ctr: fakeCtr.map(ctr => ctr * 100)
+                    labels: [realLabel],
+                    impressions: [sortedData[0].impressions || 0],
+                    clicks: [sortedData[0].clicks || 0],
+                    spend: [sortedData[0].spend || 0],
+                    videoViews: [sortedData[0].video_views || 0],
+                    videoP75: [sortedData[0].video_p75_watched_actions || 0],
+                    videoP100: [sortedData[0].video_p100_watched_actions || 0],
+                    ctr: [(sortedData[0].ctr || 0) * 100]
                 };
             }
             
@@ -1092,6 +1066,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                 });
+                
+                // Kiểm tra nếu tất cả cùng timestamp
+                if (timeKeys.length === 1) {
+                    const singleDate = new Date(timeKeys[0]);
+                    const realLabel = singleDate.toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const actionValues = {};
+                    actionTypes.forEach(actionType => {
+                        actionValues[actionType] = [data[timeKeys[0]][actionType] || 0];
+                    });
+                    
+                    return {
+                        labels: [realLabel],
+                        actionTypes: actionTypes,
+                        actionValues: actionValues
+                    };
+                }
                 
                 // Nhóm dữ liệu theo khoảng thời gian để tránh trùng lặp
                 const groupedData = new Map();

@@ -1471,6 +1471,12 @@
                     accountFilter.value = '';
                 }
             }
+            
+            // Reset campaign selection when business changes
+            const campaignFilter = document.getElementById('campaignFilter');
+            if (campaignFilter) {
+                campaignFilter.value = '';
+            }
         }
 
         function filterCampaignsByAccount(accountId) {
