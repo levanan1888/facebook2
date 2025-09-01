@@ -93,7 +93,7 @@ class FacebookDashboardController extends Controller
             $grouped = $insightsData->groupBy('date')->sortKeys();
             foreach ($grouped as $d => $dayData) {
                 $activityAll[] = [
-                    'date' => $d,
+                    'date' => $d instanceof \Carbon\Carbon ? $d->toDateString() : (string) $d,
                     'ads' => $dayData->count(),
                     'posts' => $dayData->whereNotNull('post_id')->count(),
                     'campaigns' => $dayData->pluck('campaign_id')->unique()->count(),
@@ -549,10 +549,11 @@ class FacebookDashboardController extends Controller
             
             foreach ($insightsData as $insight) {
                 $date = $insight->date;
+                $dateString = $date instanceof \Carbon\Carbon ? $date->toDateString() : (string) $date;
                 $actions = $insight->actions ?? [];
                 
-                if (!isset($result['daily_actions'][$date])) {
-                    $result['daily_actions'][$date] = [];
+                if (!isset($result['daily_actions'][$dateString])) {
+                    $result['daily_actions'][$dateString] = [];
                 }
                 
                 foreach ($actions as $action) {
@@ -564,10 +565,10 @@ class FacebookDashboardController extends Controller
                     $value = $action['value'] ?? 0;
                     
                     // Thêm vào daily actions
-                    if (!isset($result['daily_actions'][$date][$actionType])) {
-                        $result['daily_actions'][$date][$actionType] = 0;
+                    if (!isset($result['daily_actions'][$dateString][$actionType])) {
+                        $result['daily_actions'][$dateString][$actionType] = 0;
                     }
-                    $result['daily_actions'][$date][$actionType] += $value;
+                    $result['daily_actions'][$dateString][$actionType] += $value;
                     
                     // Thêm vào summary
                     if (!isset($result['summary'][$actionType])) {
@@ -861,8 +862,10 @@ class FacebookDashboardController extends Controller
             ->get();
 
         $dailyStats = $insightsData->groupBy('date')->map(function ($dayData) {
+            $firstInsight = $dayData->first();
+            $date = $firstInsight->date;
             return [
-                'date' => $dayData->first()->date,
+                'date' => $date instanceof \Carbon\Carbon ? $date->toDateString() : (string) $date,
                 'total_spend' => $dayData->sum('spend'),
                 'total_impressions' => $dayData->sum('impressions'),
                 'total_clicks' => $dayData->sum('clicks'),
