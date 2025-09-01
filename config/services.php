@@ -37,7 +37,7 @@ return [
         'app_secret' => env('FACEBOOK_APP_SECRET'),
         'api_version' => env('FACEBOOK_API_VERSION', 'v19.0'),
         'graph_url' => env('FACEBOOK_GRAPH_URL', 'https://graph.facebook.com'),
-        'batch_size' => env('FACEBOOK_BATCH_SIZE', 100),
+        'batch_size' => env('FACEBOOK_BATCH_SIZE', 1000),
         'timeout' => env('FACEBOOK_TIMEOUT', 30),
         'retry_attempts' => env('FACEBOOK_RETRY_ATTEMPTS', 3),
     ],
