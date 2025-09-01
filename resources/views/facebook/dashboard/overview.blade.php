@@ -420,36 +420,36 @@
                                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                     <div class="flex-1">
                                         <h4 class="font-medium text-gray-900">
-                                            {{ Str::limit($post->message ?? 'Không có nội dung', 50) }}
+                                            {{ Str::limit($post['message'] ?? 'Post ID: ' . ($post['post_id'] ?? 'N/A'), 50) }}
                                         </h4>
                                         <p class="text-sm text-gray-600">
-                                            Post ID: {{ $post->id ?? 'N/A' }}
-                                            @if($post->id && $post->page_id)
-                                                <a href="{{ route('facebook.data-management.post-detail', ['postId' => $post->id, 'pageId' => $post->page_id]) }}" 
+                                            Post ID: {{ $post['post_id'] ?? 'N/A' }}
+                                            @if(isset($post['post_id']) && isset($post['page_id']))
+                                                <a href="{{ route('facebook.data-management.post-detail', ['postId' => $post['post_id'], 'pageId' => $post['page_id']]) }}" 
                                                    class="ml-2 text-blue-600 hover:text-blue-800 underline text-xs">
                                                     Xem chi tiết
                                                 </a>
                                             @endif
                                         </p>
                                         <div class="flex space-x-4 mt-2 text-sm text-gray-500">
-                                            <span title="Chi phí">💰 {{ number_format($post->total_spend ?? 0, 0) }} VND</span>
-                                            <span title="Hiển thị">👁️ {{ number_format($post->total_impressions ?? 0) }}</span>
-                                            <span title="Click">🖱️ {{ number_format($post->total_clicks ?? 0) }}</span>
-                                            <span title="CTR">📊 {{ number_format(($post->avg_ctr ?? 0) * 100, 2) }}%</span>
+                                            <span title="Chi phí">💰 {{ number_format($post['total_spend'] ?? 0, 0) }} VND</span>
+                                            <span title="Hiển thị">👁️ {{ number_format($post['total_impressions'] ?? 0) }}</span>
+                                            <span title="Click">🖱️ {{ number_format($post['total_clicks'] ?? 0) }}</span>
+                                            <span title="CTR">📊 {{ number_format(($post['avg_ctr'] ?? 0) * 100, 2) }}%</span>
                                         </div>
-                                        @if($post->permalink_url)
+                                        @if(isset($post['permalink_url']))
                                             <div class="mt-2">
-                                                <a href="{{ $post->permalink_url }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 underline">
+                                                <a href="{{ $post['permalink_url'] }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 underline">
                                                     Xem bài viết gốc
                                                 </a>
                                             </div>
                                         @endif
                                     </div>
                                     <div class="text-right">
-                                        <p class="font-semibold text-gray-900">{{ number_format($post->total_spend ?? 0, 0) }}</p>
+                                        <p class="font-semibold text-gray-900">{{ number_format($post['total_spend'] ?? 0, 0) }}</p>
                                         <p class="text-xs text-gray-500">Chi phí (VND)</p>
-                                        @if($post->total_video_views)
-                                            <p class="text-xs text-green-600 mt-1">🎥 {{ number_format($post->total_video_views) }}</p>
+                                        @if(isset($post['total_video_views']) && $post['total_video_views'] > 0)
+                                            <p class="text-xs text-green-600 mt-1">🎥 {{ number_format($post['total_video_views']) }}</p>
                                         @endif
                                     </div>
                                 </div>
