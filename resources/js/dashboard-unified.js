@@ -152,7 +152,7 @@ class DashboardUnified {
             const filters = {
                 date_range: this.currentFilters.dateRange,
                 source1: document.getElementById('source1')?.value || 'facebook_ads',
-                source2: document.getElementById('source2')?.value || 'facebook_posts',
+                source2: document.getElementById('source2')?.value || 'facebook_ads',
                 metric: document.getElementById('metric')?.value || 'spend'
             };
 

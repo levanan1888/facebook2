@@ -39,7 +39,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nguồn dữ liệu 1</label>
                 <select id="source1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="facebook_ads" selected>Facebook Ads</option>
-                    <option value="facebook_posts">Facebook Posts</option>
+                                            <option value="facebook_ads">Facebook Ads</option>
                     <option value="google_ads">Google Ads</option>
                     <option value="tiktok_ads">TikTok Ads</option>
                 </select>
@@ -48,7 +48,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nguồn dữ liệu 2</label>
                 <select id="source2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="facebook_posts" selected>Facebook Posts</option>
+                                            <option value="facebook_ads" selected>Facebook Ads</option>
                     <option value="facebook_ads">Facebook Ads</option>
                     <option value="google_ads">Google Ads</option>
                     <option value="tiktok_ads">TikTok Ads</option>

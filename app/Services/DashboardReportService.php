@@ -1,16 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use App\Models\DashboardReport;
-use App\Models\FacebookBusiness;
-use App\Models\FacebookAdAccount;
-use App\Models\FacebookCampaign;
-use App\Models\FacebookAdSet;
 use App\Models\FacebookAd;
-use App\Models\FacebookPage;
-use App\Models\FacebookPost;
+use App\Models\FacebookAdAccount;
+use App\Models\FacebookAdSet;
+use App\Models\FacebookBusiness;
+use App\Models\FacebookCampaign;
 use App\Models\FacebookInsight;
+use App\Models\FacebookPage;
+use App\Models\DashboardReport;
 use Illuminate\Support\Facades\DB;
 
 class DashboardReportService
@@ -81,7 +82,7 @@ class DashboardReportService
             'adsets' => FacebookAdSet::count(),
             'ads' => FacebookAd::count(),
             'pages' => FacebookPage::count(),
-            'posts' => FacebookPost::count(),
+            'posts' => FacebookAd::whereNotNull('post_id')->distinct('post_id')->count(),
             'insights' => FacebookInsight::count(),
         ];
     }
@@ -96,7 +97,7 @@ class DashboardReportService
             return [
                 'date' => $date,
                 'ads' => FacebookAd::whereDate('created_time', $date)->count(),
-                'posts' => FacebookPost::whereDate('created_time', $date)->count(),
+                'posts' => FacebookAd::whereDate('post_created_time', $date)->whereNotNull('post_id')->count(),
                 'campaigns' => FacebookCampaign::whereDate('created_at', $date)->count(),
                 'spend' => FacebookInsight::whereDate('date', $date)->sum('spend'),
             ];
@@ -120,10 +121,11 @@ class DashboardReportService
      */
     private function getTopPosts(): array
     {
-        return FacebookPost::with('page')
-            ->orderByRaw('(likes_count + shares_count + comments_count) DESC')
+        return FacebookAd::whereNotNull('post_id')
+            ->whereNotNull('post_message')
+            ->orderByRaw('(post_likes + post_shares + post_comments) DESC')
             ->limit(5)
-            ->get(['id', 'post_id', 'page_id', 'message', 'likes_count', 'shares_count', 'comments_count', 'created_time'])
+            ->get(['id', 'post_id', 'page_id', 'post_message as message', 'post_likes as likes_count', 'post_shares as shares_count', 'post_comments as comments_count', 'post_created_time as created_time'])
             ->toArray();
     }
 

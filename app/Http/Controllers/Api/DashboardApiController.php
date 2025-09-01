@@ -109,14 +109,31 @@ class DashboardApiController extends Controller
         try {
             $data = $this->unifiedDataService->getUnifiedData();
             
+            // Kiểm tra xem có dữ liệu không
+            if (empty($data) || !isset($data['sources'])) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Chưa có dữ liệu để hiển thị'
+                ]);
+            }
+            
             return response()->json([
                 'success' => true,
                 'data' => $data['sources'] ?? []
             ]);
         } catch (\Exception $e) {
+            // Log lỗi để debug
+            \Log::error('Error in getDataSourcesStatus: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi lấy trạng thái nguồn dữ liệu: ' . $e->getMessage()
+                'message' => 'Lỗi khi lấy trạng thái nguồn dữ liệu: ' . $e->getMessage(),
+                'data' => []
             ], 500);
         }
     }

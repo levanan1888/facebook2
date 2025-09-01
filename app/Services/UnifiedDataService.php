@@ -9,7 +9,6 @@ use App\Models\FacebookAdAccount;
 use App\Models\FacebookAdSet;
 use App\Models\FacebookBusiness;
 use App\Models\FacebookCampaign;
-use App\Models\FacebookPost;
 use App\Models\FacebookAdInsight;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -74,16 +73,18 @@ class UnifiedDataService
             ];
         });
 
-        // Top posts - Sử dụng dữ liệu từ facebook_posts thay vì các cột không tồn tại
-        $topPosts = \App\Models\FacebookPost::select([
-                'facebook_posts.id as post_id', 
-                'facebook_posts.message as post_message', 
-                'facebook_posts.type as post_type',
-                'facebook_posts.likes_count as post_likes',
-                'facebook_posts.shares_count as post_shares',
-                'facebook_posts.comments_count as post_comments'
+        // Top posts - Sử dụng dữ liệu từ facebook_ads thay vì facebook_posts đã bị xóa
+        $topPosts = \App\Models\FacebookAd::select([
+                'facebook_ads.id as ad_id', 
+                'facebook_ads.post_message as post_message', 
+                'facebook_ads.post_type as post_type',
+                'facebook_ads.post_likes as post_likes',
+                'facebook_ads.post_shares as post_shares',
+                'facebook_ads.post_comments as post_comments'
             ])
-            ->orderByRaw('(facebook_posts.likes_count + facebook_posts.shares_count + facebook_posts.comments_count) DESC')
+            ->whereNotNull('post_id')
+            ->whereNotNull('post_message')
+            ->orderByRaw('(facebook_ads.post_likes + facebook_ads.post_shares + facebook_ads.post_comments) DESC')
             ->limit(10)
             ->get();
 
@@ -121,7 +122,7 @@ class UnifiedDataService
                 ->where('facebook_ads.last_insights_sync', '>=', $previousStartDate)
                 ->where('facebook_ads.last_insights_sync', '<', $startDate)
                 ->sum('facebook_ad_insights.spend') ?? 0,
-            'impressions' => \App\Models\FacebookAdInsight::join('facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+            'impressions' => \App\Models\FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
                 ->where('facebook_ads.last_insights_sync', '>=', $previousStartDate)
                 ->where('facebook_ads.last_insights_sync', '<', $startDate)
                 ->sum('facebook_ad_insights.impressions') ?? 0,
@@ -182,28 +183,32 @@ class UnifiedDataService
     public function getDataSourcesStatus(): array
     {
         return [
-            'facebook' => [
-                'connected' => true,
-                'last_sync' => FacebookAd::max('last_insights_sync'),
-                'data_count' => FacebookAd::count(),
-            ],
-            'google' => [
-                'connected' => false,
-                'last_sync' => null,
-                'data_count' => 0,
-            ],
-            'tiktok' => [
-                'connected' => false,
-                'last_sync' => null,
-                'data_count' => 0,
-            ],
+            'sources' => [
+                'facebook' => [
+                    'connected' => true,
+                    'last_sync' => FacebookAd::max('last_insights_sync'),
+                    'data_count' => FacebookAd::count(),
+                ],
+                'google' => [
+                    'connected' => false,
+                    'last_sync' => null,
+                    'data_count' => 0,
+                ],
+                'tiktok' => [
+                    'connected' => false,
+                    'last_sync' => null,
+                    'data_count' => 0,
+                ],
+            ]
         ];
     }
 
     public function getDailyStats(string $date): array
     {
         $insights = \App\Models\FacebookAdInsight::whereDate('date', $date)->first();
-        $posts = \App\Models\FacebookPost::whereDate('created_time', $date)->get();
+        $posts = \App\Models\FacebookAd::whereDate('post_created_time', $date)
+            ->whereNotNull('post_id')
+            ->get();
 
         return [
             'date' => $date,
@@ -215,12 +220,12 @@ class UnifiedDataService
             ] : null,
             'posts' => $posts->map(function ($post) {
                 return [
-                    'post_id' => $post->id,
-                    'message' => $post->message,
-                    'type' => $post->type,
-                    'likes' => $post->likes_count ?? 0,
-                    'shares' => $post->shares_count ?? 0,
-                    'comments' => $post->comments_count ?? 0,
+                    'post_id' => $post->post_id,
+                    'message' => $post->post_message,
+                    'type' => $post->post_type,
+                    'likes' => $post->post_likes ?? 0,
+                    'shares' => $post->post_shares ?? 0,
+                    'comments' => $post->post_comments ?? 0,
                 ];
             }),
         ];
@@ -234,9 +239,12 @@ class UnifiedDataService
             'total_spend' => \App\Models\FacebookAdInsight::where('date', '>=', $startDate)->sum('spend') ?? 0,
             'total_impressions' => \App\Models\FacebookAdInsight::where('date', '>=', $startDate)->sum('impressions') ?? 0,
             'avg_ctr' => \App\Models\FacebookAdInsight::where('date', '>=', $startDate)->avg('ctr') ?? 0,
-            'total_posts' => \App\Models\FacebookPost::where('created_time', '>=', $startDate)->count(),
-            'total_engagement' => \App\Models\FacebookPost::where('created_time', '>=', $startDate)
-                ->sum(\Illuminate\Support\Facades\DB::raw('likes_count + shares_count + comments_count')),
+            'total_posts' => \App\Models\FacebookAd::where('post_created_time', '>=', $startDate)
+                ->whereNotNull('post_id')
+                ->count(),
+            'total_engagement' => \App\Models\FacebookAd::where('post_created_time', '>=', $startDate)
+                ->whereNotNull('post_id')
+                ->sum(\Illuminate\Support\Facades\DB::raw('post_likes + post_shares + post_comments')),
         ];
     }
 

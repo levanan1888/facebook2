@@ -8,7 +8,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('dashboard', [App\Http\Controllers\UnifiedDashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'permission.404:dashboard.view'])
+    ->middleware(['auth', 'verified', 'permission.404:dashboard.view', 'redirect.after.login'])
     ->name('dashboard');
 
 Route::get('debug/campaigns', [App\Http\Controllers\DashboardController::class, 'debugCampaigns'])

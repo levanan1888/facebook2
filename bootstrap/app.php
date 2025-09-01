@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'track.login' => \App\Http\Middleware\TrackLoginActivity::class,
             'permission.404' => \App\Http\Middleware\PermissionOr404::class,
+            'redirect.after.login' => \App\Http\Middleware\RedirectAfterLogin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
