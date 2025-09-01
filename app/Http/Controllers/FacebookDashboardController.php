@@ -148,8 +148,33 @@ class FacebookDashboardController extends Controller
             $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
             $campaigns = FacebookCampaign::select('id', 'name', 'ad_account_id')->get();
         } else {
-            // Khi có filter, chỉ lấy từ insights data đã filter
-            $allInsightsData = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')->get();
+            // Khi có filter, áp dụng filter tương tự như trong calculateFilteredTotals
+            $filteredInsightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
+            
+            // Apply filters
+            if ($selectedBusinessId) {
+                $filteredInsightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                                      ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+            }
+            
+            if ($selectedAccountId) {
+                $filteredInsightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+            }
+            
+            if ($selectedCampaignId) {
+                $filteredInsightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+            }
+            
+            if ($selectedPageId) {
+                $filteredInsightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+            }
+            
+            // Chỉ áp dụng filter thời gian nếu có
+            if ($from && $to) {
+                $filteredInsightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
+            }
+            
+            $allInsightsData = $filteredInsightsQuery->get();
             
             if ($allInsightsData->count() > 0) {
                 $uniqueAdIds = $allInsightsData->pluck('ad_id')->unique();
@@ -170,7 +195,7 @@ class FacebookDashboardController extends Controller
             // Khi không có filter, lấy tất cả business managers
             $businesses = FacebookBusiness::select('id', 'name')->get();
         } else {
-            // Khi có filter, chỉ lấy từ insights data
+            // Khi có filter, chỉ lấy từ insights data đã filter
             if ($allInsightsData->count() > 0) {
                 $uniqueAdIds = $allInsightsData->pluck('ad_id')->unique();
                 $adsData = FacebookAd::whereIn('id', $uniqueAdIds)->get();
@@ -317,16 +342,14 @@ class FacebookDashboardController extends Controller
                 $uniqueAccountIds = $adsData->pluck('account_id')->unique();
                 $uniqueAdsetIds = $adsData->pluck('adset_id')->unique();
                 
-                // Đếm từ các bảng chính
-                $totals['ads'] = $uniqueAdIds->count();
-                $totals['campaigns'] = $uniqueCampaignIds->count();
-                $totals['accounts'] = $uniqueAccountIds->count();
-                $totals['adsets'] = $uniqueAdsetIds->count();
+                // Khi không có filter, đếm tất cả từ bảng chính
+                $totals['businesses'] = FacebookBusiness::count();
+                $totals['accounts'] = FacebookAdAccount::count();
+                $totals['campaigns'] = FacebookCampaign::count();
+                $totals['ads'] = FacebookAd::count();
+                $totals['adsets'] = FacebookAdSet::count();
                 $totals['pages'] = $uniquePageIds->count();
                 $totals['posts'] = $uniquePostIds->count();
-                
-                // Khi không có filter, đếm tất cả businesses
-                $totals['businesses'] = FacebookBusiness::count();
             } else {
                 // Khi có filter, đếm từ insights data đã filter
                 $uniqueAdIds = $insightsData->pluck('ad_id')->unique();
@@ -364,33 +387,41 @@ class FacebookDashboardController extends Controller
      */
     private function calculateFilteredStatusStats($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
     {
-        // Base query cho insights
-        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
+        // Kiểm tra xem có filter nào được áp dụng không
+        $hasFilters = $selectedBusinessId || $selectedAccountId || $selectedCampaignId || $selectedPageId || ($from && $to);
         
-        // Apply filters
-        if ($selectedBusinessId) {
-            $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
-                          ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+        if (!$hasFilters) {
+            // Khi không có filter, lấy toàn bộ dữ liệu
+            $insightsData = FacebookAdInsight::all();
+        } else {
+            // Khi có filter, áp dụng các điều kiện
+            $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
+            
+            // Apply filters
+            if ($selectedBusinessId) {
+                $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                              ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+            }
+            
+            if ($selectedAccountId) {
+                $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+            }
+            
+            if ($selectedCampaignId) {
+                $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+            }
+            
+            if ($selectedPageId) {
+                $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+            }
+            
+            // Chỉ áp dụng filter thời gian nếu có
+            if ($from && $to) {
+                $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
+            }
+            
+            $insightsData = $insightsQuery->get();
         }
-        
-        if ($selectedAccountId) {
-            $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
-        }
-        
-        if ($selectedCampaignId) {
-            $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
-        }
-        
-        if ($selectedPageId) {
-            $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
-        }
-        
-        // Chỉ áp dụng filter thời gian nếu có
-        if ($from && $to) {
-            $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
-        }
-        
-        $insightsData = $insightsQuery->get();
         
         $statusStats = [
             'campaigns' => [],
