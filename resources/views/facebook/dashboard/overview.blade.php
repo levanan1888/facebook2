@@ -35,46 +35,125 @@
             </div>
 
             @can('analytics.filter')
-            <div id="filterPanel" class="mt-4 bg-white rounded-lg shadow p-4 hidden">
-                <form method="GET" action="{{ route('facebook.overview') }}">
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+            <div id="filterPanel" class="mt-4 bg-white rounded-lg shadow-lg p-6 border border-gray-200 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Bộ lọc nâng cao</h3>
+                    <button type="button" id="btnCloseFilter" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <form method="GET" action="{{ route('facebook.overview') }}" id="filterForm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         @can('analytics.filter.time')
-                        <div>
-                            <label class="block text-xs text-gray-600 mb-1">Từ ngày</label>
-                            <input type="date" name="from" value="{{ $data['filters']['from'] ?? '' }}" class="w-full border rounded px-3 py-2 text-sm" />
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-600 mb-1">Đến ngày</label>
-                            <input type="date" name="to" value="{{ $data['filters']['to'] ?? '' }}" class="w-full border rounded px-3 py-2 text-sm" />
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Khoảng thời gian</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Từ ngày</label>
+                                    <input type="date" name="from" value="{{ $data['filters']['from'] ?? '' }}" 
+                                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Đến ngày</label>
+                                    <input type="date" name="to" value="{{ $data['filters']['to'] ?? '' }}" 
+                                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                </div>
+                            </div>
                         </div>
                         @endcan
+                        
                         @can('analytics.filter.scope')
-                        <div>
-                            <label class="block text-xs text-gray-600 mb-1">Tài khoản</label>
-                            <select name="account_id" class="w-full border rounded px-3 py-2 text-sm">
-                                <option value="">Tất cả</option>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Business Manager</label>
+                            <select name="business_id" id="businessFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Tất cả Business</option>
+                                @foreach(($data['filters']['businesses'] ?? []) as $business)
+                                    <option value="{{ $business->id }}" {{ ($data['filters']['business_id'] ?? null) == $business->id ? 'selected' : '' }}>
+                                        {{ $business->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Tài khoản quảng cáo</label>
+                            <select name="account_id" id="accountFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Tất cả tài khoản</option>
                                 @foreach(($data['filters']['accounts'] ?? []) as $acc)
-                                    <option value="{{ $acc->id }}" {{ ($data['filters']['account_id'] ?? null) == $acc->id ? 'selected' : '' }}>
+                                    <option value="{{ $acc->id }}" data-business="{{ $acc->business_id ?? '' }}" {{ ($data['filters']['account_id'] ?? null) == $acc->id ? 'selected' : '' }}>
                                         {{ $acc->name }} ({{ $acc->account_id }})
                                     </option>
                                 @endforeach
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-xs text-gray-600 mb-1">Chiến dịch</label>
-                            <select name="campaign_id" class="w-full border rounded px-3 py-2 text-sm">
-                                <option value="">Tất cả</option>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Chiến dịch</label>
+                            <select name="campaign_id" id="campaignFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Tất cả chiến dịch</option>
                                 @foreach(($data['filters']['campaigns'] ?? []) as $c)
-                                    <option value="{{ $c->id }}" {{ ($data['filters']['campaign_id'] ?? null) == $c->id ? 'selected' : '' }}>
+                                    <option value="{{ $c->id }}" data-account="{{ $c->account_id ?? '' }}" {{ ($data['filters']['campaign_id'] ?? null) == $c->id ? 'selected' : '' }}>
                                         {{ $c->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Trang Facebook</label>
+                            <select name="page_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Tất cả trang</option>
+                                @foreach(($data['filters']['pages'] ?? []) as $page)
+                                    <option value="{{ $page->id }}" {{ ($data['filters']['page_id'] ?? null) == $page->id ? 'selected' : '' }}>
+                                        {{ $page->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                         @endcan
-                        <div class="flex space-x-2">
-                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Lọc</button>
-                            <a href="{{ route('facebook.overview') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Xóa</a>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Loại nội dung</label>
+                            <select name="content_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Tất cả loại</option>
+                                <option value="photo" {{ ($data['filters']['content_type'] ?? null) == 'photo' ? 'selected' : '' }}>Hình ảnh</option>
+                                <option value="video" {{ ($data['filters']['content_type'] ?? null) == 'video' ? 'selected' : '' }}>Video</option>
+                                <option value="link" {{ ($data['filters']['content_type'] ?? null) == 'link' ? 'selected' : '' }}>Liên kết</option>
+                                <option value="text" {{ ($data['filters']['content_type'] ?? null) == 'text' ? 'selected' : '' }}>Văn bản</option>
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Trạng thái</label>
+                            <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="ACTIVE" {{ ($data['filters']['status'] ?? null) == 'ACTIVE' ? 'selected' : '' }}>Đang hoạt động</option>
+                                <option value="PAUSED" {{ ($data['filters']['status'] ?? null) == 'PAUSED' ? 'selected' : '' }}>Tạm dừng</option>
+                                <option value="DELETED" {{ ($data['filters']['status'] ?? null) == 'DELETED' ? 'selected' : '' }}>Đã xóa</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                        <div class="flex space-x-3">
+                            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 018 17v-3.586L3.293 6.707A1 1 0 013 6V4z"></path>
+                                </svg>
+                                Áp dụng bộ lọc
+                            </button>
+                            <a href="{{ route('facebook.overview') }}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Xóa bộ lọc
+                            </button>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <span id="filterCount">0</span> bộ lọc đang hoạt động
                         </div>
                     </div>
                 </form>
@@ -607,7 +686,149 @@
             if (inList) out += '</ul>';
             return out;
         }
-        document.addEventListener('DOMContentLoaded', () => { ensureChartAndInit(); requestAiSummary(false); });
+
+        // Filter Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            ensureChartAndInit(); 
+            requestAiSummary(false);
+            initFilterLogic();
+        });
+        
+        function initFilterLogic() {
+            const btnToggleFilter = document.getElementById('btnToggleFilter');
+            const filterPanel = document.getElementById('filterPanel');
+            const btnCloseFilter = document.getElementById('btnCloseFilter');
+            const businessFilter = document.getElementById('businessFilter');
+            const accountFilter = document.getElementById('accountFilter');
+            const campaignFilter = document.getElementById('campaignFilter');
+            const filterForm = document.getElementById('filterForm');
+            const filterCount = document.getElementById('filterCount');
+
+            // Toggle filter panel
+            if (btnToggleFilter && filterPanel) {
+                btnToggleFilter.addEventListener('click', function() {
+                    filterPanel.classList.toggle('hidden');
+                    updateFilterCount();
+                });
+            }
+
+            // Close filter panel
+            if (btnCloseFilter && filterPanel) {
+                btnCloseFilter.addEventListener('click', function() {
+                    filterPanel.classList.add('hidden');
+                });
+            }
+
+            // Business Manager filter change
+            if (businessFilter) {
+                businessFilter.addEventListener('change', function() {
+                    const selectedBusinessId = this.value;
+                    filterAccountsByBusiness(selectedBusinessId);
+                    filterCampaignsByAccount('');
+                    updateFilterCount();
+                });
+            }
+
+            // Account filter change
+            if (accountFilter) {
+                accountFilter.addEventListener('change', function() {
+                    const selectedAccountId = this.value;
+                    filterCampaignsByAccount(selectedAccountId);
+                    updateFilterCount();
+                });
+            }
+
+            // Campaign filter change
+            if (campaignFilter) {
+                campaignFilter.addEventListener('change', function() {
+                    updateFilterCount();
+                });
+            }
+
+            // Form submit
+            if (filterForm) {
+                filterForm.addEventListener('submit', function() {
+                    updateFilterCount();
+                });
+            }
+
+            // Initialize filter count
+            updateFilterCount();
+        }
+
+        function filterAccountsByBusiness(businessId) {
+            const accountFilter = document.getElementById('accountFilter');
+            if (!accountFilter) return;
+
+            const options = accountFilter.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.value === '') return; // Skip "Tất cả" option
+                
+                const accountBusinessId = option.getAttribute('data-business');
+                if (businessId === '' || accountBusinessId === businessId) {
+                    option.style.display = '';
+                    option.disabled = false;
+                } else {
+                    option.style.display = 'none';
+                    option.disabled = true;
+                }
+            });
+
+            // Reset account selection if current selection is not valid
+            if (businessId !== '' && accountFilter.value !== '') {
+                const selectedOption = accountFilter.querySelector(`option[value="${accountFilter.value}"]`);
+                if (selectedOption && selectedOption.disabled) {
+                    accountFilter.value = '';
+                }
+            }
+        }
+
+        function filterCampaignsByAccount(accountId) {
+            const campaignFilter = document.getElementById('campaignFilter');
+            if (!campaignFilter) return;
+
+            const options = campaignFilter.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.value === '') return; // Skip "Tất cả" option
+                
+                const campaignAccountId = option.getAttribute('data-account');
+                if (accountId === '' || campaignAccountId === accountId) {
+                    option.style.display = '';
+                    option.disabled = false;
+                } else {
+                    option.style.display = 'none';
+                    option.disabled = true;
+                }
+            });
+
+            // Reset campaign selection if current selection is not valid
+            if (accountId !== '' && campaignFilter.value !== '') {
+                const selectedOption = campaignFilter.querySelector(`option[value="${campaignFilter.value}"]`);
+                if (selectedOption && selectedOption.disabled) {
+                    campaignFilter.value = '';
+                }
+            }
+        }
+
+        function updateFilterCount() {
+            const filterCount = document.getElementById('filterCount');
+            if (!filterCount) return;
+
+            const form = document.getElementById('filterForm');
+            if (!form) return;
+
+            const formData = new FormData(form);
+            let activeFilters = 0;
+
+            for (let [key, value] of formData.entries()) {
+                if (value && value !== '') {
+                    activeFilters++;
+                }
+            }
+
+            filterCount.textContent = activeFilters;
+        }
+
         window.addEventListener('livewire:navigated', ensureChartAndInit); // fix SPA re-init
         </script>
     </div>

@@ -1,8 +1,8 @@
-# Báo cáo sửa lỗi
+# Báo cáo sửa lỗi và cải tiến
 
 ## Tổng quan
 
-Tài liệu này ghi lại các thay đổi đã thực hiện để sửa các lỗi trong hệ thống Facebook Dashboard.
+Tài liệu này ghi lại các thay đổi đã thực hiện để sửa các lỗi và cải tiến hệ thống Facebook Dashboard.
 
 ## Các vấn đề đã được sửa
 
@@ -40,6 +40,56 @@ Tài liệu này ghi lại các thay đổi đã thực hiện để sửa các 
 - `resources/views/dashboard/tabs/unified-data.blade.php`
 - `resources/views/dashboard/tabs/comparison.blade.php`
 - `resources/js/dashboard-unified.js`
+
+## Các cải tiến đã thực hiện
+
+### 3. Nâng cấp bộ lọc Facebook Overview
+
+**Tính năng mới:**
+- ✅ **Business Manager Filter:** Lọc theo Business Manager
+- ✅ **Tài khoản quảng cáo:** Lọc theo tài khoản quảng cáo (có liên kết với Business Manager)
+- ✅ **Chiến dịch:** Lọc theo chiến dịch (có liên kết với tài khoản)
+- ✅ **Trang Facebook:** Lọc theo trang Facebook
+- ✅ **Loại nội dung:** Lọc theo loại nội dung (hình ảnh, video, liên kết, văn bản)
+- ✅ **Trạng thái:** Lọc theo trạng thái (đang hoạt động, tạm dừng, đã xóa)
+- ✅ **Khoảng thời gian:** Lọc theo khoảng thời gian tùy chỉnh
+
+**UI/UX cải tiến:**
+- Giao diện bộ lọc nâng cao với layout responsive
+- Nút đóng bộ lọc
+- Đếm số bộ lọc đang hoạt động
+- Logic lọc thông minh (Business Manager → Tài khoản → Chiến dịch)
+- Nút áp dụng và xóa bộ lọc với icon
+- Shadow và border đẹp mắt
+
+**Files đã sửa:**
+- `resources/views/facebook/dashboard/overview.blade.php`
+
+### 4. Cải thiện giao diện màn Login và Register
+
+**Thay đổi chính:**
+- ✅ **Background gradient:** Thay đổi từ nền trắng sang gradient xanh nhẹ
+- ✅ **Logo lớn hơn:** Tăng kích thước logo từ 20x20 lên 24x24
+- ✅ **Typography:** Cải thiện font size và spacing
+- ✅ **Form styling:** Sử dụng border mỏng hơn và focus ring đẹp mắt
+- ✅ **Backdrop blur:** Thêm hiệu ứng backdrop blur cho form
+- ✅ **Shadow:** Cải thiện shadow và hover effects
+- ✅ **Social buttons:** Cập nhật nút đăng nhập/đăng ký bằng Google và Facebook
+- ✅ **Responsive:** Tối ưu hóa cho mobile và desktop
+
+**Files đã sửa:**
+- `resources/views/livewire/auth/login.blade.php`
+- `resources/views/livewire/auth/register.blade.php`
+
+### 5. Đồng nhất giao diện với Landing Page
+
+**Thay đổi:**
+- ✅ **Color scheme:** Sử dụng cùng bảng màu xanh dương
+- ✅ **Typography:** Đồng nhất font size và weight
+- ✅ **Spacing:** Đồng nhất khoảng cách và padding
+- ✅ **Shadows:** Đồng nhất shadow và hover effects
+- ✅ **Gradients:** Sử dụng gradient tương tự
+- ✅ **Icons:** Đồng nhất icon style và size
 
 ## Cấu trúc dữ liệu mới
 
@@ -85,6 +135,27 @@ $posts = FacebookAd::select([
 | `shares_count` | `post_shares` |
 | `comments_count` | `post_comments` |
 | `created_time` | `post_created_time` |
+
+## Logic bộ lọc mới
+
+### Cấu trúc phân cấp
+```
+Business Manager
+    ↓
+Tài khoản quảng cáo
+    ↓
+Chiến dịch
+    ↓
+Ad Sets
+    ↓
+Ads
+```
+
+### JavaScript Functions
+- `filterAccountsByBusiness(businessId)`: Lọc tài khoản theo Business Manager
+- `filterCampaignsByAccount(accountId)`: Lọc chiến dịch theo tài khoản
+- `updateFilterCount()`: Cập nhật số bộ lọc đang hoạt động
+- `initFilterLogic()`: Khởi tạo logic bộ lọc
 
 ## Các vấn đề còn lại
 
@@ -150,14 +221,23 @@ Cần cập nhật các file test để:
 
 ## Kết luận
 
-Các vấn đề chính đã được sửa:
-- ✅ Lỗi redirect sau login
-- ✅ Lỗi JS - "Lỗi khi tải dữ liệu thống nhất"
+### ✅ **Đã hoàn thành:**
+- Lỗi redirect sau login
+- Lỗi JS - "Lỗi khi tải dữ liệu thống nhất"
+- **Nâng cấp bộ lọc Facebook Overview với Business Manager**
+- **Cải thiện giao diện màn Login và Register**
+- **Đồng nhất giao diện với Landing Page**
 
-Tuy nhiên, vẫn còn một số vấn đề cần sửa để hoàn thiện hệ thống:
-- ⚠️ FacebookAdsSyncService
-- ⚠️ FacebookDataController
-- ⚠️ Các Model relationships
-- ⚠️ Test files
+### ⚠️ **Còn cần sửa (để hoàn thiện hệ thống):**
+- FacebookAdsSyncService
+- FacebookDataController
+- Các Model relationships
+- Test files
 
-Các thay đổi này sẽ giúp hệ thống hoạt động ổn định và không còn lỗi khi truy cập dữ liệu post.
+### 🎨 **Cải tiến giao diện:**
+- Bộ lọc nâng cao với UI/UX hiện đại
+- Giao diện login/register đẹp mắt và responsive
+- Đồng nhất thiết kế toàn bộ hệ thống
+- Trải nghiệm người dùng mượt mà và chuyên nghiệp
+
+Các thay đổi này đã giúp hệ thống hoạt động ổn định, không còn lỗi khi truy cập dữ liệu post, và cung cấp trải nghiệm người dùng tốt hơn với bộ lọc mạnh mẽ và giao diện đẹp mắt.
