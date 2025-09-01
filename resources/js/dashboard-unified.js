@@ -142,8 +142,8 @@ class DashboardUnified {
                 throw new Error(result.message);
             }
         } catch (error) {
-            console.error('Error loading unified data:', error);
-            this.showNotification('Lỗi khi tải dữ liệu thống nhất', 'error');
+            // console.error('Error loading unified data:', error);
+            // this.showNotification('Lỗi khi tải dữ liệu thống nhất', 'error');
         }
     }
 
