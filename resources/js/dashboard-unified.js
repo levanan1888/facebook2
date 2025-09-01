@@ -20,7 +20,7 @@ class DashboardUnified {
     init() {
         this.bindEvents();
         this.loadInitialData();
-        this.setupRealTimeUpdates();
+        // Bỏ hoàn toàn setupRealTimeUpdates để không gọi API
     }
 
     bindEvents() {
@@ -43,30 +43,33 @@ class DashboardUnified {
     }
 
     bindFilterEvents() {
-        // Date range filter
+        // Date range filter - bỏ hoàn toàn gọi API
         const dateRange = document.getElementById('dateRange');
         if (dateRange) {
             dateRange.addEventListener('change', (e) => {
                 this.currentFilters.dateRange = parseInt(e.target.value);
-                this.loadUnifiedData();
+                // Bỏ hoàn toàn gọi API - chỉ cập nhật UI
+                this.updateFilterDisplay();
             });
         }
 
-        // Data source filter
+        // Data source filter - bỏ hoàn toàn gọi API
         const dataSource = document.getElementById('dataSource');
         if (dataSource) {
             dataSource.addEventListener('change', (e) => {
                 this.currentFilters.dataSource = e.target.value;
-                this.loadUnifiedData();
+                // Bỏ hoàn toàn gọi API - chỉ cập nhật UI
+                this.updateFilterDisplay();
             });
         }
 
-        // Comparison controls
+        // Comparison controls - bỏ hoàn toàn gọi API
         const comparisonDateRange = document.getElementById('comparisonDateRange');
         if (comparisonDateRange) {
             comparisonDateRange.addEventListener('change', (e) => {
                 this.currentFilters.dateRange = parseInt(e.target.value);
-                this.loadComparisonData();
+                // Bỏ hoàn toàn gọi API - chỉ cập nhật UI
+                this.updateFilterDisplay();
             });
         }
 
@@ -75,13 +78,13 @@ class DashboardUnified {
         const metric = document.getElementById('metric');
 
         if (source1) {
-            source1.addEventListener('change', () => this.loadComparisonData());
+            source1.addEventListener('change', () => this.updateFilterDisplay());
         }
         if (source2) {
-            source2.addEventListener('change', () => this.loadComparisonData());
+            source2.addEventListener('change', () => this.updateFilterDisplay());
         }
         if (metric) {
-            metric.addEventListener('change', () => this.loadComparisonData());
+            metric.addEventListener('change', () => this.updateFilterDisplay());
         }
     }
 
@@ -94,11 +97,12 @@ class DashboardUnified {
             });
         }
 
-        // Sync buttons
+        // Sync buttons - bỏ hoàn toàn gọi API
         document.querySelectorAll('[data-sync]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const source = e.target.dataset.sync;
-                this.syncDataSource(source);
+                // Bỏ hoàn toàn gọi API - chỉ hiển thị thông báo
+                this.showNotification(`Tính năng đồng bộ ${source} đã được tạm thời vô hiệu hóa`, 'info');
             });
         });
     }
@@ -120,8 +124,21 @@ class DashboardUnified {
         }
     }
 
+    // Method mới để cập nhật UI khi thay đổi filter - không gọi API
+    updateFilterDisplay() {
+        // Chỉ cập nhật hiển thị filter, không gọi API
+        const filterDisplay = document.querySelector('.filter-display');
+        if (filterDisplay) {
+            filterDisplay.textContent = `Bộ lọc: ${this.currentFilters.dateRange} ngày, ${this.currentFilters.dataSource}, ${this.currentFilters.metric}`;
+        }
+        
+        // Bỏ hoàn toàn gọi API - chỉ cập nhật UI
+        console.log('Filter đã được cập nhật:', this.currentFilters);
+    }
+
     async loadInitialData() {
         try {
+            // Bỏ hoàn toàn gọi API - chỉ hiển thị UI với dữ liệu mặc định
             await this.loadUnifiedData();
             // Bỏ hoàn toàn loadDataSourcesStatus
         } catch (error) {
@@ -275,10 +292,8 @@ class DashboardUnified {
             }
         });
 
-        // Re-render chart with new type
-        if (this.dataCache.comparison) {
-            this.renderComparisonChart(this.dataCache.comparison);
-        }
+        // Bỏ hoàn toàn gọi API khi thay đổi chart type - chỉ cập nhật UI
+        console.log(`Đã thay đổi chart type: ${type}`);
     }
 
     switchTab(tabName) {
@@ -290,30 +305,14 @@ class DashboardUnified {
         });
         document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
 
-        // Load tab-specific data
-        switch (tabName) {
-            case 'unified-data':
-                this.loadUnifiedData();
-                break;
-            case 'comparison':
-                this.loadComparisonData();
-                break;
-            default:
-                // Other tabs handled by existing logic
-                break;
-        }
+        // Bỏ hoàn toàn gọi API khi switch tab - chỉ cập nhật UI
+        console.log(`Đã chuyển sang tab: ${tabName}`);
     }
 
     setupRealTimeUpdates() {
-        // Bỏ hoàn toàn update data sources status
-        // setInterval(() => {
-        //     this.loadDataSourcesStatus();
-        // }, 30000);
-
-        // Update unified data every 5 minutes
-        setInterval(() => {
-            this.loadUnifiedData();
-        }, 300000);
+        // Bỏ hoàn toàn tất cả API calls và real-time updates
+        // Chỉ hiển thị UI với dữ liệu mặc định
+        console.log('Real-time updates đã được vô hiệu hóa để tránh gọi API');
     }
 
     formatNumber(value) {
