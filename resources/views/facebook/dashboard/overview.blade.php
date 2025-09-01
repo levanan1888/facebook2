@@ -139,7 +139,7 @@
                     
                     <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
                         <div class="flex space-x-3">
-                            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+                            <button type="submit" class="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors duration-200">
                                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 018 17v-3.586L3.293 6.707A1 1 0 013 6V4z"></path>
                                 </svg>
@@ -479,7 +479,7 @@
                         </div>
                     </div>
                     <div class="flex justify-end mt-6">
-                        <button id="closeGuideModalBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Đã hiểu</button>
+                        <button id="closeGuideModalBtn" class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">Đã hiểu</button>
                     </div>
                 </div>
             </div>

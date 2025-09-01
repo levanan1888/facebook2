@@ -102,63 +102,6 @@ class DashboardApiController extends Controller
     }
 
     /**
-     * Lấy trạng thái các nguồn dữ liệu
-     */
-    public function getDataSourcesStatus(): JsonResponse
-    {
-        try {
-            $data = $this->unifiedDataService->getUnifiedData();
-            
-            // Kiểm tra xem có dữ liệu không
-            if (empty($data) || !isset($data['sources'])) {
-                return response()->json([
-                    'success' => true,
-                    'data' => [],
-                    'message' => 'Chưa có dữ liệu để hiển thị'
-                ]);
-            }
-            
-            return response()->json([
-                'success' => true,
-                'data' => $data['sources'] ?? []
-            ]);
-        } catch (\Exception $e) {
-            // Log lỗi để debug
-            \Log::error('Error in getDataSourcesStatus: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi lấy trạng thái nguồn dữ liệu: ' . $e->getMessage(),
-                'data' => []
-            ], 500);
-        }
-    }
-
-    /**
-     * Làm mới cache dữ liệu
-     */
-    public function refreshCache(): JsonResponse
-    {
-        try {
-            $this->unifiedDataService->clearCache();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Cache đã được làm mới thành công'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi làm mới cache: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Lấy dữ liệu tổng quan
      */
     public function getOverviewData(Request $request): JsonResponse

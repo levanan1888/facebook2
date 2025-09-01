@@ -7,9 +7,9 @@ Route::get('/', function () {
     return view('landing');
 })->name('home');
 
-Route::get('dashboard', [App\Http\Controllers\UnifiedDashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'permission.404:dashboard.view', 'redirect.after.login'])
-    ->name('dashboard');
+Route::get('dashboard', function () {
+    return redirect()->route('facebook.overview');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('debug/campaigns', [App\Http\Controllers\DashboardController::class, 'debugCampaigns'])
     ->middleware(['auth', 'verified'])

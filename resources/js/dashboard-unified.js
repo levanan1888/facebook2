@@ -123,10 +123,10 @@ class DashboardUnified {
     async loadInitialData() {
         try {
             await this.loadUnifiedData();
-            await this.loadDataSourcesStatus();
+            // Bỏ hoàn toàn loadDataSourcesStatus
         } catch (error) {
             console.error('Error loading initial data:', error);
-            this.showNotification('Lỗi khi tải dữ liệu ban đầu', 'error');
+            // Loại bỏ hoàn toàn thông báo lỗi
         }
     }
 
@@ -143,7 +143,7 @@ class DashboardUnified {
             }
         } catch (error) {
             // console.error('Error loading unified data:', error);
-            // this.showNotification('Lỗi khi tải dữ liệu thống nhất', 'error');
+            // Bỏ hoàn toàn thông báo lỗi "Lỗi khi tải dữ liệu thống nhất"
         }
     }
 
@@ -167,22 +167,11 @@ class DashboardUnified {
             }
         } catch (error) {
             console.error('Error loading comparison data:', error);
-            this.showNotification('Lỗi khi tải dữ liệu so sánh', 'error');
+            // Loại bỏ hoàn toàn thông báo lỗi
         }
     }
 
-    // async loadDataSourcesStatus() {
-    //     try {
-    //         const response = await fetch('/api/dashboard/data-sources-status');
-    //         const result = await response.json();
 
-    //         if (result.success) {
-    //             this.renderDataSourcesStatus(result.data);
-    //         }
-    //     } catch (error) {
-    //         console.error('Error loading data sources status:', error);
-    //     }
-    // }
 
     renderUnifiedData(data) {
         // Render metrics grid
@@ -261,18 +250,6 @@ class DashboardUnified {
         });
     }
 
-    renderDataSourcesStatus(sources) {
-        // Update data source status indicators
-        Object.entries(sources).forEach(([key, source]) => {
-            const indicator = document.querySelector(`[data-source="${key}"] .status-indicator`);
-            if (indicator) {
-                indicator.className = `status-indicator w-3 h-3 rounded-full ${
-                    source.status === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
-                }`;
-            }
-        });
-    }
-
     renderInsights(data) {
         // Update insights and recommendations
         const insightsContainer = document.querySelector('#insightsContainer');
@@ -300,13 +277,13 @@ class DashboardUnified {
 
             if (response.ok) {
                 this.showNotification(`Đồng bộ ${source} thành công!`, 'success');
-                await this.loadDataSourcesStatus();
+                // Bỏ hoàn toàn loadDataSourcesStatus
             } else {
                 throw new Error('Sync failed');
             }
         } catch (error) {
             console.error(`Error syncing ${source}:`, error);
-            this.showNotification(`Lỗi đồng bộ ${source}`, 'error');
+            // Loại bỏ hoàn toàn thông báo lỗi
         } finally {
             const button = document.querySelector(`[data-sync="${source}"]`);
             if (button) {
@@ -365,10 +342,10 @@ class DashboardUnified {
     }
 
     setupRealTimeUpdates() {
-        // Update data sources status every 30 seconds
-        setInterval(() => {
-            this.loadDataSourcesStatus();
-        }, 30000);
+        // Bỏ hoàn toàn update data sources status
+        // setInterval(() => {
+        //     this.loadDataSourcesStatus();
+        // }, 30000);
 
         // Update unified data every 5 minutes
         setInterval(() => {

@@ -17,8 +17,6 @@ Route::middleware(['auth', 'verified', 'permission.404:dashboard.analytics'])->p
     Route::get('unified-data', [App\Http\Controllers\Api\DashboardApiController::class, 'getUnifiedData'])->name('unified-data');
     Route::get('comparison-data', [App\Http\Controllers\Api\DashboardApiController::class, 'getComparisonData'])->name('comparison-data');
     Route::get('filtered-data', [App\Http\Controllers\Api\DashboardApiController::class, 'getFilteredData'])->name('filtered-data');
-    Route::get('data-sources-status', [App\Http\Controllers\Api\DashboardApiController::class, 'getDataSourcesStatus'])->name('data-sources-status');
-    Route::post('refresh-cache', [App\Http\Controllers\Api\DashboardApiController::class, 'refreshCache'])->name('refresh-cache');
     Route::get('overview-data', [App\Http\Controllers\Api\DashboardApiController::class, 'getOverviewData'])->name('overview-data');
     Route::get('analytics-data', [App\Http\Controllers\Api\DashboardApiController::class, 'getAnalyticsData'])->name('analytics-data');
     Route::get('hierarchy-data', [App\Http\Controllers\Api\DashboardApiController::class, 'getHierarchyData'])->name('hierarchy-data');

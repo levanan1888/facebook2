@@ -14,7 +14,7 @@
             <flux:navlist variant="outline">
                 <flux:navlist.group :heading="__('Dashboard')" class="grid">
                     @can('dashboard.view')
-                        <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Overview (All Platforms)') }}</flux:navlist.item>
+                        <flux:navlist.item icon="home" :href="route('facebook.overview')" :current="request()->routeIs('facebook.overview')" wire:navigate>{{ __('Overview (All Platforms)') }}</flux:navlist.item>
                     @endcan
                 </flux:navlist.group>
             </flux:navlist>
