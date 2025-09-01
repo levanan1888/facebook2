@@ -97,7 +97,8 @@
             </div>
         </div>
     </div>
-<!-- Insights Charts -->
+
+    <!-- Insights Charts - Moved to top -->
     @if(!empty($insights['daily_data']))
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Phân tích theo thời gian</h2>
@@ -125,28 +126,49 @@
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <h4 class="text-md font-medium text-gray-700 mb-3">CTR theo thời gian</h4>
                     <canvas id="ctr-time-chart" width="400" height="200"></canvas>
+                </div>
             </div>
         </div>
-            </div>
     @endif
-    <!-- Detailed Breakdown Data -->
-    @if(!empty($detailedBreakdowns))
+
+    <!-- Breakdown Charts -->
+    @if(!empty($breakdowns))
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Phân tích Breakdown Chi tiết</h2>
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Biểu đồ Breakdown</h2>
             
-            @foreach($detailedBreakdowns as $breakdownType => $breakdownData)
-                <details class="mb-8 group" open>
-                    <summary class="cursor-pointer list-none">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4 inline-flex items-center">
-                            {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}
-                            <svg class="w-4 h-4 ml-2 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </h3>
-                    </summary>
+            @foreach($breakdowns as $breakdownType => $breakdownData)
+                <div class="mb-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">{{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h3>
                     
-                    <!-- Breakdown Table -->
-                    <div class="overflow-x-auto mb-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <!-- Spend Chart -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-md font-medium text-gray-700 mb-3">Chi phí theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                            <canvas id="spend-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                        </div>
+                        
+                        <!-- Impressions Chart -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-md font-medium text-gray-700 mb-3">Hiển thị theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                            <canvas id="impressions-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                        </div>
+                        
+                        <!-- CTR Chart -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-md font-medium text-gray-700 mb-3">CTR theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                            <canvas id="ctr-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                        </div>
+                        
+                        <!-- Video Views Chart -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-md font-medium text-gray-700 mb-3">Video Views theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
+                            <canvas id="video-views-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Breakdown Table - Below charts -->
+                    <div class="overflow-x-auto">
+                        <h4 class="text-md font-medium text-gray-700 mb-3">Bảng dữ liệu {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50 sticky top-0 z-10">
                                 <tr>
@@ -233,184 +255,13 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['frequency'], 2) }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">{{ number_format($metrics['video_views']) }}</td>
                                     </tr>
-                                   
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- Video Metrics Table -->
-                    @if(array_sum(array_column($breakdownData, 'video_views')) > 0)
-                        <div class="overflow-x-auto">
-                            <h4 class="text-md font-medium text-gray-900 mb-3">Thống kê Video</h4>
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50 sticky top-0 z-10">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video Views</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video Plays</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">25% Watched</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">50% Watched</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">75% Watched</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">95% Watched</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">100% Watched</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thruplays</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">30s Watched</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach($breakdownData as $value => $metrics)
-                                        @if($metrics['video_views'] > 0)
-                                            <tr class="hover:bg-gray-50">
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    @if($value === 'unknown')
-                                                        @switch($breakdownType)
-                                                            @case('action_device')
-                                                                Không xác định thiết bị
-                                                                @break
-                                                            @case('action_destination')
-                                                                Không xác định đích đến
-                                                                @break
-                                                            @case('action_target_id')
-                                                                Không xác định đối tượng
-                                                                @break
-                                                            @case('action_reaction')
-                                                                Không xác định phản ứng
-                                                                @break
-                                                            @case('action_video_sound')
-                                                                Không xác định âm thanh
-                                                                @break
-                                                            @case('action_video_type')
-                                                                Không xác định loại video
-                                                                @break
-                                                            @case('action_carousel_card_id')
-                                                                Không xác định thẻ carousel
-                                                                @break
-                                                            @case('action_carousel_card_name')
-                                                                Không xác định tên thẻ
-                                                                @break
-                                                            @case('action_canvas_component_name')
-                                                                Không xác định thành phần
-                                                                @break
-                                                            @case('age')
-                                                                Không xác định độ tuổi
-                                                                @break
-                                                            @case('gender')
-                                                                Không xác định giới tính
-                                                                @break
-                                                            @case('country')
-                                                                Không xác định quốc gia
-                                                                @break
-                                                            @case('region')
-                                                                Không xác định khu vực
-                                                                @break
-                                                            @case('publisher_platform')
-                                                                Không xác định nền tảng
-                                                                @break
-                                                            @case('device_platform')
-                                                                Không xác định thiết bị
-                                                                @break
-                                                            @case('impression_device')
-                                                                Không xác định thiết bị hiển thị
-                                                                @break
-                                                            @default
-                                                                Không xác định
-                                                        @endswitch
-                                                    @else
-                                                        {{ $value }}
-                                                    @endif
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">{{ number_format($metrics['video_views']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_plays']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_p25_watched_actions']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_p50_watched_actions']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-semibold">{{ number_format($metrics['video_p75_watched_actions']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_p95_watched_actions']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">{{ number_format($metrics['video_p100_watched_actions']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['thruplays']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_30_sec_watched']) }}</td>
-                                            </tr>
-                                        @endif
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </details>
-            @endforeach
-                </div>
-    @endif
-
-    <!-- Breakdown Charts -->
-    @if(!empty($breakdowns))
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Biểu đồ Breakdown</h2>
-            
-            @foreach($breakdowns as $breakdownType => $breakdownData)
-                <div class="mb-8">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">{{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h3>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Spend Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">Chi phí theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="spend-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
-                        </div>
-                        
-                        <!-- Impressions Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">Hiển thị theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="impressions-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
-                        </div>
-                        
-                        <!-- CTR Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">CTR theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="ctr-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
-                        </div>
-                        
-                        <!-- Video Views Chart -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="text-md font-medium text-gray-700 mb-3">Video Views theo {{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</h4>
-                            <canvas id="video-views-chart-{{ $breakdownType }}" width="400" height="200"></canvas>
-                        </div>
-                    </div>
                 </div>
             @endforeach
-            </div>
-    @endif
-
-    <!-- Insights Charts -->
-    @if(!empty($insights['daily_data']))
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Phân tích theo thời gian</h2>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Performance Over Time -->
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="text-md font-medium text-gray-700 mb-3">Hiệu suất theo thời gian</h4>
-                    <canvas id="performance-chart" width="400" height="200"></canvas>
-                </div>
-                
-                <!-- Spend Over Time -->
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="text-md font-medium text-gray-700 mb-3">Chi phí theo thời gian</h4>
-                    <canvas id="spend-time-chart" width="400" height="200"></canvas>
-                </div>
-                
-                <!-- Video Metrics Over Time -->
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="text-md font-medium text-gray-700 mb-3">Video Metrics theo thời gian</h4>
-                    <canvas id="video-metrics-chart" width="400" height="200"></canvas>
-                </div>
-                
-                <!-- CTR Over Time -->
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="text-md font-medium text-gray-700 mb-3">CTR theo thời gian</h4>
-                    <canvas id="ctr-time-chart" width="400" height="200"></canvas>
-            </div>
         </div>
-            </div>
     @endif
 
     <!-- Actions Data -->

@@ -85,7 +85,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         <div class="max-w-md w-full space-y-8">
             <!-- Logo and Header -->
             <div class="text-center">
-                <div class="mx-auto h-24 w-24 flex items-center justify-center rounded-3xl bg-gradient-to-r from-blue-600 to-blue-700 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+                <div class="mx-auto h-24 w-24 flex items-center justify-center rounded-3xl bg-gradient-to-r from-blue-400 to-blue-500 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
                     <i class="fab fa-facebook text-white text-4xl"></i>
                 </div>
                 <h2 class="mt-8 text-4xl font-bold text-gray-900">

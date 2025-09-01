@@ -162,9 +162,10 @@
             color: #0c4a6e;
         }
         
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        .features-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 1.5rem;
             margin-top: 2.5rem;
         }
@@ -176,6 +177,8 @@
             text-align: center;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: 1px solid #e2e8f0;
+            flex: 0 1 280px;
+            max-width: 280px;
         }
         
         .feature-card:hover {
@@ -302,7 +305,7 @@
         <section class="features" id="features">
             <div class="container">
                 <h2 class="section-title">Tính năng chính</h2>
-                <div class="features-grid">
+                <div class="features-container">
                     <div class="feature-card">
                         <div class="feature-icon">
                             <i class="fas fa-chart-line"></i>

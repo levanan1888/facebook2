@@ -687,14 +687,8 @@
             return out;
         }
 
-        // Filter Logic
-        document.addEventListener('DOMContentLoaded', function() {
-            ensureChartAndInit(); 
-            requestAiSummary(false);
-            initFilterLogic();
-        });
-        
-        function initFilterLogic() {
+        // Initialize filters and event listeners
+        function initializeFilters() {
             const btnToggleFilter = document.getElementById('btnToggleFilter');
             const filterPanel = document.getElementById('filterPanel');
             const btnCloseFilter = document.getElementById('btnCloseFilter');
@@ -829,7 +823,23 @@
             filterCount.textContent = activeFilters;
         }
 
-        window.addEventListener('livewire:navigated', ensureChartAndInit); // fix SPA re-init
+        // Ensure proper initialization
+        function ensureChartAndInit() {
+            if (typeof Chart !== 'undefined') {
+                initFacebookOverviewCharts();
+            }
+            initializeFilters();
+        }
+
+        // Initialize on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureChartAndInit);
+        } else {
+            ensureChartAndInit();
+        }
+
+        // Fix for SPA navigation
+        window.addEventListener('livewire:navigated', ensureChartAndInit);
         </script>
     </div>
 </x-layouts.app>

@@ -141,8 +141,17 @@ class FacebookDashboardController extends Controller
         $actions = $facebookDataService->getOverviewActions(null, $from, $to);
 
         // Lấy accounts và campaigns cho filter
-        $accounts = FacebookAdAccount::select('id', 'name', 'account_id')->get();
-        $campaigns = FacebookCampaign::select('id', 'name')->get();
+        $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
+        $campaigns = FacebookCampaign::select('id', 'name', 'account_id')->get();
+        
+        // Lấy businesses cho filter
+        $businesses = FacebookBusiness::select('id', 'name')->get();
+        
+        // Lấy pages cho filter
+        $pages = FacebookAdInsight::whereNotNull('page_id')
+            ->select('page_id as id', 'page_name as name')
+            ->distinct()
+            ->get();
 
         // Thống kê trạng thái cho biểu đồ donut
         $statusStats = [
@@ -186,6 +195,8 @@ class FacebookDashboardController extends Controller
                 'campaign_id' => $selectedCampaignId,
                 'accounts' => $accounts,
                 'campaigns' => $campaigns,
+                'businesses' => $businesses,
+                'pages' => $pages,
             ]
         ];
     }
