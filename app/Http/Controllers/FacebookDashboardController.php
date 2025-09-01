@@ -117,15 +117,15 @@ class FacebookDashboardController extends Controller
         // Top performing ads - áp dụng filter
         $topAds = $this->getFilteredTopAds($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
 
-        // Top performing posts - sử dụng service để lấy top 5 bài viết
+        // Top performing posts - áp dụng filter
         $facebookDataService = new \App\Services\FacebookDataService();
-        $topPosts = $facebookDataService->getTop5Posts(null, $from, $to);
+        $topPosts = $this->getFilteredTopPosts($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
         
         // Lấy breakdown data cho overview - áp dụng filter
-        $breakdowns = $facebookDataService->getOverviewBreakdowns(null, $from, $to);
+        $breakdowns = $this->getFilteredBreakdowns($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
         
         // Lấy actions data cho overview - áp dụng filter  
-        $actions = $facebookDataService->getOverviewActions(null, $from, $to);
+        $actions = $this->getFilteredActions($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
 
         // Lấy accounts và campaigns cho filter
         $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
@@ -372,6 +372,221 @@ class FacebookDashboardController extends Controller
             ->orderByDesc('total_spend')
             ->limit(5)
             ->get();
+    }
+
+    /**
+     * Lấy top posts theo filter đã chọn
+     */
+    private function getFilteredTopPosts($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to)
+    {
+        // Base query cho insights trong khoảng thời gian
+        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+            ->whereBetween('facebook_ad_insights.date', [$from, $to])
+            ->whereNotNull('facebook_ad_insights.post_id');
+        
+        // Apply filters
+        if ($selectedBusinessId) {
+            $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                          ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+        }
+        
+        if ($selectedAccountId) {
+            $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+        }
+        
+        if ($selectedCampaignId) {
+            $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+        }
+        
+        if ($selectedPageId) {
+            $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+        }
+        
+        $insightsData = $insightsQuery->get();
+        
+        if ($insightsData->count() === 0) {
+            return collect();
+        }
+        
+        // Group by post_id và tính tổng metrics
+        $postMetrics = $insightsData->groupBy('post_id')->map(function ($postInsights) {
+            return [
+                'post_id' => $postInsights->first()->post_id,
+                'page_id' => $postInsights->first()->page_id,
+                'total_spend' => $postInsights->sum('spend'),
+                'total_impressions' => $postInsights->sum('impressions'),
+                'total_clicks' => $postInsights->sum('clicks'),
+                'total_reach' => $postInsights->sum('reach'),
+                'total_conversions' => $postInsights->sum('conversions'),
+                'total_conversion_values' => $postInsights->sum('conversion_values'),
+                'total_video_views' => $postInsights->sum('video_views'),
+                'avg_ctr' => $postInsights->avg('ctr'),
+                'avg_cpc' => $postInsights->avg('cpc'),
+                'avg_cpm' => $postInsights->avg('cpm'),
+            ];
+        });
+        
+        // Sort by total_spend và lấy top 5
+        return $postMetrics->sortByDesc('total_spend')->take(5)->values();
+    }
+
+    /**
+     * Lấy breakdowns theo filter đã chọn
+     */
+    private function getFilteredBreakdowns($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
+    {
+        try {
+            // Base query cho insights trong khoảng thời gian
+            $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+                ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+            
+            // Apply filters
+            if ($selectedBusinessId) {
+                $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                              ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+            }
+            
+            if ($selectedAccountId) {
+                $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+            }
+            
+            if ($selectedCampaignId) {
+                $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+            }
+            
+            if ($selectedPageId) {
+                $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+            }
+            
+            // Lấy danh sách insight IDs
+            $insightIds = $insightsQuery->pluck('facebook_ad_insights.id');
+            
+            if ($insightIds->isEmpty()) {
+                return [];
+            }
+            
+            // Lấy breakdowns từ facebook_breakdowns
+            $breakdowns = \App\Models\FacebookBreakdown::whereIn('ad_insight_id', $insightIds->all())
+                ->orderBy('breakdown_type')
+                ->orderBy('breakdown_value')
+                ->get()
+                ->groupBy('breakdown_type');
+            
+            $result = [];
+            foreach ($breakdowns as $breakdownType => $items) {
+                $result[$breakdownType] = [];
+                foreach ($items as $item) {
+                    $breakdownValue = $item->breakdown_value;
+                    $metrics = $item->metrics ?? [];
+                    
+                    if (!isset($result[$breakdownType][$breakdownValue])) {
+                        $result[$breakdownType][$breakdownValue] = [
+                            'spend' => 0,
+                            'impressions' => 0,
+                            'clicks' => 0,
+                            'reach' => 0,
+                            'conversions' => 0,
+                            'conversion_values' => 0,
+                            'video_views' => 0,
+                        ];
+                    }
+                    
+                    $result[$breakdownType][$breakdownValue]['spend'] += $metrics['spend'] ?? 0;
+                    $result[$breakdownType][$breakdownValue]['impressions'] += $metrics['impressions'] ?? 0;
+                    $result[$breakdownType][$breakdownValue]['clicks'] += $metrics['clicks'] ?? 0;
+                    $result[$breakdownType][$breakdownValue]['reach'] += $metrics['reach'] ?? 0;
+                    $result[$breakdownType][$breakdownValue]['conversions'] += $metrics['conversions'] ?? 0;
+                    $result[$breakdownType][$breakdownValue]['conversion_values'] += $metrics['conversion_values'] ?? 0;
+                    $result[$breakdownType][$breakdownValue]['video_views'] += $metrics['video_views'] ?? 0;
+                }
+            }
+            
+            return $result;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error in getFilteredBreakdowns', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Lấy actions theo filter đã chọn
+     */
+    private function getFilteredActions($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
+    {
+        try {
+            // Base query cho insights trong khoảng thời gian
+            $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+                ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+            
+            // Apply filters
+            if ($selectedBusinessId) {
+                $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                              ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+            }
+            
+            if ($selectedAccountId) {
+                $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+            }
+            
+            if ($selectedCampaignId) {
+                $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+            }
+            
+            if ($selectedPageId) {
+                $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+            }
+            
+            $insightsData = $insightsQuery->get();
+            
+            $result = [
+                'daily_actions' => [],
+                'summary' => []
+            ];
+            
+            foreach ($insightsData as $insight) {
+                $date = $insight->date;
+                $actions = $insight->actions ?? [];
+                
+                if (!isset($result['daily_actions'][$date])) {
+                    $result['daily_actions'][$date] = [];
+                }
+                
+                foreach ($actions as $action) {
+                    if (!is_array($action)) {
+                        continue;
+                    }
+                    
+                    $actionType = $action['action_type'] ?? 'unknown';
+                    $value = $action['value'] ?? 0;
+                    
+                    // Thêm vào daily actions
+                    if (!isset($result['daily_actions'][$date][$actionType])) {
+                        $result['daily_actions'][$date][$actionType] = 0;
+                    }
+                    $result['daily_actions'][$date][$actionType] += $value;
+                    
+                    // Thêm vào summary
+                    if (!isset($result['summary'][$actionType])) {
+                        $result['summary'][$actionType] = 0;
+                    }
+                    $result['summary'][$actionType] += $value;
+                }
+            }
+            
+            return $result;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error in getFilteredActions', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return [
+                'daily_actions' => [],
+                'summary' => []
+            ];
+        }
     }
 
     /**
