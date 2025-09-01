@@ -325,12 +325,8 @@ class FacebookDashboardController extends Controller
                 $totals['pages'] = $uniquePageIds->count();
                 $totals['posts'] = $uniquePostIds->count();
                 
-                // Đếm businesses từ accounts
-                if ($uniqueAccountIds->count() > 0) {
-                    $totals['businesses'] = FacebookAdAccount::whereIn('id', $uniqueAccountIds)
-                        ->distinct('business_id')
-                        ->count('business_id');
-                }
+                // Khi không có filter, đếm tất cả businesses
+                $totals['businesses'] = FacebookBusiness::count();
             } else {
                 // Khi có filter, đếm từ insights data đã filter
                 $uniqueAdIds = $insightsData->pluck('ad_id')->unique();
