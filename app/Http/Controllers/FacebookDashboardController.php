@@ -62,17 +62,8 @@ class FacebookDashboardController extends Controller
         $selectedCampaignId = $request->get('campaign_id');
         $selectedPageId = $request->get('page_id');
 
-        // Chỉ sử dụng dữ liệu từ facebook_ad_insights
-        $totals = [
-            'businesses' => FacebookBusiness::count(),
-            'accounts' => FacebookAdAccount::count(),
-            'campaigns' => FacebookCampaign::count(),
-            'adsets' => FacebookAdSet::count(),
-            'ads' => FacebookAd::count(),
-            'pages' => FacebookAdInsight::whereNotNull('page_id')->distinct('page_id')->count(),
-            'posts' => FacebookAdInsight::whereNotNull('post_id')->distinct('post_id')->count(),
-            'ad_insights' => FacebookAdInsight::count(),
-        ];
+        // Tính totals theo filter đã chọn
+        $totals = $this->calculateFilteredTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
 
         // Lấy dữ liệu từ facebook_ad_insights
         $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
@@ -123,32 +114,17 @@ class FacebookDashboardController extends Controller
             'avg_cpm' => $insightsData->avg('cpm'),
         ];
 
-        // Top performing ads - tối ưu với phân trang
-        $topAds = FacebookAd::with(['campaign', 'adSet'])
-            ->whereHas('insights', function ($query) use ($from, $to) {
-                $query->whereBetween('date', [$from, $to]);
-            })
-            ->withSum(['insights as total_spend' => function ($query) use ($from, $to) {
-                $query->whereBetween('date', [$from, $to]);
-            }], 'spend')
-            ->withSum(['insights as total_impressions' => function ($query) use ($from, $to) {
-                $query->whereBetween('date', [$from, $to]);
-            }], 'impressions')
-            ->withSum(['insights as total_clicks' => function ($query) use ($from, $to) {
-                $query->whereBetween('date', [$from, $to]);
-            }], 'clicks')
-            ->orderByDesc('total_spend')
-            ->limit(5) // Giới hạn 5 ads
-            ->get();
+        // Top performing ads - áp dụng filter
+        $topAds = $this->getFilteredTopAds($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
 
         // Top performing posts - sử dụng service để lấy top 5 bài viết
         $facebookDataService = new \App\Services\FacebookDataService();
         $topPosts = $facebookDataService->getTop5Posts(null, $from, $to);
         
-        // Lấy breakdown data cho overview
+        // Lấy breakdown data cho overview - áp dụng filter
         $breakdowns = $facebookDataService->getOverviewBreakdowns(null, $from, $to);
         
-        // Lấy actions data cho overview
+        // Lấy actions data cho overview - áp dụng filter  
         $actions = $facebookDataService->getOverviewActions(null, $from, $to);
 
         // Lấy accounts và campaigns cho filter
@@ -170,17 +146,8 @@ class FacebookDashboardController extends Controller
                 ];
             });
 
-        // Thống kê trạng thái cho biểu đồ donut
-        $statusStats = [
-            'campaigns' => FacebookCampaign::select('status', DB::raw('count(*) as count'))
-                ->groupBy('status')
-                ->pluck('count', 'status')
-                ->toArray(),
-            'ads' => FacebookAd::select('status', DB::raw('count(*) as count'))
-                ->groupBy('status')
-                ->pluck('count', 'status')
-                ->toArray(),
-        ];
+        // Thống kê trạng thái cho biểu đồ donut - áp dụng filter
+        $statusStats = $this->calculateFilteredStatusStats($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
 
         // Hiệu suất tổng hợp để hiển thị phụ chú
         $performanceStats = [
@@ -218,6 +185,193 @@ class FacebookDashboardController extends Controller
                 'pages' => $pages,
             ]
         ];
+    }
+
+    /**
+     * Tính toán totals theo filter đã chọn
+     */
+    private function calculateFilteredTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
+    {
+        // Base query cho insights trong khoảng thời gian
+        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+            ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+        
+        // Apply filters
+        if ($selectedBusinessId) {
+            $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                          ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+        }
+        
+        if ($selectedAccountId) {
+            $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+        }
+        
+        if ($selectedCampaignId) {
+            $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+        }
+        
+        if ($selectedPageId) {
+            $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+        }
+        
+        $insightsData = $insightsQuery->get();
+        
+        // Tính totals từ insights data đã filter
+        $totals = [
+            'businesses' => 0,
+            'accounts' => 0,
+            'campaigns' => 0,
+            'adsets' => 0,
+            'ads' => 0,
+            'pages' => 0,
+            'posts' => 0,
+            'ad_insights' => $insightsData->count(),
+        ];
+        
+        if ($insightsData->count() > 0) {
+            // Lấy unique IDs từ insights data
+            $uniqueAdIds = $insightsData->pluck('ad_id')->unique();
+            $uniquePageIds = $insightsData->whereNotNull('page_id')->pluck('page_id')->unique();
+            $uniquePostIds = $insightsData->whereNotNull('post_id')->pluck('post_id')->unique();
+            
+            // Lấy thông tin campaign và account từ ads
+            $adsData = FacebookAd::whereIn('id', $uniqueAdIds)->get();
+            $uniqueCampaignIds = $adsData->pluck('campaign_id')->unique();
+            $uniqueAccountIds = $adsData->pluck('account_id')->unique();
+            $uniqueAdsetIds = $adsData->pluck('adset_id')->unique();
+            
+            // Đếm từ các bảng chính
+            $totals['ads'] = $uniqueAdIds->count();
+            $totals['campaigns'] = $uniqueCampaignIds->count();
+            $totals['accounts'] = $uniqueAccountIds->count();
+            $totals['adsets'] = $uniqueAdsetIds->count();
+            $totals['pages'] = $uniquePageIds->count();
+            $totals['posts'] = $uniquePostIds->count();
+            
+            // Đếm businesses từ accounts
+            if ($uniqueAccountIds->count() > 0) {
+                $totals['businesses'] = FacebookAdAccount::whereIn('id', $uniqueAccountIds)
+                    ->distinct('business_id')
+                    ->count('business_id');
+            }
+        }
+        
+        return $totals;
+    }
+
+    /**
+     * Tính toán status stats theo filter đã chọn
+     */
+    private function calculateFilteredStatusStats($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
+    {
+        // Base query cho insights trong khoảng thời gian
+        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+            ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+        
+        // Apply filters
+        if ($selectedBusinessId) {
+            $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                          ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+        }
+        
+        if ($selectedAccountId) {
+            $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+        }
+        
+        if ($selectedCampaignId) {
+            $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+        }
+        
+        if ($selectedPageId) {
+            $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+        }
+        
+        $insightsData = $insightsQuery->get();
+        
+        $statusStats = [
+            'campaigns' => [],
+            'ads' => [],
+        ];
+        
+        if ($insightsData->count() > 0) {
+            // Lấy unique ad IDs và campaign IDs
+            $uniqueAdIds = $insightsData->pluck('ad_id')->unique();
+            $adsData = FacebookAd::whereIn('id', $uniqueAdIds)->get();
+            $uniqueCampaignIds = $adsData->pluck('campaign_id')->unique();
+            
+            // Thống kê status của campaigns
+            if ($uniqueCampaignIds->count() > 0) {
+                $statusStats['campaigns'] = FacebookCampaign::whereIn('id', $uniqueCampaignIds)
+                    ->select('status', DB::raw('count(*) as count'))
+                    ->groupBy('status')
+                    ->pluck('count', 'status')
+                    ->toArray();
+            }
+            
+            // Thống kê status của ads
+            if ($uniqueAdIds->count() > 0) {
+                $statusStats['ads'] = FacebookAd::whereIn('id', $uniqueAdIds)
+                    ->select('status', DB::raw('count(*) as count'))
+                    ->groupBy('status')
+                    ->pluck('count', 'status')
+                    ->toArray();
+            }
+        }
+        
+        return $statusStats;
+    }
+
+    /**
+     * Lấy top ads theo filter đã chọn
+     */
+    private function getFilteredTopAds($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to)
+    {
+        // Base query cho insights trong khoảng thời gian
+        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+            ->whereBetween('facebook_ad_insights.date', [$from, $to]);
+        
+        // Apply filters
+        if ($selectedBusinessId) {
+            $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                          ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+        }
+        
+        if ($selectedAccountId) {
+            $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+        }
+        
+        if ($selectedCampaignId) {
+            $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+        }
+        
+        if ($selectedPageId) {
+            $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+        }
+        
+        $insightsData = $insightsQuery->get();
+        
+        if ($insightsData->count() === 0) {
+            return collect();
+        }
+        
+        // Lấy unique ad IDs
+        $uniqueAdIds = $insightsData->pluck('ad_id')->unique();
+        
+        // Lấy top ads với insights data
+        return FacebookAd::with(['campaign', 'adSet'])
+            ->whereIn('id', $uniqueAdIds)
+            ->withSum(['insights as total_spend' => function ($query) use ($from, $to) {
+                $query->whereBetween('date', [$from, $to]);
+            }], 'spend')
+            ->withSum(['insights as total_impressions' => function ($query) use ($from, $to) {
+                $query->whereBetween('date', [$from, $to]);
+            }], 'impressions')
+            ->withSum(['insights as total_clicks' => function ($query) use ($from, $to) {
+                $query->whereBetween('date', [$from, $to]);
+            }], 'clicks')
+            ->orderByDesc('total_spend')
+            ->limit(5)
+            ->get();
     }
 
     /**
