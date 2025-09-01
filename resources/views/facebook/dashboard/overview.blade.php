@@ -1384,6 +1384,13 @@
             initFilterLogic();
         });
         
+        // Đảm bảo filter logic được khởi tạo ngay cả khi DOM đã load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFilterLogic);
+        } else {
+            initFilterLogic();
+        }
+        
         function initFilterLogic() {
             const btnToggleFilter = document.getElementById('btnToggleFilter');
             const filterPanel = document.getElementById('filterPanel');
@@ -1394,12 +1401,28 @@
             const filterForm = document.getElementById('filterForm');
             const filterCount = document.getElementById('filterCount');
 
+            // Debug: Kiểm tra xem các element có tồn tại không
+            console.log('Filter elements found:', {
+                btnToggleFilter: !!btnToggleFilter,
+                filterPanel: !!filterPanel,
+                btnCloseFilter: !!btnCloseFilter,
+                businessFilter: !!businessFilter,
+                accountFilter: !!accountFilter,
+                campaignFilter: !!campaignFilter,
+                filterForm: !!filterForm,
+                filterCount: !!filterCount
+            });
+
             // Toggle filter panel
             if (btnToggleFilter && filterPanel) {
-                btnToggleFilter.addEventListener('click', function() {
+                btnToggleFilter.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Toggle filter clicked');
                     filterPanel.classList.toggle('hidden');
                     updateFilterCount();
                 });
+            } else {
+                console.error('btnToggleFilter or filterPanel not found');
             }
 
             // Close filter panel
@@ -1591,6 +1614,27 @@
         }
 
         window.addEventListener('livewire:navigated', ensureChartAndInit); // fix SPA re-init
+        
+        // Đảm bảo filter button hoạt động ngay cả khi JavaScript load chậm
+        setTimeout(function() {
+            const btnToggleFilter = document.getElementById('btnToggleFilter');
+            const filterPanel = document.getElementById('filterPanel');
+            
+            if (btnToggleFilter && filterPanel) {
+                // Xóa event listener cũ nếu có
+                btnToggleFilter.removeEventListener('click', toggleFilterHandler);
+                
+                // Thêm event listener mới
+                btnToggleFilter.addEventListener('click', toggleFilterHandler);
+                
+                function toggleFilterHandler(e) {
+                    e.preventDefault();
+                    console.log('Toggle filter clicked (fallback)');
+                    filterPanel.classList.toggle('hidden');
+                    updateFilterCount();
+                }
+            }
+        }, 1000);
         </script>
     </div>
 </x-layouts.app>
