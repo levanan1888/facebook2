@@ -1472,8 +1472,10 @@
                     filterCampaignsByAccount('');
                     updateFilterCount();
                     
-                    // Auto submit form khi business thay đổi để cập nhật data
+                    // Auto submit form ngay lập tức khi business thay đổi
                     if (filterForm) {
+                        console.log('Auto submitting form due to business filter change');
+                        showFilterLoading();
                         filterForm.submit();
                     }
                 });
@@ -1486,8 +1488,10 @@
                     filterCampaignsByAccount(selectedAccountId);
                     updateFilterCount();
                     
-                    // Auto submit form khi account thay đổi để cập nhật data
+                    // Auto submit form ngay lập tức khi account thay đổi
                     if (filterForm) {
+                        console.log('Auto submitting form due to account filter change');
+                        showFilterLoading();
                         filterForm.submit();
                     }
                 });
@@ -1498,8 +1502,10 @@
                 campaignFilter.addEventListener('change', function() {
                     updateFilterCount();
                     
-                    // Auto submit form khi campaign thay đổi để cập nhật data
+                    // Auto submit form ngay lập tức khi campaign thay đổi
                     if (filterForm) {
+                        console.log('Auto submitting form due to campaign filter change');
+                        showFilterLoading();
                         filterForm.submit();
                     }
                 });
@@ -1520,6 +1526,56 @@
                             });
                         }
                     }, 100);
+                });
+            }
+
+            // Auto submit cho các filter khác
+            const contentTypeFilter = document.querySelector('select[name="content_type"]');
+            const statusFilter = document.querySelector('select[name="status"]');
+            const fromFilter = document.querySelector('input[name="from"]');
+            const toFilter = document.querySelector('input[name="to"]');
+            
+            if (contentTypeFilter) {
+                contentTypeFilter.addEventListener('change', function() {
+                    updateFilterCount();
+                    if (filterForm) {
+                        console.log('Auto submitting form due to content type filter change');
+                        showFilterLoading();
+                        filterForm.submit();
+                    }
+                });
+            }
+            
+            if (statusFilter) {
+                statusFilter.addEventListener('change', function() {
+                    updateFilterCount();
+                    if (filterForm) {
+                        console.log('Auto submitting form due to status filter change');
+                        showFilterLoading();
+                        filterForm.submit();
+                    }
+                });
+            }
+            
+            if (fromFilter) {
+                fromFilter.addEventListener('change', function() {
+                    updateFilterCount();
+                    if (filterForm) {
+                        console.log('Auto submitting form due to from date filter change');
+                        showFilterLoading();
+                        filterForm.submit();
+                    }
+                });
+            }
+            
+            if (toFilter) {
+                toFilter.addEventListener('change', function() {
+                    updateFilterCount();
+                    if (filterForm) {
+                        console.log('Auto submitting form due to to date filter change');
+                        showFilterLoading();
+                        filterForm.submit();
+                    }
                 });
             }
 
@@ -1591,10 +1647,12 @@
             if (pageFilter) {
                 pageFilter.value = '';
                 
-                // Auto submit form khi page thay đổi để cập nhật data
+                // Auto submit form ngay lập tức khi page thay đổi
                 pageFilter.addEventListener('change', function() {
                     updateFilterCount();
                     if (filterForm) {
+                        console.log('Auto submitting form due to page filter change');
+                        showFilterLoading();
                         filterForm.submit();
                     }
                 });
@@ -1618,6 +1676,23 @@
             }
 
             filterCount.textContent = activeFilters;
+        }
+        
+        function showFilterLoading() {
+            // Hiển thị loading indicator
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.id = 'filterLoading';
+            loadingIndicator.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            loadingIndicator.innerHTML = '<svg class="w-4 h-4 inline mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Đang lọc dữ liệu...';
+            document.body.appendChild(loadingIndicator);
+            
+            // Tự động ẩn sau 3 giây
+            setTimeout(() => {
+                const loading = document.getElementById('filterLoading');
+                if (loading) {
+                    loading.remove();
+                }
+            }, 3000);
         }
 
         function clearFilters() {
