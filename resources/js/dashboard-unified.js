@@ -130,22 +130,7 @@ class DashboardUnified {
         }
     }
 
-    async loadUnifiedData() {
-        try {
-            const response = await fetch(`/api/dashboard/unified-data?${new URLSearchParams(this.currentFilters)}`);
-            const result = await response.json();
-
-            if (result.success) {
-                this.dataCache.unified = result.data;
-                this.renderUnifiedData(result.data);
-            } else {
-                throw new Error(result.message);
-            }
-        } catch (error) {
-            // console.error('Error loading unified data:', error);
-            // Bỏ hoàn toàn thông báo lỗi "Lỗi khi tải dữ liệu thống nhất"
-        }
-    }
+   
 
     async loadComparisonData() {
         try {
