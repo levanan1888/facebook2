@@ -171,18 +171,18 @@ class DashboardUnified {
         }
     }
 
-    async loadDataSourcesStatus() {
-        try {
-            const response = await fetch('/api/dashboard/data-sources-status');
-            const result = await response.json();
+    // async loadDataSourcesStatus() {
+    //     try {
+    //         const response = await fetch('/api/dashboard/data-sources-status');
+    //         const result = await response.json();
 
-            if (result.success) {
-                this.renderDataSourcesStatus(result.data);
-            }
-        } catch (error) {
-            console.error('Error loading data sources status:', error);
-        }
-    }
+    //         if (result.success) {
+    //             this.renderDataSourcesStatus(result.data);
+    //         }
+    //     } catch (error) {
+    //         console.error('Error loading data sources status:', error);
+    //     }
+    // }
 
     renderUnifiedData(data) {
         // Render metrics grid
