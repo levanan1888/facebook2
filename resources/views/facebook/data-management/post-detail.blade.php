@@ -120,7 +120,8 @@
                     <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
                     </svg>
-                    Dữ liệu được nhóm theo ngày để tránh trùng lặp thời gian và hiển thị rõ ràng hơn
+                    Dữ liệu được nhóm theo ngày để tránh trùng lặp thời gian và hiển thị rõ ràng hơn. 
+                    <span class="font-medium text-blue-600">Hover vào biểu đồ để xem chi tiết từng thời điểm.</span>
                 </p>
             </div>
             
@@ -745,6 +746,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (uniqueTimestamps.size === 1) {
                 // Nếu tất cả cùng timestamp, tạo ra các điểm thời gian giả lập để hiển thị
                 console.log('Tất cả dữ liệu có cùng timestamp, tạo điểm thời gian giả lập');
+                
+                // Hiển thị thông báo cho người dùng
+                const noticeElement = document.getElementById('time-data-notice');
+                if (noticeElement) {
+                    noticeElement.classList.remove('hidden');
+                }
                 
                 const baseDate = new Date(sortedData[0].date);
                 const fakeLabels = [];

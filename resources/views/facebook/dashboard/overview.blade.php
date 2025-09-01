@@ -45,6 +45,22 @@
                     </button>
                 </div>
                 
+                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">💡 Hướng dẫn sử dụng bộ lọc:</p>
+                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                <li>Nếu không thấy dữ liệu Business Manager, hãy nhấn "Làm mới dữ liệu"</li>
+                                <li>Bộ lọc hoạt động theo thứ tự: Business Manager → Tài khoản quảng cáo → Chiến dịch</li>
+                                <li>Sử dụng nút "Làm mới dữ liệu" để cập nhật thông tin mới nhất từ Facebook</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
                 <form method="GET" action="{{ route('facebook.overview') }}" id="filterForm">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         @can('analytics.filter.time')
@@ -70,24 +86,38 @@
                             <label class="block text-sm font-medium text-gray-700">Business Manager</label>
                             <select name="business_id" id="businessFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Tất cả Business</option>
-                                @foreach(($data['filters']['businesses'] ?? []) as $business)
-                                    <option value="{{ $business->id }}" {{ ($data['filters']['business_id'] ?? null) == $business->id ? 'selected' : '' }}>
-                                        {{ $business->name }}
-                                    </option>
-                                @endforeach
+                                @if(!empty($data['filters']['businesses']))
+                                    @foreach($data['filters']['businesses'] as $business)
+                                        <option value="{{ $business->id }}" {{ ($data['filters']['business_id'] ?? null) == $business->id ? 'selected' : '' }}>
+                                            {{ $business->name ?? 'Business ' . $business->id }}
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="" disabled>Chưa có dữ liệu Business Manager</option>
+                                @endif
                             </select>
+                            @if(empty($data['filters']['businesses']))
+                                <p class="text-xs text-red-500 mt-1">⚠️ Cần đồng bộ dữ liệu Facebook để load Business Managers</p>
+                            @endif
                         </div>
                         
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Tài khoản quảng cáo</label>
                             <select name="account_id" id="accountFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Tất cả tài khoản</option>
-                                @foreach(($data['filters']['accounts'] ?? []) as $acc)
-                                    <option value="{{ $acc->id }}" data-business="{{ $acc->business_id ?? '' }}" {{ ($data['filters']['account_id'] ?? null) == $acc->id ? 'selected' : '' }}>
-                                        {{ $acc->name }} ({{ $acc->account_id }})
-                                    </option>
-                                @endforeach
+                                @if(!empty($data['filters']['accounts']))
+                                    @foreach($data['filters']['accounts'] as $acc)
+                                        <option value="{{ $acc->id }}" data-business="{{ $acc->business_id ?? '' }}" {{ ($data['filters']['account_id'] ?? null) == $acc->id ? 'selected' : '' }}>
+                                            {{ $acc->name ?? 'Account ' . $acc->id }} ({{ $acc->account_id ?? 'N/A' }})
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="" disabled>Chưa có dữ liệu tài khoản quảng cáo</option>
+                                @endif
                             </select>
+                            @if(empty($data['filters']['accounts']))
+                                <p class="text-xs text-red-500 mt-1">⚠️ Cần đồng bộ dữ liệu Facebook để load tài khoản quảng cáo</p>
+                            @endif
                         </div>
                         
                         <div class="space-y-2">
@@ -151,6 +181,12 @@
                                 </svg>
                                 Xóa bộ lọc
                             </button>
+                            <button type="button" onclick="refreshFilterData()" class="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Làm mới dữ liệu
+                            </button>
                         </div>
                         <div class="text-sm text-gray-500">
                             <span id="filterCount">0</span> bộ lọc đang hoạt động
@@ -160,14 +196,21 @@
             </div>
             @endcan
 
-            <!-- AI Summary Section - Moved to top -->
+            <!-- AI Summary Section - Hiển thị dạng popup -->
             <div id="aiSummaryHolder" class="mb-6">
-                <div class="bg-white rounded-lg shadow p-6 border border-emerald-200">
+                <div class="bg-white rounded-lg shadow p-6 border border-emerald-200 cursor-pointer hover:shadow-md transition-shadow" 
+                     onclick="openAiSummaryPopup()">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-emerald-700">Đánh giá tổng quan bởi AI</h3>
-                        <span class="text-xs text-gray-500">Đang phân tích...</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-gray-500" id="aiSummaryStatus">Đang phân tích...</span>
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </div>
                     </div>
-                    <div class="text-sm text-gray-500">Vui lòng đợi trong giây lát.</div>
+                    <div class="text-sm text-gray-500 mb-3">Vui lòng đợi trong giây lát.</div>
+                    <div class="text-xs text-emerald-600 font-medium">Nhấn để xem chi tiết →</div>
                 </div>
             </div>
 
@@ -300,7 +343,27 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Hoạt động từ trước đến nay</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Hoạt động theo thời gian</h3>
+                        <div class="text-sm text-gray-600">
+                            @if(!empty($data['last7Days']))
+                                @php
+                                    $firstDate = \Carbon\Carbon::parse($data['last7Days'][0]['date'] ?? 'now');
+                                    $lastDate = \Carbon\Carbon::parse(end($data['last7Days'])['date'] ?? 'now');
+                                @endphp
+                                <span class="font-medium">Từ:</span> {{ $firstDate->format('d/m/Y') }} 
+                                <span class="font-medium ml-2">Đến:</span> {{ $lastDate->format('d/m/Y') }}
+                            @endif
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <p class="text-xs text-gray-500 italic">
+                            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+                            </svg>
+                            Dữ liệu hiển thị theo ngày tháng thực tế từ database
+                        </p>
+                    </div>
                     <div class="h-72"><canvas id="activityChart"></canvas></div>
                 </div>
                 <div class="bg-white rounded-lg shadow p-6">
@@ -530,6 +593,35 @@
             </div>
         </div>
 
+        <!-- AI Summary Popup Modal - Hiển thị khi nhấn vào AI Summary section -->
+        <div id="aiSummaryPopupModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+            <div class="relative top-5 mx-auto p-6 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-white max-h-[95vh] overflow-y-auto">
+                <div class="mt-3">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold text-emerald-700">Đánh giá tổng quan bởi AI</h3>
+                        <button id="closeAiSummaryPopup" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div id="aiSummaryPopupContent" class="space-y-4">
+                        <div class="bg-emerald-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-emerald-600 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span class="text-emerald-800 font-medium">Đang phân tích dữ liệu...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end mt-6">
+                        <button id="closeAiSummaryPopupBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- AI Analysis Modal - Hiển thị popup khi nhấn Phân tích AI -->
         <div id="aiAnalysisModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
             <div class="relative top-5 mx-auto p-6 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-white max-h-[95vh] overflow-y-auto">
@@ -558,7 +650,6 @@
                 </div>
             </div>
         </div>
-
         <style>
         /* Tab Navigation Styling */
         .tab-button {
@@ -666,6 +757,18 @@
                 aiAnalysisModal.onclick = (e) => { if (e.target === aiAnalysisModal) closeAiModal(); };
             }
             
+            // AI Summary Popup Modal handlers
+            const aiSummaryPopupModal = document.getElementById('aiSummaryPopupModal');
+            const closeAiSummaryPopup = document.getElementById('closeAiSummaryPopup');
+            const closeAiSummaryPopupBtn = document.getElementById('closeAiSummaryPopupBtn');
+            
+            if (aiSummaryPopupModal && closeAiSummaryPopup && closeAiSummaryPopupBtn) {
+                const closeAiSummaryPopupModal = () => aiSummaryPopupModal.classList.add('hidden');
+                closeAiSummaryPopup.onclick = closeAiSummaryPopupModal;
+                closeAiSummaryPopupBtn.onclick = closeAiSummaryPopupModal;
+                aiSummaryPopupModal.onclick = (e) => { if (e.target === aiSummaryPopupModal) closeAiSummaryPopupModal(); };
+            }
+            
             // Tab Navigation handlers
             if (overviewTab && dataManagementTab && overviewContent && dataManagementContent) {
                 overviewTab.onclick = () => {
@@ -712,11 +815,30 @@
             if (activityEl) {
                 const activityCtx = activityEl.getContext('2d');
                 const activityData = @json($data['last7Days']);
+                
+                // Xử lý labels để hiển thị ngày cụ thể từ database
+                const formattedLabels = activityData.map(item => {
+                    if (item.date) {
+                        const date = new Date(item.date);
+                        // Kiểm tra nếu là ngày hợp lệ
+                        if (!isNaN(date.getTime())) {
+                            // Format ngày theo định dạng Việt Nam: dd/mm/yyyy
+                            return date.toLocaleDateString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
+                        }
+                    }
+                    // Fallback nếu không có date hoặc date không hợp lệ
+                    return item.date || 'N/A';
+                });
+                
                 window.__fbCharts.activity && window.__fbCharts.activity.destroy();
                 window.__fbCharts.activity = new Chart(activityCtx, { 
                     type: 'bar', 
                     data: { 
-                        labels: activityData.map(item => item.date), 
+                        labels: formattedLabels, 
                         datasets: [
                             { 
                                 label: 'Chiến dịch', 
@@ -824,6 +946,28 @@
                                     color: 'rgba(0,0,0,0.6)',
                                     font: {
                                         size: 11
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 0,
+                                    callback: function(value, index) {
+                                        // Hiển thị ngày rõ ràng hơn trên trục X
+                                        const label = this.getLabelForValue(value);
+                                        if (label && label !== 'N/A') {
+                                            // Nếu label đã được format rồi thì giữ nguyên
+                                            return label;
+                                        }
+                                        // Fallback: hiển thị ngày gốc từ database
+                                        const originalDate = activityData[index]?.date;
+                                        if (originalDate) {
+                                            const date = new Date(originalDate);
+                                            if (!isNaN(date.getTime())) {
+                                                return date.toLocaleDateString('vi-VN', {
+                                                    day: '2-digit',
+                                                    month: '2-digit'
+                                                });
+                                            }
+                                        }
+                                        return label;
                                     }
                                 }
                             } 
@@ -831,13 +975,34 @@
                         plugins: { 
                             title: { 
                                 display: true, 
-                                text: 'Hoạt động 30 ngày gần nhất',
+                                text: 'Hoạt động 7 ngày gần nhất',
                                 color: 'rgba(0,0,0,0.8)',
                                 font: {
                                     size: 16,
                                     weight: 'bold'
                                 }
-                            } 
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        // Hiển thị ngày đầy đủ trong tooltip
+                                        const dataIndex = context[0].dataIndex;
+                                        const originalDate = activityData[dataIndex].date;
+                                        if (originalDate) {
+                                            const date = new Date(originalDate);
+                                            if (!isNaN(date.getTime())) {
+                                                return date.toLocaleDateString('vi-VN', {
+                                                    weekday: 'long',
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                });
+                                            }
+                                        }
+                                        return context[0].label;
+                                    }
+                                }
+                            }
                         },
                         layout: {
                             padding: {
@@ -886,13 +1051,25 @@
 
         async function requestAiSummary(isManual = false) {
             const holder = document.getElementById('aiSummaryHolder');
+            const statusElement = document.getElementById('aiSummaryStatus');
+            
+            if (statusElement) {
+                statusElement.textContent = 'Đang phân tích...';
+            }
+            
             holder.innerHTML = `
-                <div class=\"bg-white rounded-lg shadow p-6 border border-emerald-200\">
-                    <div class=\"flex items-center justify-between mb-3\">
+                <div class=\"bg-white rounded-lg shadow p-6 border border-emerald-200 cursor-pointer hover:shadow-md transition-shadow\" onclick=\"openAiSummaryPopup()\">
+                    <div class=\"flex items-center justify-between mb-4\">
                         <h3 class=\"text-lg font-semibold text-emerald-700\">Đánh giá tổng quan bởi AI</h3>
-                        <span class=\"text-xs text-gray-500\">Đang phân tích...</span>
+                        <div class=\"flex items-center space-x-2\">
+                            <span class=\"text-xs text-gray-500\" id=\"aiSummaryStatus\">Đang phân tích...</span>
+                            <svg class=\"w-5 h-5 text-emerald-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14\" />
+                            </svg>
+                        </div>
                     </div>
-                    <div class=\"text-sm text-gray-500\">Vui lòng đợi trong giây lát.</div>
+                    <div class=\"text-sm text-gray-500 mb-3\">Vui lòng đợi trong giây lát.</div>
+                    <div class=\"text-xs text-emerald-600 font-medium\">Nhấn để xem chi tiết →</div>
                 </div>`;
             try {
                 if (isManual) {
@@ -1014,6 +1191,13 @@
         }
         async function renderAiCard(content) {
             const holder = document.getElementById('aiSummaryHolder');
+            const statusElement = document.getElementById('aiSummaryStatus');
+            
+            // Cập nhật status
+            if (statusElement) {
+                statusElement.textContent = 'Hoàn thành';
+            }
+            
             // Load a tiny markdown parser for clean output if needed
             async function ensureMarked() {
                 if (window.marked) return;
@@ -1025,13 +1209,24 @@
             }
             await ensureMarked();
             const md = (window.marked && window.marked.parse) ? window.marked.parse(content) : sanitizePlain(content);
+            
+            // Tạo preview content (chỉ hiển thị một phần)
+            const previewContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
+            const previewMd = (window.marked && window.marked.parse) ? window.marked.parse(previewContent) : sanitizePlain(previewContent);
+            
             holder.innerHTML = `
-                <div class=\"bg-white rounded-lg shadow p-6 border border-emerald-200\">
+                <div class=\"bg-white rounded-lg shadow p-6 border border-emerald-200 cursor-pointer hover:shadow-md transition-shadow\" onclick=\"openAiSummaryPopup()\">
                     <div class=\"flex items-center justify-between mb-4\">
                         <h3 class=\"text-lg font-semibold text-emerald-700\">Đánh giá tổng quan bởi AI</h3>
-                        <span class=\"text-xs text-gray-500\">Cập nhật: ${new Date().toLocaleString()}</span>
+                        <div class=\"flex items-center space-x-2\">
+                            <span class=\"text-xs text-green-600 font-medium\" id=\"aiSummaryStatus\">Hoàn thành</span>
+                            <svg class=\"w-5 h-5 text-emerald-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14\" />
+                            </svg>
+                        </div>
                     </div>
-                    <div class=\"text-[15px] leading-7 space-y-3 max-h-[200px] overflow-y-auto pr-2\">${md}</div>
+                    <div class=\"text-[15px] leading-7 space-y-3 max-h-[200px] overflow-y-auto pr-2\">${previewMd}</div>
+                    <div class=\"text-xs text-emerald-600 font-medium mt-3\">Nhấn để xem chi tiết đầy đủ →</div>
                 </div>`;
             holder.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -1063,6 +1258,102 @@
                         ${md}
                     </div>
                 </div>`;
+        }
+        
+        // Hàm mới để render AI content trong AI Summary popup
+        async function renderAiSummaryPopupContent(content) {
+            const aiSummaryPopupContent = document.getElementById('aiSummaryPopupContent');
+            if (!aiSummaryPopupContent) return;
+            
+            // Load a tiny markdown parser for clean output if needed
+            async function ensureMarked() {
+                if (window.marked) return;
+                await new Promise((resolve) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+                    s.onload = resolve; document.head.appendChild(s);
+                });
+            }
+            await ensureMarked();
+            const md = (window.marked && window.marked.parse) ? window.marked.parse(content) : sanitizePlain(content);
+            
+            aiSummaryPopupContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-sm border border-emerald-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-semibold text-emerald-700">Kết quả phân tích AI</h4>
+                        <span class="text-xs text-gray-500">Cập nhật: ${new Date().toLocaleString()}</span>
+                    </div>
+                    <div class="text-[15px] leading-7 space-y-4 max-h-[60vh] overflow-y-auto pr-2 prose prose-sm max-w-none">
+                        ${md}
+                    </div>
+                </div>`;
+        }
+        
+        // Hàm mở AI Summary popup
+        function openAiSummaryPopup() {
+            const modal = document.getElementById('aiSummaryPopupModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                // Tự động load AI summary khi mở popup
+                loadAiSummaryForPopup();
+            }
+        }
+        
+        // Hàm load AI Summary cho popup
+        async function loadAiSummaryForPopup() {
+            const aiSummaryPopupContent = document.getElementById('aiSummaryPopupContent');
+            if (!aiSummaryPopupContent) return;
+            
+            aiSummaryPopupContent.innerHTML = `
+                <div class="bg-emerald-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-emerald-600 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span class="text-emerald-800 font-medium">Đang phân tích dữ liệu...</span>
+                    </div>
+                </div>`;
+            
+            try {
+                // Chuẩn bị data breakdowns từ view để gửi cho AI
+                const breakdownsData = {
+                    breakdowns: @json($data['breakdowns'] ?? []),
+                    actions: @json($data['actions'] ?? []),
+                    stats: @json($data['stats'] ?? []),
+                    totals: @json($data['totals'] ?? []),
+                    performanceStats: @json($data['performanceStats'] ?? []),
+                    last7Days: @json($data['last7Days'] ?? []),
+                    statusStats: @json($data['statusStats'] ?? [])
+                };
+                
+                const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
+                if (window._aiDebug) url.searchParams.set('debug','1');
+                
+                const res = await fetch(url.toString(), { 
+                    method: 'POST', 
+                    headers: { 
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        breakdowns_data: breakdownsData
+                    })
+                });
+                
+                const data = await res.json();
+                if (data && data.debug) {
+                    console.log('AI metrics (debug):', data.metrics);
+                    console.log('Breakdowns data sent:', breakdownsData);
+                    await renderAiSummaryPopupContent('Đang ở chế độ debug – xem metrics trong console.');
+                } else {
+                    const text = (data && data.summary) ? data.summary : 'Không nhận được kết quả từ AI.';
+                    await renderAiSummaryPopupContent(text);
+                }
+            } catch (error) {
+                console.error('AI Summary error:', error);
+                await renderAiSummaryPopupContent('Lỗi gọi AI. Vui lòng thử lại.');
+            }
         }
 
         function sanitizePlain(t) {
@@ -1262,6 +1553,26 @@
                 
                 // Redirect to overview without filters
                 window.location.href = '{{ route('facebook.overview') }}';
+            }
+        }
+        
+        // Hàm làm mới dữ liệu filter
+        async function refreshFilterData() {
+            const refreshBtn = event.target.closest('button');
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.innerHTML = '<svg class="w-4 h-4 inline mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Đang tải...';
+            }
+            
+            try {
+                // Reload trang để lấy dữ liệu mới nhất
+                window.location.reload();
+            } catch (error) {
+                console.error('Lỗi khi làm mới dữ liệu:', error);
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = '<svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Làm mới dữ liệu';
+                }
             }
         }
 
