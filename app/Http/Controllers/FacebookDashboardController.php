@@ -76,13 +76,12 @@ class FacebookDashboardController extends Controller
         // Lấy dữ liệu từ facebook_ad_insights
         $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
         
+        // Join với facebook_ad_accounts nếu cần filter theo business
         if ($selectedBusinessId) {
-            $insightsQuery->whereHas('ad', function($query) use ($selectedBusinessId) {
-                $query->whereHas('account', function($q) use ($selectedBusinessId) {
-                    $q->where('business_id', $selectedBusinessId);
-                });
-            });
+            $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                          ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
         }
+        
         if ($selectedAccountId) {
             $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
         }
@@ -154,6 +153,9 @@ class FacebookDashboardController extends Controller
         
         // Lấy Business Managers cho filter
         $businesses = FacebookBusiness::select('id', 'name')->get();
+        
+        // Lấy Facebook Pages cho filter
+        $pages = \App\Models\FacebookPage::select('id', 'name')->get();
 
         // Thống kê trạng thái cho biểu đồ donut
         $statusStats = [
@@ -199,6 +201,7 @@ class FacebookDashboardController extends Controller
                 'accounts' => $accounts,
                 'campaigns' => $campaigns,
                 'businesses' => $businesses,
+                'pages' => $pages,
             ]
         ];
     }

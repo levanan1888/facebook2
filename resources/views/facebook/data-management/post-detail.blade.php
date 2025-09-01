@@ -129,7 +129,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
                         <span class="text-sm text-yellow-800">
-                            <strong>Lưu ý:</strong> Tất cả dữ liệu có cùng thời gian. Biểu đồ hiển thị dữ liệu thực tế từ database.
+                            <strong>Lưu ý:</strong> Tất cả dữ liệu có cùng thời gian. Biểu đồ hiển thị dạng đường ngang để dễ đọc.
                         </span>
                     </div>
                 </div>
@@ -754,8 +754,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const uniqueTimestamps = new Set(sortedData.map(item => item.date));
             
             if (uniqueTimestamps.size === 1) {
-                // Nếu tất cả cùng timestamp, hiển thị dữ liệu thực tế thay vì fake
-                console.log('Tất cả dữ liệu có cùng timestamp, hiển thị dữ liệu thực tế');
+                // Nếu tất cả cùng timestamp, tạo đường ngang để biểu đồ đẹp hơn
+                console.log('Tất cả dữ liệu có cùng timestamp, tạo đường ngang để biểu đồ đẹp hơn');
                 
                 // Hiển thị thông báo cho người dùng
                 const noticeElement = document.getElementById('time-data-notice');
@@ -772,15 +772,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     minute: '2-digit'
                 });
                 
+                // Tạo 3 điểm để vẽ đường ngang: trước, hiện tại, sau
+                const beforeLabel = 'Trước';
+                const afterLabel = 'Sau';
+                
                 return {
-                    labels: [realLabel],
-                    impressions: [sortedData[0].impressions || 0],
-                    clicks: [sortedData[0].clicks || 0],
-                    spend: [sortedData[0].spend || 0],
-                    videoViews: [sortedData[0].video_views || 0],
-                    videoP75: [sortedData[0].video_p75_watched_actions || 0],
-                    videoP100: [sortedData[0].video_p100_watched_actions || 0],
-                    ctr: [(sortedData[0].ctr || 0) * 100]
+                    labels: [beforeLabel, realLabel, afterLabel],
+                    impressions: [sortedData[0].impressions || 0, sortedData[0].impressions || 0, sortedData[0].impressions || 0],
+                    clicks: [sortedData[0].clicks || 0, sortedData[0].clicks || 0, sortedData[0].clicks || 0],
+                    spend: [sortedData[0].spend || 0, sortedData[0].spend || 0, sortedData[0].spend || 0],
+                    videoViews: [sortedData[0].video_views || 0, sortedData[0].video_views || 0, sortedData[0].video_views || 0],
+                    videoP75: [sortedData[0].video_p75_watched_actions || 0, sortedData[0].video_p75_watched_actions || 0, sortedData[0].video_p75_watched_actions || 0],
+                    videoP100: [sortedData[0].video_p100_watched_actions || 0, sortedData[0].video_p100_watched_actions || 0, sortedData[0].video_p100_watched_actions || 0],
+                    ctr: [(sortedData[0].ctr || 0) * 100, (sortedData[0].ctr || 0) * 100, (sortedData[0].ctr || 0) * 100]
                 };
             }
             
@@ -1078,13 +1082,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         minute: '2-digit'
                     });
                     
+                    // Tạo 3 điểm để vẽ đường ngang: trước, hiện tại, sau
+                    const beforeLabel = 'Trước';
+                    const afterLabel = 'Sau';
+                    
                     const actionValues = {};
                     actionTypes.forEach(actionType => {
-                        actionValues[actionType] = [data[timeKeys[0]][actionType] || 0];
+                        const value = data[timeKeys[0]][actionType] || 0;
+                        actionValues[actionType] = [value, value, value]; // 3 điểm giống nhau để tạo đường ngang
                     });
                     
                     return {
-                        labels: [realLabel],
+                        labels: [beforeLabel, realLabel, afterLabel],
                         actionTypes: actionTypes,
                         actionValues: actionValues
                     };

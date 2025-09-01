@@ -28,6 +28,14 @@ class FacebookAd extends Model
     }
 
     /**
+     * Alias cho adAccount để code dễ đọc hơn
+     */
+    public function account()
+    {
+        return $this->adAccount();
+    }
+
+    /**
      * Relationship với Ad Set
      */
     public function adSet()
