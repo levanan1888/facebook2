@@ -141,14 +141,14 @@ class FacebookDashboardController extends Controller
         
 
 
-        // Lấy accounts và campaigns cho filter từ insights data
+        // Lấy accounts và campaigns cho filter - luôn lấy tất cả để dropdown không bị mất options
+        $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
+        $campaigns = FacebookCampaign::select('id', 'name', 'ad_account_id')->get();
+        
+        // Lấy insights data cho việc tính toán khác
         if (!$hasFilters) {
-            // Khi không có filter, lấy tất cả dữ liệu
             $allInsightsData = FacebookAdInsight::all();
-            $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
-            $campaigns = FacebookCampaign::select('id', 'name', 'ad_account_id')->get();
         } else {
-            // Khi có filter, áp dụng filter tương tự như trong calculateFilteredTotals
             $filteredInsightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
             
             // Apply filters
@@ -175,66 +175,28 @@ class FacebookDashboardController extends Controller
             }
             
             $allInsightsData = $filteredInsightsQuery->get();
+        }
+        
+        // Lấy Business Managers cho filter - luôn lấy tất cả để dropdown không bị mất options
+        $businesses = FacebookBusiness::select('id', 'name')->get();
+        
+        // Lấy Facebook Pages cho filter - luôn lấy tất cả để dropdown không bị mất options
+        $uniquePageIds = FacebookAdInsight::whereNotNull('page_id')->distinct('page_id')->pluck('page_id');
+        $pages = $uniquePageIds->map(function($pageId) {
+            // Tìm business_id của page này từ insights data
+            $pageInsights = FacebookAdInsight::where('page_id', $pageId)
+                ->join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+                ->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                ->first();
             
-            if ($allInsightsData->count() > 0) {
-                $uniqueAdIds = $allInsightsData->pluck('ad_id')->unique();
-                $adsData = FacebookAd::whereIn('id', $uniqueAdIds)->get();
-                $uniqueAccountIds = $adsData->pluck('account_id')->unique();
-                $uniqueCampaignIds = $adsData->pluck('campaign_id')->unique();
-                
-                $accounts = FacebookAdAccount::whereIn('id', $uniqueAccountIds)->select('id', 'name', 'account_id', 'business_id')->get();
-                $campaigns = FacebookCampaign::whereIn('id', $uniqueCampaignIds)->select('id', 'name', 'ad_account_id')->get();
-            } else {
-                $accounts = collect();
-                $campaigns = collect();
-            }
-        }
-        
-        // Lấy Business Managers cho filter từ insights data
-        if (!$hasFilters) {
-            // Khi không có filter, lấy tất cả business managers
-            $businesses = FacebookBusiness::select('id', 'name')->get();
-        } else {
-            // Khi có filter, chỉ lấy từ insights data đã filter
-            if ($allInsightsData->count() > 0) {
-                $uniqueAdIds = $allInsightsData->pluck('ad_id')->unique();
-                $adsData = FacebookAd::whereIn('id', $uniqueAdIds)->get();
-                $uniqueAccountIds = $adsData->pluck('account_id')->unique();
-                
-                $businessIds = FacebookAdAccount::whereIn('id', $uniqueAccountIds)
-                    ->pluck('business_id')
-                    ->unique();
-                
-                $businesses = FacebookBusiness::whereIn('id', $businessIds)->select('id', 'name')->get();
-            } else {
-                $businesses = collect();
-            }
-        }
-        
-        // Lấy Facebook Pages từ insights data
-        if (!$hasFilters) {
-            // Khi không có filter, lấy tất cả page_ids từ insights
-            $uniquePageIds = FacebookAdInsight::whereNotNull('page_id')->distinct('page_id')->pluck('page_id');
-            $pages = $uniquePageIds->map(function($pageId) {
-                return (object) [
-                    'id' => $pageId,
-                    'name' => 'Page ' . $pageId
-                ];
-            });
-        } else {
-            // Khi có filter, chỉ lấy từ insights data đã filter
-            if ($allInsightsData->count() > 0) {
-                $uniquePageIds = $allInsightsData->whereNotNull('page_id')->pluck('page_id')->unique();
-                $pages = $uniquePageIds->map(function($pageId) {
-                    return (object) [
-                        'id' => $pageId,
-                        'name' => 'Page ' . $pageId
-                    ];
-                });
-            } else {
-                $pages = collect();
-            }
-        }
+            $businessId = $pageInsights ? $pageInsights->business_id : null;
+            
+            return (object) [
+                'id' => $pageId,
+                'name' => 'Page ' . $pageId,
+                'business_id' => $businessId
+            ];
+        });
 
         // Thống kê trạng thái cho biểu đồ donut - áp dụng filter
         $statusStats = $this->calculateFilteredStatusStats($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);

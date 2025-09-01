@@ -137,7 +137,9 @@
                             <select name="page_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Tất cả trang</option>
                                 @foreach(($data['filters']['pages'] ?? []) as $page)
-                                    <option value="{{ $page->id }}" {{ ($data['filters']['page_id'] ?? null) == $page->id ? 'selected' : '' }}>
+                                    <option value="{{ $page->id }}" 
+                                            data-business="{{ $page->business_id ?? '' }}"
+                                            {{ ($data['filters']['page_id'] ?? null) == $page->id ? 'selected' : '' }}>
                                         {{ $page->name }}
                                     </option>
                                 @endforeach
@@ -1494,6 +1496,7 @@
                     const selectedBusinessId = this.value;
                     filterAccountsByBusiness(selectedBusinessId);
                     filterCampaignsByAccount('');
+                    filterPagesByBusiness(selectedBusinessId);
                     updateFilterCount();
                     
                     // Không auto submit, chỉ cập nhật filter count
@@ -1643,12 +1646,33 @@
             const pageFilter = document.querySelector('select[name="page_id"]');
             if (pageFilter) {
                 pageFilter.value = '';
+            }
+        }
+
+        function filterPagesByBusiness(businessId) {
+            const pageFilter = document.querySelector('select[name="page_id"]');
+            if (!pageFilter) return;
+
+            const options = pageFilter.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.value === '') return; // Skip "Tất cả" option
                 
-                // Không auto submit khi page thay đổi
-                pageFilter.addEventListener('change', function() {
-                    updateFilterCount();
-                    console.log('Page filter changed, waiting for manual submit');
-                });
+                const pageBusinessId = option.getAttribute('data-business');
+                if (businessId === '' || pageBusinessId === businessId) {
+                    option.style.display = '';
+                    option.disabled = false;
+                } else {
+                    option.style.display = 'none';
+                    option.disabled = true;
+                }
+            });
+
+            // Reset page selection if current selection is not valid
+            if (businessId !== '' && pageFilter.value !== '') {
+                const selectedOption = pageFilter.querySelector(`option[value="${pageFilter.value}"]`);
+                if (selectedOption && selectedOption.disabled) {
+                    pageFilter.value = '';
+                }
             }
         }
 
