@@ -142,7 +142,7 @@ class FacebookDashboardController extends Controller
 
         // Lấy accounts và campaigns cho filter
         $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
-        $campaigns = FacebookCampaign::select('id', 'name', 'account_id')->get();
+        $campaigns = FacebookCampaign::select('id', 'name', 'ad_account_id')->get();
         
         // Lấy businesses cho filter
         $businesses = FacebookBusiness::select('id', 'name')->get();
