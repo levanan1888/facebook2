@@ -60,6 +60,7 @@ class FacebookDashboardController extends Controller
         $selectedBusinessId = $request->get('business_id');
         $selectedAccountId = $request->get('account_id');
         $selectedCampaignId = $request->get('campaign_id');
+        $selectedPageId = $request->get('page_id');
 
         // Chỉ sử dụng dữ liệu từ facebook_ad_insights
         $totals = [
@@ -87,6 +88,9 @@ class FacebookDashboardController extends Controller
         }
         if ($selectedCampaignId) {
             $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+        }
+        if ($selectedPageId) {
+            $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
         }
         
         $insightsData = $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to])->get();
@@ -154,8 +158,17 @@ class FacebookDashboardController extends Controller
         // Lấy Business Managers cho filter
         $businesses = FacebookBusiness::select('id', 'name')->get();
         
-        // Lấy Facebook Pages cho filter
-        $pages = \App\Models\FacebookPage::select('id', 'name')->get();
+        // Lấy Facebook Pages từ facebook_ad_insights thay vì bảng facebook_pages
+        $pages = FacebookAdInsight::select('page_id as id', 'page_id')
+            ->whereNotNull('page_id')
+            ->distinct()
+            ->get()
+            ->map(function($item) {
+                return (object) [
+                    'id' => $item->page_id,
+                    'name' => 'Page ' . $item->page_id
+                ];
+            });
 
         // Thống kê trạng thái cho biểu đồ donut
         $statusStats = [
@@ -198,6 +211,7 @@ class FacebookDashboardController extends Controller
                 'account_id' => $selectedAccountId,
                 'campaign_id' => $selectedCampaignId,
                 'business_id' => $request->get('business_id'),
+                'page_id' => $selectedPageId,
                 'accounts' => $accounts,
                 'campaigns' => $campaigns,
                 'businesses' => $businesses,

@@ -1504,6 +1504,12 @@
                     campaignFilter.value = '';
                 }
             }
+            
+            // Reset page selection when account changes
+            const pageFilter = document.querySelector('select[name="page_id"]');
+            if (pageFilter) {
+                pageFilter.value = '';
+            }
         }
 
         function updateFilterCount() {
@@ -1535,10 +1541,12 @@
                 const businessFilter = document.getElementById('businessFilter');
                 const accountFilter = document.getElementById('accountFilter');
                 const campaignFilter = document.getElementById('campaignFilter');
+                const pageFilter = document.querySelector('select[name="page_id"]');
                 
                 if (businessFilter) businessFilter.value = '';
                 if (accountFilter) accountFilter.value = '';
                 if (campaignFilter) campaignFilter.value = '';
+                if (pageFilter) pageFilter.value = '';
                 
                 // Show all options
                 if (accountFilter) {
