@@ -95,8 +95,7 @@
                             <select name="campaign_id" id="campaignFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Tất cả chiến dịch</option>
                                 @foreach(($data['filters']['campaigns'] ?? []) as $c)
-
-                                    <option value="{{ $c->id }}" data-ad-account="{{ $c->ad_account_id ?? '' }}" {{ ($data['filters']['campaign_id'] ?? null) == $c->id ? 'selected' : '' }}>
+                                    <option value="{{ $c->id }}" data-account="{{ $c->account_id ?? '' }}" {{ ($data['filters']['campaign_id'] ?? null) == $c->id ? 'selected' : '' }}>
                                         {{ $c->name }}
                                     </option>
                                 @endforeach
@@ -146,7 +145,7 @@
                                 </svg>
                                 Áp dụng bộ lọc
                             </button>
-                            <a href="{{ route('facebook.overview') }}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200">
+                            <button type="button" onclick="clearFilters()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200">
                                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
@@ -519,9 +518,7 @@
                 btnAiSummary.onclick = async function() { await requestAiSummary(true); };
             }
 
-            if (btnToggleFilter && filterPanel) {
-                btnToggleFilter.onclick = () => filterPanel.classList.toggle('hidden');
-            }
+            // Filter toggle handled in initFilterLogic() to avoid duplicate event listeners
 
             // Charts
             window.__fbCharts ||= {};
@@ -688,8 +685,14 @@
             return out;
         }
 
-        // Initialize filters and event listeners
-        function initializeFilters() {
+        // Filter Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            ensureChartAndInit(); 
+            requestAiSummary(false);
+            initFilterLogic();
+        });
+        
+        function initFilterLogic() {
             const btnToggleFilter = document.getElementById('btnToggleFilter');
             const filterPanel = document.getElementById('filterPanel');
             const btnCloseFilter = document.getElementById('btnCloseFilter');
@@ -786,7 +789,7 @@
             options.forEach(option => {
                 if (option.value === '') return; // Skip "Tất cả" option
                 
-                const campaignAccountId = option.getAttribute('data-ad-account');
+                const campaignAccountId = option.getAttribute('data-account');
                 if (accountId === '' || campaignAccountId === accountId) {
                     option.style.display = '';
                     option.disabled = false;
@@ -824,23 +827,44 @@
             filterCount.textContent = activeFilters;
         }
 
-        // Ensure proper initialization
-        function ensureChartAndInit() {
-            if (typeof Chart !== 'undefined') {
-                initFacebookOverviewCharts();
+        function clearFilters() {
+            const form = document.getElementById('filterForm');
+            if (form) {
+                form.reset();
+                updateFilterCount();
+                
+                // Reset dependent filters
+                const businessFilter = document.getElementById('businessFilter');
+                const accountFilter = document.getElementById('accountFilter');
+                const campaignFilter = document.getElementById('campaignFilter');
+                
+                if (businessFilter) businessFilter.value = '';
+                if (accountFilter) accountFilter.value = '';
+                if (campaignFilter) campaignFilter.value = '';
+                
+                // Show all options
+                if (accountFilter) {
+                    const options = accountFilter.querySelectorAll('option');
+                    options.forEach(option => {
+                        option.style.display = '';
+                        option.disabled = false;
+                    });
+                }
+                
+                if (campaignFilter) {
+                    const options = campaignFilter.querySelectorAll('option');
+                    options.forEach(option => {
+                        option.style.display = '';
+                        option.disabled = false;
+                    });
+                }
+                
+                // Redirect to overview without filters
+                window.location.href = '{{ route('facebook.overview') }}';
             }
-            initializeFilters();
         }
 
-        // Initialize on page load
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', ensureChartAndInit);
-        } else {
-            ensureChartAndInit();
-        }
-
-        // Fix for SPA navigation
-        window.addEventListener('livewire:navigated', ensureChartAndInit);
+        window.addEventListener('livewire:navigated', ensureChartAndInit); // fix SPA re-init
         </script>
     </div>
 </x-layouts.app>
