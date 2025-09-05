@@ -1031,6 +1031,25 @@
             }
         }
 
+        // Singleton fetch: chỉ gọi API 1 lần, các nơi khác dùng chung Promise
+        function fetchAiSummaryOnce(breakdownsData, debugFlag = false) {
+            if (window.__aiSummaryPromise) return window.__aiSummaryPromise;
+            const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
+            if (debugFlag) url.searchParams.set('debug','1');
+            window.__aiSummaryPromise = fetch(url.toString(), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ breakdowns_data: breakdownsData })
+            })
+            .then(res => res.json())
+            .catch(err => { window.__aiSummaryPromise = null; throw err; });
+            return window.__aiSummaryPromise;
+        }
+
         async function requestAiSummary(isManual = false) {
             const holder = document.getElementById('aiSummaryHolder');
             const statusElement = document.getElementById('aiSummaryStatus');
@@ -1076,22 +1095,7 @@
                     statusStats: @json($data['statusStats'] ?? [])
                 };
                 
-                const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
-                if (isManual && (window._aiDebug || false)) url.searchParams.set('debug','1');
-                
-                const res = await fetch(url.toString(), { 
-                    method: 'POST', 
-                    headers: { 
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        breakdowns_data: breakdownsData
-                    })
-                });
-                
-                const data = await res.json();
+                const data = await fetchAiSummaryOnce(breakdownsData, isManual && (window._aiDebug || false));
                 if (data && data.debug) {
                     // In ra console để bạn kiểm tra metrics tổng hợp cuối cùng
                     console.log('AI metrics (debug):', data.metrics);
@@ -1140,22 +1144,7 @@
                     statusStats: @json($data['statusStats'] ?? [])
                 };
                 
-                const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
-                if (window._aiDebug) url.searchParams.set('debug','1');
-                
-                const res = await fetch(url.toString(), { 
-                    method: 'POST', 
-                    headers: { 
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        breakdowns_data: breakdownsData
-                    })
-                });
-                
-                const data = await res.json();
+                const data = await fetchAiSummaryOnce(breakdownsData, window._aiDebug || false);
                 if (data && data.debug) {
                     console.log('AI metrics (debug):', data.metrics);
                     console.log('Breakdowns data sent:', breakdownsData);
@@ -1323,21 +1312,7 @@
                     statusStats: @json($data['statusStats'] ?? [])
                 };
                 
-                const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
-                
-                const res = await fetch(url.toString(), { 
-                    method: 'POST', 
-                    headers: { 
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        breakdowns_data: breakdownsData
-                    })
-                });
-                
-                const data = await res.json();
+                const data = await fetchAiSummaryOnce(breakdownsData, false);
                 const text = (data && data.summary) ? data.summary : 'Không nhận được kết quả từ AI.';
                 await renderAiSummaryPopupContent(text);
             } catch (error) {
@@ -1373,22 +1348,7 @@
                     statusStats: @json($data['statusStats'] ?? [])
                 };
                 
-                const url = new URL('{{ route('facebook.overview.ai-summary') }}', window.location.origin);
-                if (window._aiDebug) url.searchParams.set('debug','1');
-                
-                const res = await fetch(url.toString(), { 
-                    method: 'POST', 
-                    headers: { 
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        breakdowns_data: breakdownsData
-                    })
-                });
-                
-                const data = await res.json();
+                const data = await fetchAiSummaryOnce(breakdownsData, window._aiDebug || false);
                 if (data && data.debug) {
                     console.log('AI metrics (debug):', data.metrics);
                     console.log('Breakdowns data sent:', breakdownsData);
@@ -1426,6 +1386,9 @@
 
         // Filter Logic - Sửa lỗi SPA conflict
         function initPage() {
+            // Chỉ chạy trên trang Overview (có holder AI)
+            const hasAiHolder = document.getElementById('aiSummaryHolder');
+            if (!hasAiHolder) { return; }
             ensureChartAndInit(); 
             // Chỉ gọi AI summary một lần khi trang load
             if (!window.aiSummaryLoaded) {

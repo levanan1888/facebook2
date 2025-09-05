@@ -3,9 +3,7 @@
 @import './custom-colors.css';
 
 @source '../views';
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
-@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+/* Giảm phạm vi quét để nhỏ CSS build. Nếu thật sự cần các class từ vendor, hãy thêm lại có chọn lọc. */
 
 @custom-variant dark (&:where(.dark, .dark *));
 

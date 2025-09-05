@@ -1,6 +1,4 @@
 <x-layouts.app :title="'Quản lý dữ liệu Facebook'">
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="p-6">
     <!-- Header -->
     <div class="mb-8">
@@ -507,6 +505,8 @@
 <script>
 // Function to initialize the page
 function initializeDataManagement() {
+    if (window.__dmInit) return; // tránh gắn nhiều listener khi SPA
+    window.__dmInit = true;
     const pageSelect = document.getElementById('page-select');
     const filterForm = document.getElementById('filter-form');
     const clearFiltersBtn = document.getElementById('clear-filters');
@@ -645,8 +645,20 @@ function initializeDataManagement() {
             });
     }
     
-    // Render single overview chart
-    function renderPageCharts(data) {
+    // Nạp Chart.js khi cần
+    function ensureChartLib() {
+        if (window.Chart) return Promise.resolve();
+        return new Promise(resolve => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            s.onload = resolve;
+            document.head.appendChild(s);
+        });
+    }
+
+    // Render single overview chart (lazy Chart.js)
+    async function renderPageCharts(data) {
+        await ensureChartLib();
         const el = document.getElementById('overview-chart');
         if (!el) return;
         if (window.overviewChart) window.overviewChart.destroy();

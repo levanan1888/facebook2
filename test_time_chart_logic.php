@@ -55,3 +55,8 @@ echo "- Tự động tạo 7 điểm thời gian giả lập để hiển thị 
 echo "- Hiển thị thông báo cho người dùng biết dữ liệu được tạo giả lập\n";
 echo "- Vẫn xử lý bình thường khi có timestamp khác nhau\n";
 echo "- Tạo ra biểu đồ có ý nghĩa thay vì hiển thị tất cả dữ liệu chồng lên nhau\n";
+
+
+
+
+

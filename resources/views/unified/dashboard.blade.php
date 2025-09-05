@@ -1,4 +1,4 @@
-<x-layouts.app :title="__('Unified Marketing Dashboard')">
+-v<x-layouts.app :title="__('Unified Marketing Dashboard')">
     <div class="min-h-screen bg-gray-50">
         <div class="bg-white border-b border-gray-200 px-6 py-4">
             <div class="flex items-center justify-between">
