@@ -505,6 +505,8 @@
 <script>
 // Function to initialize the page
 function initializeDataManagement() {
+    if (window.__dmInit) return; // đảm bảo chỉ gắn handler 1 lần cho vòng đời trang hiện tại
+    window.__dmInit = true;
     const pageSelect = document.getElementById('page-select');
     const filterForm = document.getElementById('filter-form');
     const clearFiltersBtn = document.getElementById('clear-filters');
@@ -638,22 +640,7 @@ function initializeDataManagement() {
         if (aiSummaryEl) aiSummaryEl.textContent = 'Đang tạo nhận định...';
     }
     
-    // Load page charts data
-    function loadPageCharts(pageId) {
-        if (!pageId) return;
-        
-        // Load page summary data for charts
-        fetch(`{{ route('facebook.data-management.page-data') }}?page_id=${pageId}`)
-            .then(response => response.json())
-            .then(data => {
-                renderPageCharts(data);
-                renderDecisionCharts(data);
-                requestAiSummary(pageId, data);
-            })
-            .catch(error => {
-                console.error('Error loading page charts:', error);
-            });
-    }
+    // loadPageCharts bị loại bỏ: mọi render biểu đồ/AI thực hiện ngay trong loadPageData()
     
     // Nạp Chart.js khi cần
     function ensureChartLib() {
@@ -885,7 +872,6 @@ function initializeDataManagement() {
             if (this.value) {
                 hideNoPageMessage();
                 loadPageData(this.value);
-                loadPageCharts(this.value);
             } else {
                 showNoPageMessage();
                 resetPageView();
@@ -896,7 +882,6 @@ function initializeDataManagement() {
         if (pageSelect.value) {
             hideNoPageMessage();
             loadPageData(pageSelect.value);
-            loadPageCharts(pageSelect.value);
         }
     }
     
