@@ -515,6 +515,7 @@ function initializeDataManagement() {
     const refreshDataBtn = document.getElementById('refresh-data');
     const debugInfoBtn = document.getElementById('debug-info');
     const postsListContainer = document.getElementById('posts-list-container');
+    const aiSummaryEl = document.getElementById('ai-summary');
     
     // Filter toggle functionality
     if (filterToggle && filterSection) {
@@ -624,6 +625,17 @@ function initializeDataManagement() {
                 }
                 throw error;
             });
+    }
+
+    // Reset UI when không chọn trang
+    function resetPageView() {
+        if (contentArea) contentArea.innerHTML = '';
+        // Destroy and clear overview chart if exists
+        try { if (window.overviewChart) { window.overviewChart.destroy(); window.overviewChart = null; } } catch(_) {}
+        const dynCharts = document.getElementById('dynamic-charts');
+        if (dynCharts) dynCharts.remove();
+        // Reset AI summary text
+        if (aiSummaryEl) aiSummaryEl.textContent = 'Đang tạo nhận định...';
     }
     
     // Load page charts data
@@ -876,6 +888,7 @@ function initializeDataManagement() {
                 loadPageCharts(this.value);
             } else {
                 showNoPageMessage();
+                resetPageView();
             }
         });
         
