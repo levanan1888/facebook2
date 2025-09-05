@@ -505,8 +505,6 @@
 <script>
 // Function to initialize the page
 function initializeDataManagement() {
-    if (window.__dmInit) return; // tránh gắn nhiều listener khi SPA
-    window.__dmInit = true;
     const pageSelect = document.getElementById('page-select');
     const filterForm = document.getElementById('filter-form');
     const clearFiltersBtn = document.getElementById('clear-filters');
@@ -1301,17 +1299,26 @@ function initializeDataManagement() {
     };
 }
 
-// Initialize on DOM content loaded
+// Init on DOM ready
 document.addEventListener('DOMContentLoaded', initializeDataManagement);
 
-// Initialize on Livewire navigation
-document.addEventListener('livewire:navigated', initializeDataManagement);
+// Livewire SPA: ensure re-init when navigating back to this view
+document.addEventListener('livewire:navigated', function() {
+    // Chỉ chạy nếu trang hiện có select page (đúng màn data-management)
+    if (document.getElementById('page-select')) {
+        initializeDataManagement();
+    }
+});
 
-// Initialize on Turbo navigation (if using Turbo)
-document.addEventListener('turbo:load', initializeDataManagement);
+// Turbo (nếu có)
+document.addEventListener('turbo:load', function(){
+    if (document.getElementById('page-select')) initializeDataManagement();
+});
 
-// Initialize on page show (for SPA navigation)
-document.addEventListener('pageshow', initializeDataManagement);
+// pageshow (bấm Back/Forward)
+window.addEventListener('pageshow', function(){
+    if (document.getElementById('page-select')) initializeDataManagement();
+});
 </script>
 
 <!-- Charts Section -->
