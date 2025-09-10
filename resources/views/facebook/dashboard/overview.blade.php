@@ -38,11 +38,19 @@
             <div id="filterPanel" class="mt-4 bg-white rounded-lg shadow-lg p-6 border border-gray-200 hidden">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">Bộ lọc nâng cao</h3>
-                    <button type="button" id="btnCloseFilter" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" id="btnClearFilter" class="text-red-500 hover:text-red-700 text-sm" title="Xóa bộ lọc">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Xóa bộ lọc
+                        </button>
+                        <button type="button" id="btnCloseFilter" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -84,8 +92,8 @@
                         @can('analytics.filter.scope')
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Business Manager</label>
-                            <select name="business_id" id="businessFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Tất cả Business</option>
+                            <select name="business_id" id="business_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Chọn Business Manager...</option>
                                 @if(!empty($data['filters']['businesses']))
                                     @foreach($data['filters']['businesses'] as $business)
                                         <option value="{{ $business->id }}" {{ ($data['filters']['business_id'] ?? null) == $business->id ? 'selected' : '' }}>
@@ -103,46 +111,29 @@
                         
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Tài khoản quảng cáo</label>
-                            <select name="account_id" id="accountFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Tất cả tài khoản</option>
-                                @if(!empty($data['filters']['accounts']))
-                                    @foreach($data['filters']['accounts'] as $acc)
-                                        <option value="{{ $acc->id }}" data-business="{{ $acc->business_id ?? '' }}" {{ ($data['filters']['account_id'] ?? null) == $acc->id ? 'selected' : '' }}>
-                                            {{ $acc->name ?? 'Account ' . $acc->id }} ({{ $acc->account_id ?? 'N/A' }})
-                                        </option>
-                                    @endforeach
-                                @else
-                                    <option value="" disabled>Chưa có dữ liệu tài khoản quảng cáo</option>
-                                @endif
+                            <select name="account_id" id="account_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                                <option value="">Chọn Ad Account...</option>
                             </select>
-                            @if(empty($data['filters']['accounts']))
-                                <p class="text-xs text-red-500 mt-1">⚠️ Cần đồng bộ dữ liệu Facebook để load tài khoản quảng cáo</p>
-                            @endif
                         </div>
                         
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Chiến dịch</label>
-                            <select name="campaign_id" id="campaignFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Tất cả chiến dịch</option>
-                                @foreach(($data['filters']['campaigns'] ?? []) as $c)
-                                    <option value="{{ $c->id }}" data-account="{{ $c->ad_account_id ?? '' }}" {{ ($data['filters']['campaign_id'] ?? null) == $c->id ? 'selected' : '' }}>
-                                        {{ $c->name }}
-                                    </option>
-                                @endforeach
+                            <select name="campaign_id" id="campaign_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                                <option value="">Chọn Campaign...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Ad</label>
+                            <select name="ad_id" id="ad_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                                <option value="">Chọn Ad...</option>
                             </select>
                         </div>
                         
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Trang Facebook</label>
-                            <select name="page_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Tất cả trang</option>
-                                @foreach(($data['filters']['pages'] ?? []) as $page)
-                                    <option value="{{ $page->id }}" 
-                                            data-business="{{ $page->business_id ?? '' }}"
-                                            {{ ($data['filters']['page_id'] ?? null) == $page->id ? 'selected' : '' }}>
-                                        {{ $page->name }}
-                                    </option>
-                                @endforeach
+                            <select name="page_id" id="page_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                                <option value="">Chọn Page...</option>
                             </select>
                         </div>
                         @endcan
@@ -198,8 +189,8 @@
             </div>
             @endcan
 
-            <!-- AI Summary Section - Hiển thị dạng popup -->
-            <div id="aiSummaryHolder" class="mb-6">
+            <!-- AI Summary Section - Ẩn ban đầu, chỉ hiển thị khi có kết quả -->
+            <div id="aiSummaryHolder" class="mb-6 hidden">
                 <div class="bg-white rounded-lg shadow p-6 border border-emerald-200 cursor-pointer hover:shadow-md transition-shadow" 
                      onclick="openAiSummaryPopup()">
                     <div class="flex items-center justify-between mb-4">
@@ -1051,33 +1042,20 @@
         }
 
         async function requestAiSummary(isManual = false) {
-            const holder = document.getElementById('aiSummaryHolder');
-            const statusElement = document.getElementById('aiSummaryStatus');
-            
             // Kiểm tra xem đã có kết quả AI chưa
-            if (!isManual && holder && holder.innerHTML.includes('Hoàn thành')) {
+            if (!isManual && window.aiSummaryLoaded) {
                 console.log('AI summary already loaded, skipping...');
                 return;
             }
             
-            if (statusElement) {
-                statusElement.textContent = 'Đang phân tích...';
-            }
+            // Hiển thị chat AI với trạng thái loading
+            showAiChat();
+            updateAiChatMessage('Đang phân tích dữ liệu và tạo báo cáo tổng quan...');
             
-            holder.innerHTML = `
-                <div class=\"bg-white rounded-lg shadow p-6 border border-emerald-200 cursor-pointer hover:shadow-md transition-shadow\" onclick=\"openAiSummaryPopup()\">
-                    <div class=\"flex items-center justify-between mb-4\">
-                        <h3 class=\"text-lg font-semibold text-emerald-700\">Đánh giá tổng quan bởi AI</h3>
-                        <div class=\"flex items-center space-x-2\">
-                            <span class=\"text-xs text-gray-500\" id=\"aiSummaryStatus\">Đang phân tích...</span>
-                            <svg class=\"w-5 h-5 text-emerald-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
-                                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14\" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div class=\"text-sm text-gray-500 mb-3\">Vui lòng đợi trong giây lát.</div>
-                    <div class=\"text-xs text-emerald-600 font-medium\">Nhấn để xem chi tiết →</div>
-                </div>`;
+            const chatStatus = document.getElementById('aiChatStatus');
+            if (chatStatus) {
+                chatStatus.textContent = 'Đang phân tích...';
+            }
             try {
                 if (isManual) {
                     const b = document.getElementById('btnAiSummary');
@@ -1167,13 +1145,9 @@
             document.head.appendChild(s);
         }
         async function renderAiCard(content) {
-            const holder = document.getElementById('aiSummaryHolder');
-            const statusElement = document.getElementById('aiSummaryStatus');
-            
-            // Cập nhật status
-            if (statusElement) {
-                statusElement.textContent = 'Hoàn thành';
-            }
+            // Hiển thị chat AI thay vì phần lớn
+            showAiChat();
+            updateAiChatMessage(content);
             
             // Load a tiny markdown parser for clean output if needed
             async function ensureMarked() {
@@ -1187,25 +1161,8 @@
             await ensureMarked();
             const md = (window.marked && window.marked.parse) ? window.marked.parse(content) : sanitizePlain(content);
             
-            // Tạo preview content (chỉ hiển thị một phần)
-            const previewContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
-            const previewMd = (window.marked && window.marked.parse) ? window.marked.parse(previewContent) : sanitizePlain(previewContent);
-            
-            holder.innerHTML = `
-                <div class=\"bg-white rounded-lg shadow p-6 border border-emerald-200 cursor-pointer hover:shadow-md transition-shadow\" onclick=\"openAiSummaryPopup()\">
-                    <div class=\"flex items-center justify-between mb-4\">
-                        <h3 class=\"text-lg font-semibold text-emerald-700\">Đánh giá tổng quan bởi AI</h3>
-                        <div class=\"flex items-center space-x-2\">
-                            <span class=\"text-xs text-green-600 font-medium\" id=\"aiSummaryStatus\">Hoàn thành</span>
-                            <svg class=\"w-5 h-5 text-emerald-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
-                                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14\" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div class=\"text-[15px] leading-7 space-y-3 max-h-[200px] overflow-y-auto pr-2\">${previewMd}</div>
-                    <div class=\"text-xs text-emerald-600 font-medium mt-3\">Nhấn để xem chi tiết đầy đủ →</div>
-                </div>`;
-            holder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Cập nhật chat AI với content đã format
+            updateAiChatMessage(md);
         }
         
         // Hàm mới để render AI content trong modal
@@ -1389,30 +1346,55 @@
             // Chỉ chạy trên trang Overview (có holder AI)
             const hasAiHolder = document.getElementById('aiSummaryHolder');
             if (!hasAiHolder) { return; }
+            
+            // Load charts trước
             ensureChartAndInit(); 
-            // Chỉ gọi AI summary một lần khi trang load
-            if (!window.aiSummaryLoaded) {
-                requestAiSummary(false);
-                window.aiSummaryLoaded = true;
-            }
+            
+            // Init filter logic
             initFilterLogic();
+            
+            // Delay AI summary để không block UI
+            if (!window.aiSummaryLoaded) {
+                setTimeout(() => {
+                    requestAiSummary(false);
+                    window.aiSummaryLoaded = true;
+                }, 2000); // Tăng delay để trang load xong trước
+            }
         }
         
-        // Khởi tạo khi DOM ready
+        // Lazy initialization để tránh block Livewire navigation
+        function initOverviewPage() {
+            // Chỉ khởi tạo nếu chưa có instance
+            if (!window.__overviewInit) {
+                initPage();
+                window.__overviewInit = true;
+            }
+        }
+        
+        // Delay initialization để Livewire hoàn thành navigation
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPage);
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(initOverviewPage, 200);
+            });
         } else {
-            initPage();
+            setTimeout(initOverviewPage, 200);
         }
         
-        // Khởi tạo lại khi Livewire navigate (SPA)
+        // Khởi tạo lại khi Livewire navigate (SPA) với delay
         document.addEventListener('livewire:navigated', function() {
-            // Reset flag để có thể load lại
+            // Reset flags để có thể load lại
             window.aiSummaryLoaded = false;
-            initPage();
+            window.__overviewInit = false;
+            window.__filterInit = false;
+            // Delay để tránh conflict
+            setTimeout(initOverviewPage, 150);
         });
         
         function initFilterLogic() {
+            // Chỉ khởi tạo filter nếu chưa có
+            if (window.__filterInit) return;
+            window.__filterInit = true;
+            
             const btnToggleFilter = document.getElementById('btnToggleFilter');
             const filterPanel = document.getElementById('filterPanel');
             const btnCloseFilter = document.getElementById('btnCloseFilter');
@@ -1434,7 +1416,7 @@
                 filterCount: !!filterCount
             });
 
-            // Toggle filter panel
+            // Toggle filter panel - Ẩn/hiện filter panel
             if (btnToggleFilter && filterPanel) {
                 btnToggleFilter.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -1450,6 +1432,18 @@
             if (btnCloseFilter && filterPanel) {
                 btnCloseFilter.addEventListener('click', function() {
                     filterPanel.classList.add('hidden');
+                });
+            }
+
+            // Clear filter button
+            const btnClearFilter = document.getElementById('btnClearFilter');
+            if (btnClearFilter) {
+                btnClearFilter.addEventListener('click', function() {
+                    if (window.hierarchicalFilter) {
+                        window.hierarchicalFilter.reset();
+                        // Reload page to apply cleared filters
+                        window.location.reload();
+                    }
                 });
             }
 
@@ -1492,11 +1486,21 @@
             // Form submit - Chỉ submit khi nhấn "Áp dụng bộ lọc"
             if (filterForm) {
                 filterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
                     updateFilterCount();
-                    showFilterLoading();
                     
-                    // Scroll to results after form submit
-                    setTimeout(function() {
+                    // Show loading overlay với animation mượt mà
+                    const loadingOverlay = createSmoothLoadingOverlay();
+                    document.body.appendChild(loadingOverlay);
+                    
+                    // Animate overlay in
+                    setTimeout(() => {
+                        loadingOverlay.classList.add('opacity-100');
+                    }, 10);
+                    
+                    // Submit form với delay để user thấy loading
+                    setTimeout(() => {
+                        // Scroll to results smoothly
                         const resultsSection = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-4.gap-6');
                         if (resultsSection) {
                             resultsSection.scrollIntoView({ 
@@ -1504,7 +1508,10 @@
                                 block: 'start' 
                             });
                         }
-                    }, 100);
+                        
+                        // Submit form
+                        this.submit();
+                    }, 500);
                 });
             }
 
@@ -1674,6 +1681,78 @@
                 }
             }, 3000);
         }
+        
+        function createSmoothLoadingOverlay() {
+            const overlay = document.createElement('div');
+            overlay.id = 'filterLoadingOverlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-500 ease-in-out opacity-0';
+            overlay.innerHTML = `
+                <div class="bg-white rounded-xl p-8 shadow-2xl max-w-md w-full mx-4 transform transition-all duration-500 ease-out scale-95">
+                    <div class="text-center">
+                        <div class="relative mb-6">
+                            <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Đang áp dụng bộ lọc</h3>
+                        <p class="text-gray-600 mb-6">Đang tải dữ liệu theo bộ lọc của bạn...</p>
+                        
+                        <!-- Progress bar với animation -->
+                        <div class="bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full animate-pulse" style="width: 0%; animation: progressBar 2s ease-in-out infinite;"></div>
+                        </div>
+                        
+                        <div class="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                            <div class="animate-bounce">•</div>
+                            <div class="animate-bounce" style="animation-delay: 0.1s">•</div>
+                            <div class="animate-bounce" style="animation-delay: 0.2s">•</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <style>
+                    @keyframes progressBar {
+                        0% { width: 0%; }
+                        50% { width: 70%; }
+                        100% { width: 100%; }
+                    }
+                </style>
+            `;
+            
+            // Animate scale in
+            setTimeout(() => {
+                const content = overlay.querySelector('.bg-white');
+                if (content) {
+                    content.classList.remove('scale-95');
+                    content.classList.add('scale-100');
+                }
+            }, 50);
+            
+            return overlay;
+        }
+        
+        function removeSmoothLoadingOverlay() {
+            const overlay = document.getElementById('filterLoadingOverlay');
+            if (overlay) {
+                // Animate out
+                overlay.classList.remove('opacity-100');
+                const content = overlay.querySelector('.bg-white');
+                if (content) {
+                    content.classList.remove('scale-100');
+                    content.classList.add('scale-95');
+                }
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.remove();
+                    }
+                }, 500);
+            }
+        }
 
         function clearFilters() {
             const form = document.getElementById('filterForm');
@@ -1736,27 +1815,125 @@
 
         window.addEventListener('livewire:navigated', ensureChartAndInit); // fix SPA re-init
         
-        // Đảm bảo filter button hoạt động ngay cả khi JavaScript load chậm
-        setTimeout(function() {
-            const btnToggleFilter = document.getElementById('btnToggleFilter');
-            const filterPanel = document.getElementById('filterPanel');
-            
-            if (btnToggleFilter && filterPanel) {
-                // Xóa event listener cũ nếu có
-                btnToggleFilter.removeEventListener('click', toggleFilterHandler);
+        // Fallback filter button với debounce để tránh duplicate listeners
+        let fallbackTimeout;
+        function initFallbackFilter() {
+            clearTimeout(fallbackTimeout);
+            fallbackTimeout = setTimeout(function() {
+                const btnToggleFilter = document.getElementById('btnToggleFilter');
+                const filterPanel = document.getElementById('filterPanel');
                 
-                // Thêm event listener mới
-                btnToggleFilter.addEventListener('click', toggleFilterHandler);
-                
-                function toggleFilterHandler(e) {
-                    e.preventDefault();
-                    console.log('Toggle filter clicked (fallback)');
-                    filterPanel.classList.toggle('hidden');
-                    updateFilterCount();
+                if (btnToggleFilter && filterPanel && !window.__filterInit) {
+                    // Chỉ thêm nếu chưa có event listener
+                    btnToggleFilter.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('Toggle filter clicked (fallback)');
+                        filterPanel.classList.toggle('hidden');
+                        updateFilterCount();
+                    });
                 }
+            }, 1000);
+        }
+        
+        // Chỉ chạy fallback nếu filter chưa được init
+        if (!window.__filterInit) {
+            initFallbackFilter();
+        }
+        
+        // Auto remove loading overlay khi trang load xong
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                removeSmoothLoadingOverlay();
+            }, 1000);
+        });
+        
+        // Remove loading overlay khi navigate
+        document.addEventListener('livewire:navigated', function() {
+            removeSmoothLoadingOverlay();
+        });
+
+        // AI Chat Assistant Functions
+        function toggleAiChat() {
+            const chatAssistant = document.getElementById('aiChatAssistant');
+            const chatContent = document.getElementById('aiChatContent');
+            const chatStatus = document.getElementById('aiChatStatus');
+            
+            if (chatContent.classList.contains('hidden')) {
+                chatContent.classList.remove('hidden');
+                chatStatus.textContent = 'Đã sẵn sàng';
+            } else {
+                chatContent.classList.add('hidden');
+                chatStatus.textContent = 'Đang phân tích...';
             }
-        }, 1000);
+        }
+
+        function showAiChat() {
+            const chatAssistant = document.getElementById('aiChatAssistant');
+            console.log('showAiChat called, chatAssistant:', chatAssistant);
+            if (chatAssistant) {
+                chatAssistant.classList.remove('hidden');
+                console.log('AI Chat Assistant shown');
+            } else {
+                console.error('aiChatAssistant element not found');
+            }
+        }
+
+        function updateAiChatMessage(message) {
+            const chatText = document.getElementById('aiChatText');
+            const chatStatus = document.getElementById('aiChatStatus');
+            
+            if (chatText) {
+                chatText.innerHTML = message;
+            }
+            if (chatStatus) {
+                chatStatus.textContent = 'Hoàn thành';
+            }
+        }
         </script>
+        
+        <!-- Hierarchical Filter Script -->
+        <script src="{{ asset('js/hierarchical-filter.js') }}"></script>
+    </div>
+
+    <!-- AI Chat Assistant - Fixed bottom right -->
+    <div id="aiChatAssistant" class="fixed bottom-4 right-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg border border-emerald-200 max-w-sm">
+            <!-- Chat Header -->
+            <div class="bg-emerald-600 text-white px-4 py-3 rounded-t-lg cursor-pointer" onclick="toggleAiChat()">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <span class="font-medium text-sm">AI Assistant</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="aiChatStatus" class="text-xs text-emerald-200">Đang phân tích...</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Content -->
+            <div id="aiChatContent" class="p-4 max-h-96 overflow-y-auto hidden">
+                <div id="aiChatMessage" class="text-sm text-gray-700">
+                    <div class="flex items-start space-x-2">
+                        <div class="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <div class="bg-gray-100 rounded-lg p-3">
+                                <p id="aiChatText">Đang phân tích dữ liệu và tạo báo cáo tổng quan...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </x-layouts.app>
 

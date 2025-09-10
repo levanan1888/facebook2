@@ -24,9 +24,9 @@
                     @can('facebook.overview')
                         <flux:navlist.item icon="layout-grid" :href="route('facebook.overview')" :current="request()->routeIs('facebook.overview')" wire:navigate>{{ __('Facebook Overview') }}</flux:navlist.item>
                     @endcan
-                    <!-- @can('facebook.hierarchy')
-                        <flux:navlist.item icon="layout-grid" :href="route('facebook.hierarchy')" :current="request()->routeIs('facebook.hierarchy')" wire:navigate>{{ __('Hierarchy') }}</flux:navlist.item>
-                    @endcan -->
+                    @can('facebook.hierarchy')
+                        <flux:navlist.item icon="building-office-2" :href="route('facebook.hierarchy')" :current="request()->routeIs('facebook.hierarchy')" wire:navigate>{{ __('Hierarchy') }}</flux:navlist.item>
+                    @endcan
                     <!-- @can('facebook.analytics')
                         <flux:navlist.item icon="chart-bar" :href="route('facebook.analytics')" :current="request()->routeIs('facebook.analytics')" wire:navigate>{{ __('Analytics') }}</flux:navlist.item>
                     @endcan -->

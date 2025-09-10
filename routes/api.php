@@ -31,3 +31,12 @@ Route::middleware(['auth', 'verified', 'permission.404:facebook.hierarchy.api'])
     Route::get('ads', [App\Http\Controllers\Api\HierarchyController::class, 'getAds'])->name('ads');
     Route::get('posts', [App\Http\Controllers\Api\HierarchyController::class, 'getPosts'])->name('posts');
 });
+
+// API for hierarchical filter
+Route::middleware(['auth', 'verified'])->prefix('api/filter')->name('api.filter.')->group(function () {
+    Route::get('businesses', [App\Http\Controllers\Api\HierarchicalFilterController::class, 'getBusinessManagers'])->name('businesses');
+    Route::get('businesses/{businessId}/ad-accounts', [App\Http\Controllers\Api\HierarchicalFilterController::class, 'getAdAccountsByBusiness'])->name('ad-accounts');
+    Route::get('ad-accounts/{accountId}/campaigns', [App\Http\Controllers\Api\HierarchicalFilterController::class, 'getCampaignsByAccount'])->name('campaigns');
+    Route::get('campaigns/{campaignId}/ads', [App\Http\Controllers\Api\HierarchicalFilterController::class, 'getAdsByCampaign'])->name('ads');
+    Route::get('businesses/{businessId}/pages', [App\Http\Controllers\Api\HierarchicalFilterController::class, 'getPagesByBusiness'])->name('pages');
+});

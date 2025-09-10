@@ -72,11 +72,28 @@ class FacebookDashboardController extends Controller
             }
         }
 
-        // Tính totals theo filter đã chọn
-        $totals = $this->calculateFilteredTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
+        // Tối ưu: Tính totals nhanh hơn với query tối ưu
+        $totals = $this->calculateOptimizedTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to);
 
-        // Lấy dữ liệu từ facebook_ad_insights
-        $insightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
+        // Tối ưu: Lấy dữ liệu từ facebook_ad_insights với select fields cần thiết
+        $insightsQuery = FacebookAdInsight::select([
+            'facebook_ad_insights.id',
+            'facebook_ad_insights.ad_id', 
+            'facebook_ad_insights.date',
+            'facebook_ad_insights.spend',
+            'facebook_ad_insights.impressions',
+            'facebook_ad_insights.clicks',
+            'facebook_ad_insights.reach',
+            'facebook_ad_insights.conversions',
+            'facebook_ad_insights.conversion_values',
+            'facebook_ad_insights.ctr',
+            'facebook_ad_insights.cpc',
+            'facebook_ad_insights.cpm',
+            'facebook_ad_insights.page_id',
+            'facebook_ad_insights.post_id',
+            'facebook_ads.campaign_id',
+            'facebook_ads.account_id'
+        ])->join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
         
         // Join với facebook_ad_accounts nếu cần filter theo business
         if ($selectedBusinessId) {
@@ -94,11 +111,16 @@ class FacebookDashboardController extends Controller
             $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
         }
         
-        // Chỉ áp dụng filter thời gian nếu có filter
+        // Tối ưu: Giới hạn số lượng records và sử dụng pagination
         if ($from && $to) {
-            $insightsData = $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to])->get();
+            $insightsData = $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to])
+                ->orderBy('facebook_ad_insights.date', 'desc')
+                ->limit(10000) // Giới hạn 10k records để tránh memory issues
+                ->get();
         } else {
-            $insightsData = $insightsQuery->get();
+            $insightsData = $insightsQuery->orderBy('facebook_ad_insights.date', 'desc')
+                ->limit(10000) // Giới hạn 10k records
+                ->get();
         }
 
         // Chuỗi hoạt động từ trước tới nay (theo dải from/to đã xác định ở trên)
@@ -145,43 +167,14 @@ class FacebookDashboardController extends Controller
         $accounts = FacebookAdAccount::select('id', 'name', 'account_id', 'business_id')->get();
         $campaigns = FacebookCampaign::select('id', 'name', 'ad_account_id')->get();
         
-        // Lấy insights data cho việc tính toán khác
-        if (!$hasFilters) {
-            $allInsightsData = FacebookAdInsight::all();
-        } else {
-            $filteredInsightsQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
-            
-            // Apply filters
-            if ($selectedBusinessId) {
-                $filteredInsightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
-                                      ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
-            }
-            
-            if ($selectedAccountId) {
-                $filteredInsightsQuery->where('facebook_ads.account_id', $selectedAccountId);
-            }
-            
-            if ($selectedCampaignId) {
-                $filteredInsightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
-            }
-            
-            if ($selectedPageId) {
-                $filteredInsightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
-            }
-            
-            // Chỉ áp dụng filter thời gian nếu có
-            if ($from && $to) {
-                $filteredInsightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
-            }
-            
-            $allInsightsData = $filteredInsightsQuery->get();
-        }
+        // Tối ưu: Sử dụng lại insightsData đã load ở trên thay vì query lại
+        $allInsightsData = $insightsData;
         
         // Lấy Business Managers cho filter - luôn lấy tất cả để dropdown không bị mất options
         $businesses = FacebookBusiness::select('id', 'name')->get();
         
         // Lấy Facebook Pages cho filter - luôn lấy tất cả để dropdown không bị mất options
-        $uniquePageIds = FacebookAdInsight::whereNotNull('page_id')->distinct('page_id')->pluck('page_id');
+        $uniquePageIds = FacebookAdInsight::whereNotNull('facebook_ad_insights.page_id')->distinct('facebook_ad_insights.page_id')->pluck('facebook_ad_insights.page_id');
         $pages = $uniquePageIds->map(function($pageId) {
             // Tìm business_id của page này từ insights data
             $pageInsights = FacebookAdInsight::where('facebook_ad_insights.page_id', $pageId)
@@ -239,7 +232,101 @@ class FacebookDashboardController extends Controller
     }
 
     /**
-     * Tính toán totals theo filter đã chọn
+     * Tính toán totals tối ưu theo filter đã chọn
+     */
+    private function calculateOptimizedTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
+    {
+        // Kiểm tra xem có filter nào được áp dụng không
+        $hasFilters = $selectedBusinessId || $selectedAccountId || $selectedCampaignId || $selectedPageId || ($from && $to);
+        
+        $totals = [
+            'businesses' => 0,
+            'accounts' => 0,
+            'campaigns' => 0,
+            'adsets' => 0,
+            'ads' => 0,
+            'pages' => 0,
+            'posts' => 0,
+            'ad_insights' => 0,
+        ];
+        
+        if (!$hasFilters) {
+            // Khi không có filter, sử dụng count() thay vì load toàn bộ data
+            $totals['businesses'] = FacebookBusiness::count();
+            $totals['accounts'] = FacebookAdAccount::count();
+            $totals['campaigns'] = FacebookCampaign::count();
+            $totals['ads'] = FacebookAd::count();
+            $totals['adsets'] = FacebookAdSet::count();
+            $totals['ad_insights'] = FacebookAdInsight::count();
+            
+            // Count pages và posts từ insights - sửa lỗi ambiguous column
+            $totals['pages'] = FacebookAdInsight::whereNotNull('facebook_ad_insights.page_id')->distinct('facebook_ad_insights.page_id')->count();
+            $totals['posts'] = FacebookAdInsight::whereNotNull('facebook_ad_insights.post_id')->distinct('facebook_ad_insights.post_id')->count();
+        } else {
+            // Khi có filter, sử dụng query tối ưu
+            $insightsQuery = FacebookAdInsight::query();
+            
+            // Apply filters với joins chỉ khi cần
+            if ($selectedBusinessId || $selectedAccountId || $selectedCampaignId) {
+                $insightsQuery->join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
+                
+                if ($selectedBusinessId) {
+                    $insightsQuery->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                                  ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+                }
+                
+                if ($selectedAccountId) {
+                    $insightsQuery->where('facebook_ads.account_id', $selectedAccountId);
+                }
+                
+                if ($selectedCampaignId) {
+                    $insightsQuery->where('facebook_ads.campaign_id', $selectedCampaignId);
+                }
+            }
+            
+            if ($selectedPageId) {
+                $insightsQuery->where('facebook_ad_insights.page_id', $selectedPageId);
+            }
+            
+            // Chỉ áp dụng filter thời gian nếu có
+            if ($from && $to) {
+                $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
+            }
+            
+            // Count insights
+            $totals['ad_insights'] = $insightsQuery->count();
+            
+            // Count unique values từ insights - sửa lỗi ambiguous column
+            $totals['pages'] = $insightsQuery->whereNotNull('facebook_ad_insights.page_id')->distinct('facebook_ad_insights.page_id')->count();
+            $totals['posts'] = $insightsQuery->whereNotNull('facebook_ad_insights.post_id')->distinct('facebook_ad_insights.post_id')->count();
+            
+            // Count ads, campaigns, accounts từ filtered insights
+            if ($selectedBusinessId || $selectedAccountId || $selectedCampaignId) {
+                $uniqueAdIds = $insightsQuery->pluck('facebook_ads.id')->unique();
+                $totals['ads'] = $uniqueAdIds->count();
+                
+                if ($uniqueAdIds->count() > 0) {
+                    $adsData = FacebookAd::whereIn('id', $uniqueAdIds)->get(['campaign_id', 'account_id', 'adset_id']);
+                    $totals['campaigns'] = $adsData->pluck('campaign_id')->unique()->count();
+                    $totals['accounts'] = $adsData->pluck('account_id')->unique()->count();
+                    $totals['adsets'] = $adsData->pluck('adset_id')->unique()->count();
+                    
+                    // Count businesses từ accounts
+                    $uniqueAccountIds = $adsData->pluck('account_id')->unique();
+                    if ($uniqueAccountIds->count() > 0) {
+                        $totals['businesses'] = FacebookAdAccount::whereIn('id', $uniqueAccountIds)
+                            ->distinct('business_id')
+                            ->count('business_id');
+                    }
+                }
+            }
+        }
+        
+        return $totals;
+    }
+
+    /**
+     * Tính toán totals theo filter đã chọn (deprecated - sử dụng calculateOptimizedTotals)
      */
     private function calculateFilteredTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
     {
@@ -934,15 +1021,15 @@ class FacebookDashboardController extends Controller
             ->get();
 
         // Performance by post type - sử dụng dữ liệu từ facebook_ads
-        $postTypePerformance = FacebookAd::whereNotNull('post_id')
+        $postTypePerformance = FacebookAd::whereNotNull('facebook_ads.post_id')
             ->whereHas('insights', function ($query) {
                 $query->whereBetween('date', [now()->subDays(30)->toDateString(), now()->toDateString()]);
             })
             ->withSum(['insights as total_spend' => function ($query) {
                 $query->whereBetween('date', [now()->subDays(30)->toDateString(), now()->toDateString()]);
             }], 'spend')
-            ->groupBy('post_id')
-            ->select('post_id', DB::raw('count(*) as ad_count'), DB::raw('sum(total_spend) as total_spend'))
+            ->groupBy('facebook_ads.post_id')
+            ->select('facebook_ads.post_id', DB::raw('count(*) as ad_count'), DB::raw('sum(total_spend) as total_spend'))
             ->get();
 
         return [
@@ -960,9 +1047,9 @@ class FacebookDashboardController extends Controller
             ->paginate(50);
 
         // Lấy posts từ facebook_ad_insights thay vì facebook_posts
-        $posts = FacebookAdInsight::whereNotNull('post_id')
-            ->select('post_id', 'page_id', DB::raw('MAX(date) as last_date'))
-            ->groupBy('post_id', 'page_id')
+        $posts = FacebookAdInsight::whereNotNull('facebook_ad_insights.post_id')
+            ->select('facebook_ad_insights.post_id', 'facebook_ad_insights.page_id', DB::raw('MAX(facebook_ad_insights.date) as last_date'))
+            ->groupBy('facebook_ad_insights.post_id', 'facebook_ad_insights.page_id')
             ->orderBy('last_date', 'desc')
             ->paginate(50);
 

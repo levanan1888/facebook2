@@ -45,6 +45,7 @@ class RolePermissionSeeder extends Seeder
             'facebook.hierarchy',
             'facebook.analytics',
             'facebook.data_raw',
+            'facebook.data-management.view',
             'view-facebook-data',
             // Facebook hierarchy API access (for module-only API)
             'facebook.hierarchy.api',

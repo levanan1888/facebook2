@@ -1,4 +1,12 @@
 <x-layouts.app :title="'Quản lý dữ liệu Facebook'">
+@php
+    $currentUser = auth()->user();
+    $__canViewDm = $currentUser && (
+        (method_exists($currentUser, 'hasRole') && ($currentUser->hasRole('admin') || $currentUser->hasRole('super-admin')))
+        || (method_exists($currentUser, 'can') && $currentUser->can('facebook.data-management.view'))
+    );
+@endphp
+@if($__canViewDm)
 <div class="p-6">
     <!-- Header -->
     <div class="mb-8">
@@ -9,22 +17,47 @@
     <!-- Page Selection -->
     <form id="page-select-form" method="GET" action="{{ route('facebook.data-management.index') }}">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div class="flex items-center space-x-4">
+            <div class="flex flex-wrap items-center gap-3">
                 <label for="page-select" class="text-sm font-medium text-gray-700 min-w-[120px]">
                     Chọn Trang Facebook:
                 </label>
-                <select id="page-select" name="page_id" class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <select id="page-select" name="page_id" class="flex-1 min-w-[280px] rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">-- Chọn trang --</option>
                     @foreach($data['pages'] as $page)
                         <option value="{{ $page->id }}" 
                                 {{ ($filters['page_id'] ?? '') == $page->id ? 'selected' : '' }}
                                 data-fan-count="{{ $page->fan_count }}"
-                                data-category="{{ $page->category }}">
+                                data-category="{{ $page->category }}"
+                                data-name="{{ Str::lower($page->name) }}"
+                                data-ads="{{ (int) $page->ads_count }}"
+                                data-created="{{ isset($page->created_time) ? \Carbon\Carbon::parse($page->created_time)->timestamp : (isset($page->created_at) ? \Carbon\Carbon::parse($page->created_at)->timestamp : 0) }}">
                             {{ $page->name }} 
                             ({{ number_format($page->fan_count) }} fan{{ $page->ads_count > 0 ? ', ' . $page->ads_count . ' quảng cáo' : '' }})
                         </option>
                     @endforeach
                 </select>
+
+                <!-- Quick search and sort for Page list -->
+                <input id="page-search" type="text" placeholder="Tìm theo tên/ID Page..." class="w-56 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                <select id="page-sort" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="name_asc">Tên A-Z</option>
+                    <option value="name_desc">Tên Z-A</option>
+                    <option value="created_desc">Ngày tạo mới nhất</option>
+                    <option value="created_asc">Ngày tạo cũ nhất</option>
+                    <option value="ads_desc">Quảng cáo nhiều nhất</option>
+                    <option value="ads_asc">Quảng cáo ít nhất</option>
+                </select>
+            </div>
+
+            <!-- View tabs: Combined / Posts / Ads -->
+            <div class="mt-4 flex items-center gap-3">
+                <label class="text-sm font-medium text-gray-700">Chế độ xem:</label>
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button type="button" data-view="combined" class="view-tab px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-l-md bg-blue-50 text-blue-700 hover:bg-blue-100">Tổng hợp</button>
+                    <button type="button" data-view="posts" class="view-tab px-3 py-1.5 text-sm font-medium border-t border-b border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Posts</button>
+                    <button type="button" data-view="ads" class="view-tab px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-r-md bg-white text-gray-700 hover:bg-gray-50">Ads</button>
+                </div>
+                <input type="hidden" id="view_type" name="view_type" value="{{ $filters['view_type'] ?? 'combined' }}" />
             </div>
         </div>
     </form>
@@ -110,6 +143,18 @@
                 </svg>
                 Debug Info
             </button>
+
+            <!-- Slice analysis selector -->
+            <div class="ml-auto flex items-center space-x-2">
+                <label class="text-sm font-medium text-gray-700">Cắt lát theo:</label>
+                <select id="slice-by" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="none">Không</option>
+                    <option value="page">Page</option>
+                    <option value="post">Post</option>
+                    <option value="ad">Ad</option>
+                    <option value="date">Ngày</option>
+                </select>
+            </div>
         </div>
 
         <!-- Filters (Hidden by default) -->
@@ -117,6 +162,18 @@
             <h3 class="text-lg font-medium text-gray-900 mb-4">Bộ lọc</h3>
             <form id="filter-form" method="GET" action="{{ route('facebook.data-management.index') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <input type="hidden" name="page_id" value="{{ $filters['page_id'] ?? '' }}">
+                <div class="md:col-span-2 lg:col-span-4">
+                    <label for="date_preset" class="block text-sm font-medium text-gray-700 mb-1">Khoảng thời gian nhanh</label>
+                    <select id="date_preset" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Tùy chỉnh</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="yesterday">Hôm qua</option>
+                        <option value="last_7_days">7 ngày qua</option>
+                        <option value="last_30_days">30 ngày qua</option>
+                        <option value="this_month">Tháng này</option>
+                        <option value="last_month">Tháng trước</option>
+                    </select>
+                </div>
                 
                 <div>
                     <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">Từ ngày</label>
@@ -507,7 +564,18 @@
 function initializeDataManagement() {
     if (window.__dmInit) return; // đảm bảo chỉ gắn handler 1 lần cho vòng đời trang hiện tại
     window.__dmInit = true;
+    
+    // Initialize cache if not exists
+    if (!window.__dmCache) {
+        window.__dmCache = new Map();
+    }
     const pageSelect = document.getElementById('page-select');
+    const pageSearch = document.getElementById('page-search');
+    const pageSort = document.getElementById('page-sort');
+    const datePreset = document.getElementById('date_preset');
+    const viewTypeInput = document.getElementById('view_type');
+    const viewTabButtons = document.querySelectorAll('.view-tab');
+    const sliceBySelect = document.getElementById('slice-by');
     const filterForm = document.getElementById('filter-form');
     const clearFiltersBtn = document.getElementById('clear-filters');
     const contentArea = document.getElementById('content-area');
@@ -561,6 +629,19 @@ function initializeDataManagement() {
     function loadPageData(pageId, filters = {}) {
         if (!pageId) return Promise.resolve(); 
         
+        // Check cache first
+        const cacheKey = `page_${pageId}_${JSON.stringify(filters)}`;
+        if (window.__dmCache && window.__dmCache.has(cacheKey)) {
+            console.log('Loading from cache:', cacheKey);
+            const cachedData = window.__dmCache.get(cacheKey);
+            hideNoPageMessage();
+            if (contentArea) {
+                renderPageContent(cachedData);
+                try { renderPageCharts(cachedData); } catch (e) { console.warn('renderPageCharts error', e); }
+            }
+            return Promise.resolve(cachedData);
+        }
+        
         // Hide no-page message
         hideNoPageMessage();
         
@@ -576,20 +657,49 @@ function initializeDataManagement() {
         }
         
         // Build query string
-        const params = new URLSearchParams({ page_id: pageId, ...filters });
+        const params = new URLSearchParams({ 
+            page_id: pageId, 
+            view_type: (viewTypeInput?.value || 'combined'), 
+            slice_by: (sliceBySelect?.value || 'none'),
+            ...filters 
+        });
         
-        // Make AJAX request
+        // Make AJAX request with timeout
         console.log('Loading page data for:', pageId, 'with filters:', filters);
-        return fetch(`{{ route('facebook.data-management.page-data') }}?${params}`)
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        
+        return fetch(`{{ route('facebook.data-management.page-data') }}?${params}`, {
+            signal: controller.signal,
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
             .then(response => {
+                clearTimeout(timeoutId);
                 console.log('Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timeout - vui lòng thử lại');
+                }
+                throw error;
+            })
             .then(data => {
                 console.log('Received data:', data);
+                
+                // Save to cache
+                if (window.__dmCache) {
+                    window.__dmCache.set(cacheKey, data);
+                }
+                
                 if (contentArea) {
                     // Không update URL vì dùng AJAX
                     // Chỉ lưu state để có thể refresh page
@@ -866,6 +976,66 @@ function initializeDataManagement() {
         }
     }
     
+    // Tabs switch
+    if (viewTabButtons && viewTabButtons.length) {
+        viewTabButtons.forEach(btn => {
+            btn.addEventListener('click', function(){
+                const v = this.getAttribute('data-view');
+                if (viewTypeInput) viewTypeInput.value = v;
+                const pageId = pageSelect ? pageSelect.value : null;
+                if (pageId) loadPageData(pageId);
+            });
+        });
+    }
+
+    // Date preset quick apply
+    if (datePreset) {
+        datePreset.addEventListener('change', function(){
+            const val = this.value;
+            const fromInput = document.getElementById('date_from');
+            const toInput = document.getElementById('date_to');
+            if (!fromInput || !toInput) return;
+            const today = new Date();
+            const fmt = d => d.toISOString().slice(0,10);
+            let since = '', until = '';
+            if (val === 'today') { since = fmt(today); until = fmt(today); }
+            else if (val === 'yesterday') { const y = new Date(today.getTime()-86400000); since = fmt(y); until = fmt(y); }
+            else if (val === 'last_7_days') { const s = new Date(today.getTime()-6*86400000); since = fmt(s); until = fmt(today); }
+            else if (val === 'last_30_days') { const s = new Date(today.getTime()-29*86400000); since = fmt(s); until = fmt(today); }
+            else if (val === 'this_month') { const s = new Date(today.getFullYear(), today.getMonth(), 1); since = fmt(s); until = fmt(today); }
+            else if (val === 'last_month') { const s = new Date(today.getFullYear(), today.getMonth()-1, 1); const e = new Date(today.getFullYear(), today.getMonth(), 0); since = fmt(s); until = fmt(e); }
+            if (since && until) { fromInput.value = since; toInput.value = until; }
+        });
+    }
+
+    // Page search/sort client-side
+    if (pageSearch || pageSort) {
+        const rebuildOptions = () => {
+            const select = pageSelect; if (!select) return;
+            const options = Array.from(select.querySelectorAll('option')).filter(o=>o.value);
+            let filtered = options;
+            const kw = (pageSearch?.value || '').trim().toLowerCase();
+            if (kw) {
+                filtered = filtered.filter(o => o.textContent.toLowerCase().includes(kw) || o.value.includes(kw));
+            }
+            const sortVal = pageSort?.value || 'name_asc';
+            filtered.sort((a,b)=>{
+                const get = (o,k)=>o.dataset[k]? (isNaN(o.dataset[k])?o.dataset[k]:Number(o.dataset[k])):'';
+                if (sortVal.startsWith('name')) { const an=get(a,'name'), bn=get(b,'name'); return sortVal.endsWith('asc')? (an>bn?1:-1):(an<bn?1:-1); }
+                if (sortVal.startsWith('created')) { const an=Number(get(a,'created')), bn=Number(get(b,'created')); return sortVal.endsWith('asc')? (an-bn):(bn-an); }
+                if (sortVal.startsWith('ads')) { const an=Number(get(a,'ads')), bn=Number(get(b,'ads')); return sortVal.endsWith('asc')? (an-bn):(bn-an); }
+                return 0;
+            });
+            // Reattach without losing the first placeholder option
+            const first = select.querySelector('option[value=""]');
+            select.innerHTML = '';
+            if (first) select.appendChild(first);
+            filtered.forEach(o=>select.appendChild(o));
+        };
+        pageSearch?.addEventListener('input', rebuildOptions);
+        pageSort?.addEventListener('change', rebuildOptions);
+    }
+
     // Auto-load data when page changes
     if (pageSelect) {
         pageSelect.addEventListener('change', function() {
@@ -1297,25 +1467,49 @@ function initializeDataManagement() {
     };
 }
 
-// Init on DOM ready
-document.addEventListener('DOMContentLoaded', initializeDataManagement);
+// Lazy initialization để tránh block Livewire navigation
+function initDataManagement() {
+    // Chỉ khởi tạo nếu chưa có instance
+    if (!window.__dmInit) {
+        initializeDataManagement();
+    }
+}
+
+// Delay initialization để Livewire hoàn thành navigation
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initDataManagement, 200);
+});
 
 // Livewire SPA: ensure re-init when navigating back to this view
 document.addEventListener('livewire:navigated', function() {
-    // Chỉ chạy nếu trang hiện có select page (đúng màn data-management)
-    if (document.getElementById('page-select')) {
-        initializeDataManagement();
+    // Reset instance cũ nếu có
+    if (window.__dmInit) {
+        window.__dmInit = false;
     }
+    // Delay để tránh conflict
+    setTimeout(() => {
+        if (document.getElementById('page-select')) {
+            initDataManagement();
+        }
+    }, 150);
 });
 
-// Turbo (nếu có)
+// Turbo (nếu có) với delay
 document.addEventListener('turbo:load', function(){
-    if (document.getElementById('page-select')) initializeDataManagement();
+    setTimeout(() => {
+        if (document.getElementById('page-select')) {
+            initDataManagement();
+        }
+    }, 100);
 });
 
-// pageshow (bấm Back/Forward)
+// pageshow (bấm Back/Forward) với delay
 window.addEventListener('pageshow', function(){
-    if (document.getElementById('page-select')) initializeDataManagement();
+    setTimeout(() => {
+        if (document.getElementById('page-select')) {
+            initDataManagement();
+        }
+    }, 100);
 });
 </script>
 
@@ -1375,5 +1569,7 @@ window.addEventListener('pageshow', function(){
 <!--
 
 -->
+
+@endif
 
 </x-layouts.app> 
