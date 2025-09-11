@@ -1415,10 +1415,12 @@ class FacebookDataService
     /**
      * Lấy tổng hợp data của page
      */
-    public function getPageSummary(string $pageId): array
+    public function getPageSummary(string $pageId, ?string $dateFrom = null, ?string $dateTo = null): array
     {
         try {
             $insights = FacebookAdInsight::where('page_id', $pageId)
+                ->when($dateFrom, fn($q) => $q->where('date', '>=', $dateFrom))
+                ->when($dateTo, fn($q) => $q->where('date', '<=', $dateTo))
                 ->select([
                     DB::raw('COUNT(DISTINCT post_id) as total_posts'),
                     DB::raw('COUNT(DISTINCT ad_id) as total_ads'),

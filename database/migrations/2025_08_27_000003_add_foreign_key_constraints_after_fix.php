@@ -45,23 +45,8 @@ return new class extends Migration
                       ->onUpdate('cascade');
             }
 
-            // Thêm foreign key cho post_id -> facebook_posts.id
-            if (!$this->foreignKeyExists('facebook_ads', 'post_id')) {
-                $table->foreign('post_id')
-                      ->references('id')
-                      ->on('facebook_posts')
-                      ->onDelete('set null')
-                      ->onUpdate('cascade');
-            }
-
-            // Thêm foreign key cho page_id -> facebook_pages.id
-            if (!$this->foreignKeyExists('facebook_ads', 'page_id')) {
-                $table->foreign('page_id')
-                      ->references('id')
-                      ->on('facebook_pages')
-                      ->onDelete('set null')
-                      ->onUpdate('cascade');
-            }
+            // Bỏ foreign key cho post_id và page_id vì bảng facebook_posts và facebook_pages đã bị xóa
+            // Dữ liệu post và page giờ được lưu trong facebook_ad_insights
         });
     }
 
@@ -75,8 +60,7 @@ return new class extends Migration
             $table->dropForeign(['account_id']);
             $table->dropForeign(['campaign_id']);
             $table->dropForeign(['adset_id']);
-            $table->dropForeign(['post_id']);
-            $table->dropForeign(['page_id']);
+            // Không xóa post_id và page_id vì không có foreign key
         });
     }
 

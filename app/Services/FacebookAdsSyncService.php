@@ -37,7 +37,7 @@ class FacebookAdsSyncService
      */
     public function syncFacebookData(?callable $onProgress = null, ?string $since = null, ?string $until = null, ?int $limit = null, bool $fixVideoMetrics = false): array
     {
-        $since = $since ?: now()->subYear()->format('Y-m-d');
+        $since = $since ?: now()->format('Y-m-d');
         $until = $until ?: now()->format('Y-m-d');
         
         $result = [
@@ -286,17 +286,23 @@ class FacebookAdsSyncService
         $adSets = $this->api->getAdSetsByCampaign($campaign->id);
         
         if (isset($adSets['error'])) {
+            // Cải thiện message để dễ debug hơn
             $errorMessage = 'Unknown error';
             if (is_array($adSets['error'])) {
-                $errorMessage = $adSets['error']['message'] ?? $adSets['error']['error_user_msg'] ?? 'Unknown error';
+                $errorMessage = $adSets['error']['message']
+                    ?? $adSets['error']['error_user_msg']
+                    ?? $adSets['error']['error_subcode']
+                    ?? json_encode($adSets['error']);
             } elseif (is_string($adSets['error'])) {
                 $errorMessage = $adSets['error'];
+            } elseif (!empty($adSets)) {
+                $errorMessage = json_encode($adSets);
             }
             
             Log::error("Lỗi khi lấy Ad Sets", [
                 'campaign_id' => $campaign->id,
                 'campaign_name' => $campaign->name,
-                'error' => $adSets['error']
+                'error' => $errorMessage,
             ]);
             
             $result['errors'][] = [
@@ -547,10 +553,17 @@ class FacebookAdsSyncService
             }
 
             foreach ($postInsights['data'] as $insight) {
+                $date = $insight['date'] ?? null;
+                // Strict guard: skip if no date or out of requested range
+                $since = $result['time_range']['since'] ?? null;
+                $until = $result['time_range']['until'] ?? null;
+                if (!$date || ($since && $date < $since) || ($until && $date > $until)) {
+                    continue;
+                }
                 FacebookPostInsight::updateOrCreate(
                     [
                         'post_id' => $facebookAd->post_id,
-                        'date' => $insight['date'] ?? now()->toDateString(),
+                        'date' => $date,
                     ],
                     [
                         'impressions' => (int) ($insight['impressions'] ?? 0),
@@ -575,12 +588,13 @@ class FacebookAdsSyncService
                         'video_plays_at_50' => $this->extractVideoMetricValue($insight, 'video_p50_watched_actions'),
                         'video_plays_at_75' => $this->extractVideoMetricValue($insight, 'video_p75_watched_actions'),
                         'video_plays_at_100' => $this->extractVideoMetricValue($insight, 'video_p100_watched_actions'),
-                        'video_p25_watched_actions' => (int) ($insight['video_p25_watched_actions'] ?? 0), // Sử dụng đúng field video_p25_watched_actions
-                        'video_p50_watched_actions' => (int) ($insight['video_p50_watched_actions'] ?? 0), // Sử dụng đúng field video_p50_watched_actions
-                        'video_p75_watched_actions' => (int) ($insight['video_p75_watched_actions'] ?? 0), // Sử dụng đúng field video_p75_watched_actions
-                        'video_p95_watched_actions' => (int) ($insight['video_p95_watched_actions'] ?? 0), // Sử dụng đúng field video_p95_watched_actions
-                        'video_p100_watched_actions' => (int) ($insight['video_p100_watched_actions'] ?? 0), // Sử dụng đúng field video_p100_watched_actions
-                        'thruplays' => (int) ($insight['video_thruplay_watched_actions'] ?? 0), // Sử dụng đúng field video_thruplay_watched_actions
+                        // Lấy đúng giá trị từ mảng actions (không ép array -> int)
+                        'video_p25_watched_actions' => $this->extractVideoMetricValue($insight, 'video_p25_watched_actions'),
+                        'video_p50_watched_actions' => $this->extractVideoMetricValue($insight, 'video_p50_watched_actions'),
+                        'video_p75_watched_actions' => $this->extractVideoMetricValue($insight, 'video_p75_watched_actions'),
+                        'video_p95_watched_actions' => $this->extractVideoMetricValue($insight, 'video_p95_watched_actions'),
+                        'video_p100_watched_actions' => $this->extractVideoMetricValue($insight, 'video_p100_watched_actions'),
+                        'thruplays' => $this->extractVideoMetricValue($insight, 'video_thruplay_watched_actions'),
                         'engagement_rate' => (float) ($insight['engagement_rate'] ?? 0),
                         'ctr' => (float) ($insight['ctr'] ?? 0),
                         'cpm' => (float) ($insight['cpm'] ?? 0),
@@ -615,24 +629,38 @@ class FacebookAdsSyncService
         if (!isset($insight[$field])) {
             return 0;
         }
-        
+
         $value = $insight[$field];
-        
-        // If it's already a number, return it
+
+        // Nếu là số, trả thẳng
         if (is_numeric($value)) {
             return (int) $value;
         }
-        
-        // If it's an array with action_type and value structure
+
+        // Map field -> expected action_type(s)
+        $expectedTypes = $this->expectedActionTypesForField($field);
+
+        // Nếu là mảng actions: cộng dồn các action_type phù hợp
         if (is_array($value) && !empty($value)) {
+            $total = 0;
             foreach ($value as $action) {
-                if (isset($action['action_type']) && isset($action['value'])) {
-                    return (int) $action['value'];
+                $type = $action['action_type'] ?? null;
+                if ($type && in_array($type, $expectedTypes, true)) {
+                    $total += (int) ($action['value'] ?? 0);
                 }
             }
+            return $total;
         }
-        
+
         return 0;
+    }
+
+    private function expectedActionTypesForField(string $field): array
+    {
+        return match ($field) {
+            'video_thruplay_watched_actions' => ['video_thruplay', 'thruplay'],
+            default => ['video_view'],
+        };
     }
 
     /**
@@ -764,6 +792,7 @@ class FacebookAdsSyncService
      */
     private function extractVideoMetrics(array $insight): array
     {
+     
         $videoMetrics = [
             'video_views' => 0,
             'video_plays' => 0,
@@ -784,10 +813,10 @@ class FacebookAdsSyncService
         $videoMetrics['video_plays'] = $this->extractVideoViews($insight);
 
         // Video completion rates
-        $videoMetrics['video_plays_at_25'] = $this->extractVideoMetricValue($insight, 'video_p25_watched_actions');
-        $videoMetrics['video_plays_at_50'] = $this->extractVideoMetricValue($insight, 'video_p50_watched_actions');
-        $videoMetrics['video_plays_at_75'] = $this->extractVideoMetricValue($insight, 'video_p75_watched_actions');
-        $videoMetrics['video_plays_at_100'] = $this->extractVideoMetricValue($insight, 'video_p100_watched_actions');
+        $videoMetrics['video_p25_watched_actions'] = $this->extractVideoMetricValue($insight, 'video_p25_watched_actions');
+        $videoMetrics['video_p50_watched_actions'] = $this->extractVideoMetricValue($insight, 'video_p50_watched_actions');
+        $videoMetrics['video_p75_watched_actions'] = $this->extractVideoMetricValue($insight, 'video_p75_watched_actions');
+        $videoMetrics['video_p100_watched_actions'] = $this->extractVideoMetricValue($insight, 'video_p100_watched_actions');
 
         // Average time watched - sử dụng method mới
         $videoMetrics['video_avg_time_watched'] = $this->extractVideoAvgTimeWatched($insight);
@@ -1171,60 +1200,11 @@ class FacebookAdsSyncService
                     'ad_id' => $facebookAd->id
                 ]);
                 
-                // Tạo record với giá trị 0 - đảm bảo đầy đủ các trường theo response Facebook API
-                $date = now()->toDateString();
+                // Không tạo bản ghi 0 khi không có data; bỏ qua để tránh trùng
+                $date = null;
                 $postIdForSave = $facebookAd->post_id ?? null;
                 $pageIdForSave = $facebookAd->page_id ?? null;
-                
-                FacebookAdInsight::updateOrCreate(
-                    [
-                        'ad_id' => $facebookAd->id,
-                        'date' => $date,
-                    ],
-                    [
-                        'spend' => 0,
-                        'reach' => 0,
-                        'impressions' => 0,
-                        'clicks' => 0,
-                        'unique_clicks' => 0,
-                        'ctr' => 0,
-                        'unique_ctr' => 0,
-                        'unique_link_clicks_ctr' => 0,
-                        'unique_impressions' => 0,
-                        'cpc' => 0,
-                        'cpm' => 0,
-                        'frequency' => 0,
-                        'conversions' => 0,
-                        'conversion_values' => 0,
-                        'cost_per_conversion' => 0,
-                        'purchase_roas' => 0,
-                        'outbound_clicks' => 0,
-                        'unique_outbound_clicks' => 0,
-                        'inline_link_clicks' => 0,
-                        'unique_inline_link_clicks' => 0,
-                        'website_clicks' => 0,
-                        'actions' => null,
-                        'action_values' => null,
-                        'cost_per_action_type' => null,
-                        'cost_per_unique_action_type' => null,
-                        'video_views' => 0,
-                        'video_plays' => 0,
-                        'video_avg_time_watched' => 0,
-                        'video_p25_watched_actions' => 0,
-                        'video_p50_watched_actions' => 0,
-                        'video_p75_watched_actions' => 0,
-                        'video_p95_watched_actions' => 0,
-                        'video_p100_watched_actions' => 0,
-                        'thruplays' => 0,
-                        'video_30_sec_watched' => 0,
-                        'video_play_actions' => 0,
-                        'video_view_time' => 0,
-                        'post_id' => $postIdForSave,
-                        'page_id' => $pageIdForSave,
-                    ]
-                );
-                
-                $result['ad_insights']++;
+                // return sớm, không lưu gì nếu không có data
                 return;
             }
 
@@ -1246,8 +1226,13 @@ class FacebookAdsSyncService
                     'action_totals' => $actionTotals
                 ]);
                 
-                // Xác định date từ insight
-                $date = $insight['date_start'] ?? $insight['date_stop'] ?? now()->toDateString();
+                // Xác định date từ insight và áp dụng strict guard theo khoảng sync
+                $date = $insight['date_start'] ?? ($insight['date_stop'] ?? null);
+                $since = $result['time_range']['since'] ?? null;
+                $until = $result['time_range']['until'] ?? null;
+                if (!$date || ($since && $date < $since) || ($until && $date > $until)) {
+                    continue;
+                }
 
                 // Trích xuất page_id, post_id từ creative.object_story_id nếu có
                 $pageIdFromCreative = null;
@@ -1274,10 +1259,13 @@ class FacebookAdsSyncService
                 $postIdForSave = $postIdFromCreative ?: ($facebookAd->post_id ?? null);
                 $pageIdForSave = $pageIdFromCreative ?: ($facebookAd->page_id ?? null);
                 
+                // (logs removed)
+
                 $adInsight = FacebookAdInsight::updateOrCreate(
                     [
                         'ad_id' => $facebookAd->id,
                         'date' => $date,
+                        ...(Schema::hasColumn('facebook_ad_insights', 'post_id') && $postIdForSave ? ['post_id' => (string) $postIdForSave] : ['post_id' => null]),
                     ],
                     [
                         // Basic metrics - lưu đầy đủ theo response Facebook API
@@ -2211,10 +2199,19 @@ class FacebookAdsSyncService
                     }
                 } catch (\Throwable $e) {}
 
+                // Strict guard for breakdown save path as well
+                $date = $insight['date'] ?? null;
+                $since = $result['time_range']['since'] ?? null;
+                $until = $result['time_range']['until'] ?? null;
+                if (!$date || ($since && $date < $since) || ($until && $date > $until)) {
+                    continue;
+                }
+
                 FacebookAdInsight::updateOrCreate(
                     [
                         'ad_id' => $facebookAd->id,
-                        'date' => $insight['date'] ?? now()->toDateString(),
+                        'date' => $date,
+                        ...(Schema::hasColumn('facebook_ad_insights', 'post_id') && $postIdForSave ? ['post_id' => (string) $postIdForSave] : ['post_id' => null]),
                     ],
                     [
                         'breakdowns' => json_encode($breakdowns),
@@ -2578,8 +2575,10 @@ class FacebookAdsSyncService
     private function processAdInsightsWithVideoMetrics(array $ad, FacebookAd $facebookAd, array &$result): void
     {
         try {
-            // Lấy Ad Insights với video metrics đầy đủ
-            $adInsights = $this->api->getInsightsForAd($ad['id']);
+            // Lấy Ad Insights với video metrics đầy đủ theo ngày trong khoảng đang sync
+            $since = $result['time_range']['since'] ?? now()->format('Y-m-d');
+            $until = $result['time_range']['until'] ?? now()->format('Y-m-d');
+            $adInsights = $this->api->getInsightsForAd($ad['id'], $since, $until, '1');
             
             if ($adInsights && !isset($adInsights['error']) && isset($adInsights['data'])) {
                 foreach ($adInsights['data'] as $insight) {
@@ -2587,7 +2586,9 @@ class FacebookAdsSyncService
                     FacebookAdInsight::updateOrCreate(
                         [
                             'ad_id' => $facebookAd->id,
-                            'date' => $insight['date_start'] ?? date('Y-m-d')
+                            // Chuẩn hóa: luôn lưu theo ngày (YYYY-MM-DD)
+                            'date' => isset($insight['date_start']) ? \Illuminate\Support\Carbon::parse($insight['date_start'])->toDateString() : date('Y-m-d'),
+                            ...(Schema::hasColumn('facebook_ad_insights', 'post_id') && ($facebookAd->post_id ?? null) ? ['post_id' => (string) $facebookAd->post_id] : ['post_id' => null]),
                         ],
                         [
                             'spend' => (float) ($insight['spend'] ?? 0),
@@ -2616,6 +2617,7 @@ class FacebookAdsSyncService
                             
                             // Video metrics chính từ API - sử dụng method extractVideoMetrics
                             ...$this->extractVideoMetrics($insight),
+                         
                             'video_p25_watched_actions' => (int) ($insight['video_p25_watched_actions'] ?? 0),
                             'video_p50_watched_actions' => (int) ($insight['video_p50_watched_actions'] ?? 0),
                             'video_p75_watched_actions' => (int) ($insight['video_p75_watched_actions'] ?? 0),
@@ -2770,6 +2772,157 @@ class FacebookAdsSyncService
                 'ad_id' => $ad['id'],
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Sync only insights for existing Ads in DB within a date range.
+     */
+    public function syncInsightsForExistingAds(?callable $onProgress = null, string $since, string $until, ?int $limit = null, bool $withBreakdowns = false): array
+    {
+        $result = [
+            'ads' => 0,
+            'ad_insights' => 0,
+            'breakdowns' => 0,
+            'errors' => [],
+            'time_range' => ['since' => $since, 'until' => $until],
+        ];
+
+        $adsQuery = \App\Models\FacebookAd::query()->orderBy('id');
+        if ($limit) {
+            $adsQuery->limit($limit);
+        }
+        $ads = $adsQuery->get(['id', 'post_id', 'page_id']);
+
+        foreach ($ads as $ad) {
+            try {
+                $result['ads']++;
+                // Fetch insights strictly in range with daily increment and save
+                $this->fetchAndSaveInsightsInRangeForAd($ad, $since, $until, $result);
+                if ($withBreakdowns) {
+                    $this->fetchAndSaveBreakdownsInRangeForAd($ad, $since, $until, $result);
+                }
+                $this->reportProgress($onProgress, 'Processed insights for ad ' . $ad->id, $result);
+            } catch (\Throwable $e) {
+                $result['errors'][] = $e->getMessage();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Fetch insights in given date range (time_increment=1) and save using strict guards.
+     */
+    private function fetchAndSaveInsightsInRangeForAd(FacebookAd $facebookAd, string $since, string $until, array &$result): void
+    {
+        $adId = $facebookAd->id;
+        $adInsights = $this->api->getInsightsForAd($adId, $since, $until, '1');
+        if (!$adInsights || isset($adInsights['error']) || !isset($adInsights['data'])) {
+            return;
+        }
+
+        foreach ($adInsights['data'] as $insight) {
+            $date = isset($insight['date_start']) ? \Illuminate\Support\Carbon::parse($insight['date_start'])->toDateString() : null;
+            if (!$date || $date < $since || $date > $until) {
+                continue;
+            }
+
+            // Map creative post/page if available on the ad
+            $postIdForSave = $facebookAd->post_id ?? null;
+            $pageIdForSave = $facebookAd->page_id ?? null;
+
+            // (logs removed)
+
+            \App\Models\FacebookAdInsight::updateOrCreate(
+                [
+                    'ad_id' => (string) $adId,
+                    'date' => $date,
+                    ...(\Illuminate\Support\Facades\Schema::hasColumn('facebook_ad_insights', 'post_id') && $postIdForSave ? ['post_id' => (string) $postIdForSave] : ['post_id' => null]),
+                ],
+                [
+                    'spend' => (float) ($insight['spend'] ?? 0),
+                    'reach' => (int) ($insight['reach'] ?? 0),
+                    'impressions' => (int) ($insight['impressions'] ?? 0),
+                    'clicks' => (int) ($insight['clicks'] ?? 0),
+                    'ctr' => (float) ($insight['ctr'] ?? 0),
+                    'cpc' => (float) ($insight['cpc'] ?? 0),
+                    'cpm' => (float) ($insight['cpm'] ?? 0),
+                    'frequency' => (float) ($insight['frequency'] ?? 0),
+                    'unique_clicks' => (int) ($insight['unique_clicks'] ?? 0),
+                    'unique_ctr' => (float) ($insight['unique_ctr'] ?? 0),
+                    'unique_link_clicks_ctr' => (float) ($insight['unique_link_clicks_ctr'] ?? 0),
+                    'unique_impressions' => (int) ($insight['unique_impressions'] ?? 0),
+                    'conversions' => (int) ($insight['conversions'] ?? 0),
+                    'conversion_values' => (float) ($insight['conversion_values'] ?? 0),
+                    'cost_per_conversion' => (float) ($insight['cost_per_conversion'] ?? 0),
+                    'purchase_roas' => (float) ($insight['purchase_roas'] ?? 0),
+                    'outbound_clicks' => (int) ($insight['outbound_clicks'] ?? 0),
+                    'unique_outbound_clicks' => (int) ($insight['unique_outbound_clicks'] ?? 0),
+                    'inline_link_clicks' => (int) ($insight['inline_link_clicks'] ?? 0),
+                    'unique_inline_link_clicks' => (int) ($insight['unique_inline_link_clicks'] ?? 0),
+                    'website_clicks' => (int) ($insight['website_clicks'] ?? 0),
+                    'actions' => isset($insight['actions']) ? json_encode($insight['actions']) : null,
+                    'action_values' => isset($insight['action_values']) ? json_encode($insight['action_values']) : null,
+                    // Single source of truth for video metrics; do NOT override below
+                    ...$this->extractVideoMetrics($insight),
+                    ...(\Illuminate\Support\Facades\Schema::hasColumn('facebook_ad_insights', 'page_id') && $pageIdForSave ? ['page_id' => (string) $pageIdForSave] : []),
+                ]
+            );
+
+            $result['ad_insights']++;
+        }
+    }
+
+    /**
+     * Fetch breakdowns for a given ad in date range and attach to corresponding ad_insight rows.
+     */
+    private function fetchAndSaveBreakdownsInRangeForAd(FacebookAd $facebookAd, string $since, string $until, array &$result): void
+    {
+        $adId = $facebookAd->id;
+        $callers = [
+            'age' => fn() => $this->api->getInsightsWithAgeGenderBreakdown($adId, $since, $until, '1'),
+            'gender' => fn() => $this->api->getInsightsWithAgeGenderBreakdown($adId, $since, $until, '1'),
+            'country' => fn() => $this->api->getInsightsWithCountryBreakdown($adId, $since, $until, '1'),
+            'region' => fn() => $this->api->getInsightsWithRegionBreakdown($adId, $since, $until, '1'),
+            'publisher_platform' => fn() => $this->api->getInsightsWithPublisherPlatformBreakdown($adId, $since, $until, '1'),
+            'platform_position' => fn() => $this->api->getInsightsWithPlatformPositionBreakdown($adId, $since, $until, '1'),
+            'device_platform' => fn() => $this->api->getInsightsWithDevicePlatformBreakdown($adId, $since, $until, '1'),
+            'impression_device' => fn() => $this->api->getInsightsWithImpressionDeviceBreakdown($adId, $since, $until, '1'),
+        ];
+        foreach ($callers as $dimension => $fn) {
+            $resp = $fn();
+            if (!$resp || isset($resp['error']) || !isset($resp['data'])) { continue; }
+
+            // Gom rows theo ngày
+            $rowsByDate = [];
+            foreach ($resp['data'] as $row) {
+                $date = isset($row['date_start']) ? \Illuminate\Support\Carbon::parse($row['date_start'])->toDateString() : null;
+                if (!$date || $date < $since || $date > $until) { continue; }
+                $rowsByDate[$date][] = $row;
+            }
+
+            $breakdownType = match ($dimension) {
+                'age', 'gender' => 'age_gender',
+                'region' => 'region',
+                'platform_position' => 'platform_position',
+                'publisher_platform' => 'publisher_platform',
+                'device_platform' => 'device_platform',
+                'country' => 'country',
+                'impression_device' => 'impression_device',
+                default => $dimension,
+            };
+
+            foreach ($rowsByDate as $date => $rows) {
+                $insightRow = \App\Models\FacebookAdInsight::where('ad_id', $adId)
+                    ->where('date', $date)
+                    ->orderByDesc('id')
+                    ->first();
+                if (!$insightRow) { continue; }
+
+                $this->saveBreakdownsToTable($rows, $insightRow->id, $breakdownType);
+                $result['breakdowns'] += count($rows);
+            }
         }
     }
 

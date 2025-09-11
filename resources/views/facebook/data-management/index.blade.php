@@ -47,10 +47,30 @@
                     <option value="ads_desc">Quảng cáo nhiều nhất</option>
                     <option value="ads_asc">Quảng cáo ít nhất</option>
                 </select>
+
+                <!-- Quick date filter always visible -->
+                <div class="flex items-center gap-2 ml-auto">
+                    <select id="quick_date_preset" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Tùy chỉnh</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="yesterday">Hôm qua</option>
+                        <option value="this_week">Tuần này</option>
+                        <option value="last_week">Tuần trước</option>
+                        <option value="last_7_days">7 ngày</option>
+                        <option value="last_28_days">28 ngày</option>
+                        <option value="last_30_days">30 ngày</option>
+                        <option value="this_month">Tháng này</option>
+                        <option value="last_month">Tháng trước</option>
+                    </select>
+                    <input type="date" id="quick_from" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                    <span class="text-gray-500">→</span>
+                    <input type="date" id="quick_to" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                    <button id="quick_apply" type="button" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Lọc</button>
+                </div>
             </div>
 
-            <!-- View tabs: Combined / Posts / Ads -->
-            <div class="mt-4 flex items-center gap-3">
+            <!-- View tabs: Combined / Posts / Ads + Multi-dimension filter controls -->
+            <div class="mt-4 flex items-center gap-3 sticky top-0 bg-white/90 backdrop-blur z-10 py-2">
                 <label class="text-sm font-medium text-gray-700">Chế độ xem:</label>
                 <div class="inline-flex rounded-md shadow-sm" role="group">
                     <button type="button" data-view="combined" class="view-tab px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-l-md bg-blue-50 text-blue-700 hover:bg-blue-100">Tổng hợp</button>
@@ -58,6 +78,30 @@
                     <button type="button" data-view="ads" class="view-tab px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-r-md bg-white text-gray-700 hover:bg-gray-50">Ads</button>
                 </div>
                 <input type="hidden" id="view_type" name="view_type" value="{{ $filters['view_type'] ?? 'combined' }}" />
+
+                <!-- Breakdown controls -->
+                <div class="ml-4 flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Breakdown:</label>
+                    <div class="inline-flex rounded-md border border-gray-300 overflow-hidden">
+                        <button type="button" class="bd-tab px-3 py-1.5 text-sm bg-white hover:bg-gray-50" data-bd="content">Loại nội dung</button>
+                        <button type="button" class="bd-tab px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border-l" data-bd="audience">Đối tượng</button>
+                        <button type="button" class="bd-tab px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border-l" data-bd="channel">Kênh</button>
+                    </div>
+                </div>
+
+                <!-- Sort metric -->
+                <div class="ml-4 flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Sắp xếp:</label>
+                    <select id="sort-metric" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="spend_desc">Chi phí ↓</option>
+                        <option value="spend_asc">Chi phí ↑</option>
+                        <option value="impressions_desc">Hiển thị ↓</option>
+                        <option value="clicks_desc">Tương tác/Click ↓</option>
+                        <option value="cpc_asc">CPC ↑</option>
+                        <option value="cpm_asc">CPM ↑</option>
+                        <option value="ctr_desc">CTR ↓</option>
+                    </select>
+                </div>
             </div>
         </div>
     </form>
@@ -118,6 +162,60 @@
             </div>
         </div>
 
+        <!-- Multi-dimension panels (accordion) -->
+        <div class="mb-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Content type -->
+            <div class="border rounded-md">
+                <button type="button" class="w-full text-left px-4 py-2 font-medium bg-gray-50 border-b" data-acc="content-panel">Loại nội dung</button>
+                <div id="content-panel" class="p-4 grid grid-cols-2 gap-2">
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" class="bd-content" value="post"> <span>Bài viết</span></label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" class="bd-content" value="ad"> <span>Quảng cáo</span></label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" class="bd-content" value="video"> <span>Video</span></label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" class="bd-content" value="photo"> <span>Ảnh</span></label>
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" class="bd-content" value="live"> <span>Livestream</span></label>
+                </div>
+            </div>
+
+            <!-- Audience -->
+            <div class="border rounded-md">
+                <button type="button" class="w-full text-left px-4 py-2 font-medium bg-gray-50 border-b" data-acc="audience-panel">Đối tượng</button>
+                <div id="audience-panel" class="p-4 grid grid-cols-2 gap-2">
+                    <select id="bd-gender" class="rounded-md border-gray-300">
+                        <option value="">Giới tính</option>
+                        <option value="male">Nam</option>
+                        <option value="female">Nữ</option>
+                        <option value="unknown">Khác</option>
+                    </select>
+                    <select id="bd-age" class="rounded-md border-gray-300">
+                        <option value="">Độ tuổi</option>
+                        <option value="18-24">18-24</option>
+                        <option value="25-34">25-34</option>
+                        <option value="35-44">35-44</option>
+                        <option value="45-54">45-54</option>
+                        <option value="55-64">55-64</option>
+                        <option value="65+">65+</option>
+                    </select>
+                    <input id="bd-region" class="col-span-2 rounded-md border-gray-300" placeholder="Vị trí địa lý (tỉnh/thành, quốc gia)..." />
+                    <select id="bd-device" class="rounded-md border-gray-300 col-span-2">
+                        <option value="">Thiết bị</option>
+                        <option value="mobile">Mobile</option>
+                        <option value="desktop">Desktop</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Channel -->
+            <div class="border rounded-md">
+                <button type="button" class="w-full text-left px-4 py-2 font-medium bg-gray-50 border-b" data-acc="channel-panel">Kênh</button>
+                <div id="channel-panel" class="p-4 grid grid-cols-3 gap-2">
+                    <label class="inline-flex items-center gap-2"><input type="radio" name="bd-channel" class="bd-channel" value=""> <span>Tất cả</span></label>
+                    <label class="inline-flex items-center gap-2"><input type="radio" name="bd-channel" class="bd-channel" value="organic"> <span>Organic</span></label>
+                    <label class="inline-flex items-center gap-2"><input type="radio" name="bd-channel" class="bd-channel" value="paid"> <span>Paid</span></label>
+                    <label class="inline-flex items-center gap-2"><input type="radio" name="bd-channel" class="bd-channel" value="viral"> <span>Viral</span></label>
+                </div>
+            </div>
+        </div>
+
         <!-- Filter Toggle Button -->
         <div class="mb-6 flex items-center space-x-3">
             <button id="filter-toggle" type="button" 
@@ -158,7 +256,7 @@
         </div>
 
         <!-- Filters (Hidden by default) -->
-        <div id="filter-section" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 hidden">
+        <div id="filter-section" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Bộ lọc</h3>
             <form id="filter-form" method="GET" action="{{ route('facebook.data-management.index') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <input type="hidden" name="page_id" value="{{ $filters['page_id'] ?? '' }}">
@@ -168,10 +266,24 @@
                         <option value="">Tùy chỉnh</option>
                         <option value="today">Hôm nay</option>
                         <option value="yesterday">Hôm qua</option>
+                        <option value="this_week">Tuần này</option>
+                        <option value="last_week">Tuần trước</option>
                         <option value="last_7_days">7 ngày qua</option>
+                        <option value="last_28_days">28 ngày qua</option>
                         <option value="last_30_days">30 ngày qua</option>
                         <option value="this_month">Tháng này</option>
                         <option value="last_month">Tháng trước</option>
+                        <option value="this_quarter">Quý này</option>
+                        <option value="last_quarter">Quý trước</option>
+                        <option value="lifetime">Toàn thời gian</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="time_increment" class="block text-sm font-medium text-gray-700 mb-1">Nhóm thời gian</label>
+                    <select id="time_increment" name="time_increment" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="day">Theo ngày</option>
+                        <option value="week">Theo tuần</option>
+                        <option value="month">Theo tháng</option>
                     </select>
                 </div>
                 
@@ -573,6 +685,10 @@ function initializeDataManagement() {
     const pageSearch = document.getElementById('page-search');
     const pageSort = document.getElementById('page-sort');
     const datePreset = document.getElementById('date_preset');
+    const quickPreset = document.getElementById('quick_date_preset');
+    const quickFrom = document.getElementById('quick_from');
+    const quickTo = document.getElementById('quick_to');
+    const quickApply = document.getElementById('quick_apply');
     const viewTypeInput = document.getElementById('view_type');
     const viewTabButtons = document.querySelectorAll('.view-tab');
     const sliceBySelect = document.getElementById('slice-by');
@@ -657,10 +773,12 @@ function initializeDataManagement() {
         }
         
         // Build query string
+        const timeIncrementSel = document.getElementById('time_increment');
         const params = new URLSearchParams({ 
             page_id: pageId, 
             view_type: (viewTypeInput?.value || 'combined'), 
             slice_by: (sliceBySelect?.value || 'none'),
+            time_increment: (timeIncrementSel?.value || 'day'),
             ...filters 
         });
         
@@ -998,15 +1116,82 @@ function initializeDataManagement() {
             const today = new Date();
             const fmt = d => d.toISOString().slice(0,10);
             let since = '', until = '';
+            const getMonday = d => { const day = d.getDay(); const diff = (day === 0 ? -6 : 1) - day; const t = new Date(d); t.setDate(d.getDate()+diff); t.setHours(0,0,0,0); return t; };
             if (val === 'today') { since = fmt(today); until = fmt(today); }
             else if (val === 'yesterday') { const y = new Date(today.getTime()-86400000); since = fmt(y); until = fmt(y); }
+            else if (val === 'this_week') { const m = getMonday(today); since = fmt(m); until = fmt(today); }
+            else if (val === 'last_week') { const m = getMonday(new Date(today.getTime()-7*86400000)); const e = new Date(m.getTime()+6*86400000); since = fmt(m); until = fmt(e); }
             else if (val === 'last_7_days') { const s = new Date(today.getTime()-6*86400000); since = fmt(s); until = fmt(today); }
+            else if (val === 'last_28_days') { const s = new Date(today.getTime()-27*86400000); since = fmt(s); until = fmt(today); }
             else if (val === 'last_30_days') { const s = new Date(today.getTime()-29*86400000); since = fmt(s); until = fmt(today); }
             else if (val === 'this_month') { const s = new Date(today.getFullYear(), today.getMonth(), 1); since = fmt(s); until = fmt(today); }
             else if (val === 'last_month') { const s = new Date(today.getFullYear(), today.getMonth()-1, 1); const e = new Date(today.getFullYear(), today.getMonth(), 0); since = fmt(s); until = fmt(e); }
+            else if (val === 'this_quarter') { const q = Math.floor(today.getMonth()/3); const s = new Date(today.getFullYear(), q*3, 1); since = fmt(s); until = fmt(today); }
+            else if (val === 'last_quarter') { const q = Math.floor(today.getMonth()/3)-1; const year = today.getFullYear() + (q<0?-1:0); const startMonth = ((q+4)%4)*3; const s = new Date(year, startMonth, 1); const e = new Date(year, startMonth+3, 0); since = fmt(s); until = fmt(e); }
+            else if (val === 'lifetime') { since = ''; until = ''; }
             if (since && until) { fromInput.value = since; toInput.value = until; }
+            if (!since && !until) { fromInput.value = ''; toInput.value = ''; }
         });
     }
+
+    // Quick preset on header mirrors main preset and submits
+    (function(){
+        if (!quickApply) return;
+        const fmt = d => d.toISOString().slice(0,10);
+        const getMonday = d => { const day = d.getDay(); const diff = (day === 0 ? -6 : 1) - day; const t = new Date(d); t.setDate(d.getDate()+diff); t.setHours(0,0,0,0); return t; };
+        function applyPreset(val){
+            const today = new Date();
+            let since='',until='';
+            if (val==='today'){ since=fmt(today); until=fmt(today);} 
+            else if (val==='yesterday'){ const y=new Date(today.getTime()-86400000); since=fmt(y); until=fmt(y);} 
+            else if (val==='this_week'){ const m=getMonday(today); since=fmt(m); until=fmt(today);} 
+            else if (val==='last_week'){ const m=getMonday(new Date(today.getTime()-7*86400000)); const e=new Date(m.getTime()+6*86400000); since=fmt(m); until=fmt(e);} 
+            else if (val==='last_7_days'){ const s=new Date(today.getTime()-6*86400000); since=fmt(s); until=fmt(today);} 
+            else if (val==='last_28_days'){ const s=new Date(today.getTime()-27*86400000); since=fmt(s); until=fmt(today);} 
+            else if (val==='last_30_days'){ const s=new Date(today.getTime()-29*86400000); since=fmt(s); until=fmt(today);} 
+            else if (val==='this_month'){ const s=new Date(today.getFullYear(),today.getMonth(),1); since=fmt(s); until=fmt(today);} 
+            else if (val==='last_month'){ const s=new Date(today.getFullYear(),today.getMonth()-1,1); const e=new Date(today.getFullYear(),today.getMonth(),0); since=fmt(s); until=fmt(e);} 
+            if (since && until){ quickFrom.value=since; quickTo.value=until; }
+        }
+        quickPreset?.addEventListener('change', ()=>applyPreset(quickPreset.value));
+        quickApply.addEventListener('click', function(){
+            const filters = {};
+            if (quickFrom.value) filters['date_from']=quickFrom.value;
+            if (quickTo.value) filters['date_to']=quickTo.value;
+            // Collect breakdown filters
+            const sortSel = document.getElementById('sort-metric');
+            if (sortSel && sortSel.value) filters['sort_metric'] = sortSel.value;
+            const ch = document.querySelector('input.bd-channel:checked');
+            if (ch) filters['channel'] = ch.value;
+            const gender = document.getElementById('bd-gender'); if (gender && gender.value) filters['gender'] = gender.value;
+            const age = document.getElementById('bd-age'); if (age && age.value) filters['age'] = age.value;
+            const region = document.getElementById('bd-region'); if (region && region.value) filters['region'] = region.value.trim();
+            const device = document.getElementById('bd-device'); if (device && device.value) filters['device'] = device.value;
+            const contentChecked = Array.from(document.querySelectorAll('input.bd-content:checked')).map(i=>i.value);
+            if (contentChecked.length) filters['content_types'] = contentChecked.join(',');
+            let pageId = pageSelect ? pageSelect.value : null;
+            if (!pageId && pageSelect) {
+                const firstOpt = Array.from(pageSelect.options).find(o=>o.value);
+                if (firstOpt) { pageSelect.value = firstOpt.value; pageId = firstOpt.value; }
+            }
+            if (pageId){ 
+                loadPageData(pageId, filters);
+            } else {
+                alert('Vui lòng chọn Trang Facebook trước khi lọc.');
+            }
+        });
+
+        // Auto-apply when date range changed and page selected
+        [quickFrom, quickTo].forEach(el=>{
+            el?.addEventListener('change', ()=>{
+                const pageId = pageSelect?.value;
+                if (pageId && quickFrom.value && quickTo.value) {
+                    const filters = { date_from: quickFrom.value, date_to: quickTo.value };
+                    loadPageData(pageId, filters);
+                }
+            });
+        });
+    })();
 
     // Page search/sort client-side
     if (pageSearch || pageSort) {

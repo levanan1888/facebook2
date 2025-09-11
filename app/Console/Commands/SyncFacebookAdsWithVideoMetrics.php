@@ -17,7 +17,9 @@ class SyncFacebookAdsWithVideoMetrics extends Command
                             {--since= : Start date (Y-m-d format)}
                             {--until= : End date (Y-m-d format)}
                             {--limit=10 : Limit number of ads to process for testing}
-                            {--fix-video-metrics : Fix existing video metrics data}';
+                            {--fix-video-metrics : Fix existing video metrics data}
+                            {--day= : Sync a single day (Y-m-d), overrides since/until}
+                            {--last30 : Sync last 30 days (overrides since/until)}';
 
     /**
      * The console command description.
@@ -31,8 +33,18 @@ class SyncFacebookAdsWithVideoMetrics extends Command
     {
         $this->info('Bắt đầu sync Facebook Ads với video metrics đầy đủ từ Facebook Business Manager...');
 
-        $since = $this->option('since') ?: now()->subDays(360)->format('Y-m-d');
-        $until = $this->option('until') ?: now()->format('Y-m-d');
+        // Support quick flag --last30
+        if ($this->option('day')) {
+            $since = $this->option('day');
+            $until = $since;
+        } elseif ($this->option('last30')) {
+            $since = now()->subDays(29)->format('Y-m-d');
+            $until = now()->format('Y-m-d');
+        } else {
+            // Mặc định: chỉ đồng bộ trong tháng hiện tại nếu không truyền tham số
+            $since = $this->option('since') ?: now()->startOfMonth()->format('Y-m-d');
+            $until = $this->option('until') ?: now()->format('Y-m-d');
+        }
         $limit = (int) $this->option('limit');
         $fixVideoMetrics = $this->option('fix-video-metrics');
 

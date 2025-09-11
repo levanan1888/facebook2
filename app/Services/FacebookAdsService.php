@@ -52,8 +52,8 @@ class FacebookAdsService
                         'error' => $responseData['error']
                     ]);
                     
-                    // Delay lâu hơn cho rate limit
-                    $delay = $delays[min($attempt, count($delays) - 1)] * 2;
+                    // Delay cho rate limit (giảm còn 180 giây)
+                    $delay = $delays[min($attempt, count($delays) - 1)];
                     Log::info("Waiting {$delay} seconds before retry due to rate limit");
                     sleep($delay);
                     $attempt++;
@@ -688,7 +688,7 @@ class FacebookAdsService
      * Lấy Insights cho một Ad đơn lẻ với dữ liệu đầy đủ theo Facebook Marketing API v23.0
      * Sử dụng endpoint insights với tất cả fields hợp lệ
      */
-    public function getInsightsForAd(string $adId, ?string $since = null, ?string $until = null): array
+    public function getInsightsForAd(string $adId, ?string $since = null, ?string $until = null, string $timeIncrement = '1'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$adId}/insights";
         
@@ -724,9 +724,11 @@ class FacebookAdsService
             'access_token' => $this->accessToken,
             'fields' => implode(',', $fields),
             'time_range' => json_encode([
-                'since' => $since ?: date('Y-m-d', strtotime('-36 months')),
+                'since' => $since ?: now()->format('Y-m-d'),
                 'until' => $until ?: date('Y-m-d')
-            ])
+            ]),
+            // Quan trọng: yêu cầu dữ liệu theo ngày để lưu xuống DB (giống Ads Manager)
+            'time_increment' => $timeIncrement
         ];
 
         $result = $this->makeRequest($url, $params);
@@ -799,20 +801,21 @@ class FacebookAdsService
      * Lấy Insights với breakdown theo age và gender (permutation được hỗ trợ)
      * Sử dụng endpoint insights thay vì statuses (deprecated)
      */
-    public function getInsightsWithAgeGenderBreakdown(string $objectId, string $objectType = 'ad'): array
+    public function getInsightsWithAgeGenderBreakdown(string $objectId, ?string $since = null, ?string $until = null, string $timeIncrement = '1', string $objectType = 'ad'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
         
         $params = [
             'access_token' => $this->accessToken,
             'fields' => $fields,
             'breakdowns' => 'age,gender',
             'time_range' => json_encode([
-                'since' => date('Y-m-d', strtotime('-36 months')),
-                'until' => date('Y-m-d')
-            ])
+                'since' => $since ?: date('Y-m-d', strtotime('-7 days')),
+                'until' => $until ?: date('Y-m-d')
+            ]),
+            'time_increment' => $timeIncrement,
         ];
 
         return $this->makeRequest($url, $params);
@@ -822,7 +825,7 @@ class FacebookAdsService
      * Lấy Insights với breakdown theo region (permutation được hỗ trợ)
      * Sử dụng endpoint insights thay vì statuses (deprecated)
      */
-    public function getInsightsWithRegionBreakdown(string $objectId, string $objectType = 'ad'): array
+    public function getInsightsWithRegionBreakdown(string $objectId, ?string $since = null, ?string $until = null, string $timeIncrement = '1', string $objectType = 'ad'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
@@ -834,9 +837,10 @@ class FacebookAdsService
             'fields' => $fields,
             'breakdowns' => 'region',
             'time_range' => json_encode([
-                'since' => date('Y-m-d', strtotime('-36 months')),
-                'until' => date('Y-m-d')
-            ])
+                'since' => $since ?: date('Y-m-d', strtotime('-7 days')),
+                'until' => $until ?: date('Y-m-d')
+            ]),
+            'time_increment' => $timeIncrement,
         ];
 
         return $this->makeRequest($url, $params);
@@ -846,20 +850,21 @@ class FacebookAdsService
      * Lấy Insights với breakdown theo platform_position (permutation được hỗ trợ)
      * Sử dụng endpoint insights thay vì statuses (deprecated)
      */
-    public function getInsightsWithPlatformPositionBreakdown(string $objectId, string $objectType = 'ad'): array
+    public function getInsightsWithPlatformPositionBreakdown(string $objectId, ?string $since = null, ?string $until = null, string $timeIncrement = '1', string $objectType = 'ad'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
         
         $params = [
             'access_token' => $this->accessToken,
             'fields' => $fields,
             'breakdowns' => 'platform_position',
             'time_range' => json_encode([
-                'since' => date('Y-m-d', strtotime('-36 months')),
-                'until' => date('Y-m-d')
-            ])
+                'since' => $since ?: date('Y-m-d', strtotime('-7 days')),
+                'until' => $until ?: date('Y-m-d')
+            ]),
+            'time_increment' => $timeIncrement,
         ];
 
         return $this->makeRequest($url, $params);
@@ -868,20 +873,21 @@ class FacebookAdsService
     /**
      * Lấy Insights với breakdown theo publisher_platform (permutation được hỗ trợ)
      */
-    public function getInsightsWithPublisherPlatformBreakdown(string $objectId, string $objectType = 'ad'): array
+    public function getInsightsWithPublisherPlatformBreakdown(string $objectId, ?string $since = null, ?string $until = null, string $timeIncrement = '1', string $objectType = 'ad'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
         
         $params = [
             'access_token' => $this->accessToken,
             'fields' => $fields,
             'breakdowns' => 'publisher_platform',
             'time_range' => json_encode([
-                'since' => date('Y-m-d', strtotime('-36 months')),
-                'until' => date('Y-m-d')
-            ])
+                'since' => $since ?: date('Y-m-d', strtotime('-7 days')),
+                'until' => $until ?: date('Y-m-d')
+            ]),
+            'time_increment' => $timeIncrement,
         ];
 
         return $this->makeRequest($url, $params);
@@ -890,20 +896,21 @@ class FacebookAdsService
     /**
      * Lấy Insights với breakdown theo device_platform (permutation được hỗ trợ)
      */
-    public function getInsightsWithDevicePlatformBreakdown(string $objectId, string $objectType = 'ad'): array
+    public function getInsightsWithDevicePlatformBreakdown(string $objectId, ?string $since = null, ?string $until = null, string $timeIncrement = '1', string $objectType = 'ad'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
         
         $params = [
             'access_token' => $this->accessToken,
             'fields' => $fields,
             'breakdowns' => 'device_platform',
             'time_range' => json_encode([
-                'since' => date('Y-m-d', strtotime('-36 months')),
-                'until' => date('Y-m-d')
-            ])
+                'since' => $since ?: date('Y-m-d', strtotime('-7 days')),
+                'until' => $until ?: date('Y-m-d')
+            ]),
+            'time_increment' => $timeIncrement,
         ];
 
         return $this->makeRequest($url, $params);
@@ -912,20 +919,21 @@ class FacebookAdsService
     /**
      * Lấy Insights với breakdown theo country (permutation được hỗ trợ)
      */
-    public function getInsightsWithCountryBreakdown(string $objectId, string $objectType = 'ad'): array
+    public function getInsightsWithCountryBreakdown(string $objectId, ?string $since = null, ?string $until = null, string $timeIncrement = '1', string $objectType = 'ad'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
         
         $params = [
             'access_token' => $this->accessToken,
             'fields' => $fields,
             'breakdowns' => 'country',
             'time_range' => json_encode([
-                'since' => date('Y-m-d', strtotime('-36 months')),
-                'until' => date('Y-m-d')
-            ])
+                'since' => $since ?: date('Y-m-d', strtotime('-7 days')),
+                'until' => $until ?: date('Y-m-d')
+            ]),
+            'time_increment' => $timeIncrement,
         ];
 
         return $this->makeRequest($url, $params);
@@ -934,7 +942,7 @@ class FacebookAdsService
     /**
      * Lấy Insights với breakdown theo impression_device (permutation được hỗ trợ)
      */
-    public function getInsightsWithImpressionDeviceBreakdown(string $objectId, string $objectType = 'ad'): array
+    public function getInsightsWithImpressionDeviceBreakdown(string $objectId, ?string $since = null, ?string $until = null, string $timeIncrement = '1', string $objectType = 'ad'): array
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
@@ -945,9 +953,10 @@ class FacebookAdsService
             'fields' => $fields,
             'breakdowns' => 'impression_device',
             'time_range' => json_encode([
-                'since' => date('Y-m-d', strtotime('-36 months')),
-                'until' => date('Y-m-d')
-            ])
+                'since' => $since ?: date('Y-m-d', strtotime('-7 days')),
+                'until' => $until ?: date('Y-m-d')
+            ]),
+            'time_increment' => $timeIncrement,
         ];
 
         return $this->makeRequest($url, $params);

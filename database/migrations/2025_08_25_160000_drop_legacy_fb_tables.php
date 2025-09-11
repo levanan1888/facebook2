@@ -13,13 +13,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Gỡ foreign keys từ facebook_ads trước khi drop bảng posts/pages
-        if (Schema::hasTable('facebook_ads')) {
-            Schema::table('facebook_ads', function (Blueprint $table) {
-                try { $table->dropForeign(['post_id']); } catch (\Throwable $e) {}
-                try { $table->dropForeign(['page_id']); } catch (\Throwable $e) {}
-            });
-        }
+        // Không cần gỡ foreign keys vì chúng không được tạo ra nữa
+        // Foreign keys cho post_id và page_id đã được loại bỏ khỏi các migration khác
 
         // Xóa các bảng cũ nếu còn tồn tại
         if (Schema::hasTable('facebook_post_insights')) {

@@ -52,21 +52,23 @@ class FacebookAd extends Model
     }
 
     /**
-     * Relationship với Post
+     * Relationship với Post (đã chuyển sang facebook_ad_insights)
+     * Giữ lại để tương thích với code cũ, nhưng không có quan hệ thực tế
      */
     public function post()
     {
-        // Bảng posts đã bị loại bỏ; giữ stub để tránh lỗi gọi quan hệ cũ
-        return $this->belongsTo(\App\Models\FacebookPost::class, 'post_id', 'id');
+        // Bảng posts đã bị loại bỏ; dữ liệu giờ lưu trong facebook_ad_insights
+        return null;
     }
 
     /**
-     * Relationship với Page
+     * Relationship với Page (đã chuyển sang facebook_ad_insights)
+     * Giữ lại để tương thích với code cũ, nhưng không có quan hệ thực tế
      */
     public function page()
     {
-        // Bảng pages đã bị loại bỏ; giữ stub để tránh lỗi gọi quan hệ cũ
-        return $this->belongsTo(\App\Models\FacebookPage::class, 'page_id', 'id');
+        // Bảng pages đã bị loại bỏ; dữ liệu giờ lưu trong facebook_ad_insights
+        return null;
     }
 
     /**

@@ -46,7 +46,7 @@ class FacebookDataController extends Controller
     public function getPostsByPage(Request $request)
     {
         $pageId = $request->input('page_id');
-        $filters = $request->only(['date_from', 'date_to', 'post_type', 'status', 'search']);
+        $filters = $request->only(['date_from', 'date_to', 'post_type', 'status', 'search','time_increment']);
         
         $posts = $this->facebookDataService->getPostsByPage($pageId, $filters);
         
@@ -64,7 +64,7 @@ class FacebookDataController extends Controller
         $data = [
             'posts' => $this->facebookDataService->getPostsByPage($pageId, $filters),
             'spending_stats' => $this->facebookDataService->getPostSpendingStats($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
-            'page_summary' => $this->facebookDataService->getPageSummary($pageId),
+            'page_summary' => $this->facebookDataService->getPageSummary($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
             'breakdowns' => [
                 'device' => $this->facebookDataService->getDeviceBreakdown($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
                 'region' => $this->facebookDataService->getRegionBreakdown($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
