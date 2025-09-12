@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 description: "Laravel 11 PHP 8.2 coding conventions & best practices for secure, scalable, and SEO-friendly web development"
 
 globs:  
