@@ -26,6 +26,7 @@ require __DIR__.'/facebook.php';
 // Facebook Data Management routes
 Route::middleware(['auth', 'verified'])->prefix('facebook')->name('facebook.')->group(function () {
     Route::get('data-management', [App\Http\Controllers\FacebookDataController::class, 'index'])->name('data-management.index');
+    Route::get('data-management/pages', [App\Http\Controllers\FacebookDataController::class, 'pages'])->name('data-management.pages');
     Route::get('data-management/posts', [App\Http\Controllers\FacebookDataController::class, 'getPostsByPage'])->name('data-management.posts');
     Route::get('data-management/post/{postId}/page/{pageId}', [App\Http\Controllers\FacebookDataController::class, 'showPostDetail'])->name('data-management.post-detail');
     Route::get('data-management/spending-stats', [App\Http\Controllers\FacebookDataController::class, 'getPostSpendingStats'])->name('data-management.spending-stats');

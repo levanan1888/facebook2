@@ -73,7 +73,8 @@ class SyncEnhancedPostInsights extends Command
         try {
             // Lấy posts cần sync
             $query = DB::table('post_facebook_fanpage_not_ads')
-                ->whereBetween('created_time', [$since, $until])
+                ->whereDate('created_time', '>=', $since)
+                ->whereDate('created_time', '<=', $until)
                 ->orderBy('created_time', 'desc');
 
             if ($videoOnly) {
@@ -357,20 +358,8 @@ class SyncEnhancedPostInsights extends Command
                 'video_views_unique',
                 'video_views_autoplayed',
                 'video_views_clicked_to_play',
-                'video_views_organic',
-                'video_views_paid',
-                'video_views_sound_on',
-                'video_views_sound_off',
                 'video_complete_views',
-                'video_complete_views_unique',
-                'video_complete_views_organic',
-                'video_complete_views_paid',
-                'video_avg_time_watched',
-                'video_view_total_time',
-                'video_retention_graph',
-                'video_views_by_distribution_type',
-                'video_views_by_region_id',
-                'video_views_by_age_bucket_and_gender'
+                'video_avg_time_watched'
             ])
         ];
 
@@ -509,10 +498,30 @@ class SyncEnhancedPostInsights extends Command
 
         foreach ($attachmentsData['data'] as $attachment) {
             if (isset($attachment['media_type']) && $attachment['media_type'] === 'video') {
+                // Priority 1: Try to get video ID from Facebook URL (most reliable)
+                if (isset($attachment['url']) && preg_match('/\/videos\/(\d+)/', $attachment['url'], $matches)) {
+                    return $matches[1];
+                }
+                
+                // Priority 2: Try to get video ID from target.id
+                if (isset($attachment['target']['id'])) {
+                    return $attachment['target']['id'];
+                }
+                
+                // Priority 3: Try to get video ID from media.id
+                if (isset($attachment['media']['id'])) {
+                    return $attachment['media']['id'];
+                }
+                
+                // Priority 4: Try to get video ID from media source URL
                 if (isset($attachment['media']['source'])) {
-                    // Extract video ID from URL
                     $url = $attachment['media']['source'];
+                    // Try different patterns for video ID
                     if (preg_match('/\/videos\/(\d+)/', $url, $matches)) {
+                        return $matches[1];
+                    }
+                    // Try to extract from Facebook CDN URL
+                    if (preg_match('/vs=([a-f0-9]+)/', $url, $matches)) {
                         return $matches[1];
                     }
                 }

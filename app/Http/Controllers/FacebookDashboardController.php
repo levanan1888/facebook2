@@ -21,12 +21,13 @@ class FacebookDashboardController extends Controller
     public function overview(Request $request): View
     {
         $data = $this->getOverviewData($request);
-       
+        // Map overview aggregates to $agg for Blade convenience
+        $agg = $data['overviewAgg'] ?? [];
         // Debug nhanh: dd breakdowns trực tiếp nếu cần kiểm tra dữ liệu phân khúc
         if ($request->boolean('dd_breakdowns') || $request->get('dd') === 'breakdowns') {
             dd($data['breakdowns'] ?? []);
         }
-        return view('facebook.dashboard.overview', compact('data'));
+        return view('facebook.dashboard.overview', compact('data', 'agg'));
     }
 
     public function hierarchy(Request $request): View
@@ -57,19 +58,11 @@ class FacebookDashboardController extends Controller
         $selectedCampaignId = $request->get('campaign_id');
         $selectedPageId = $request->get('page_id');
 
-        // Kiểm tra xem có filter nào được áp dụng không
+        // Phạm vi mặc định: từ ngày 1 tháng hiện tại đến hôm nay
         $hasFilters = $from || $to || $selectedBusinessId || $selectedAccountId || $selectedCampaignId || $selectedPageId;
-
-        // Nếu không có filter, lấy dữ liệu tổng hợp toàn bộ
-        if (!$hasFilters) {
-            $from = null;
-            $to = null;
-        } else {
-            // Nếu có filter nhưng không có khoảng thời gian, mặc định 36 tháng gần nhất
-            if (!$from || !$to) {
-                $to = now()->toDateString();
-                $from = now()->subMonthsNoOverflow(36)->toDateString();
-            }
+        if (!$from || !$to) {
+            $to = now()->toDateString();
+            $from = now()->startOfMonth()->toDateString();
         }
 
         // Tối ưu: Tính totals nhanh hơn với query tối ưu
@@ -121,6 +114,187 @@ class FacebookDashboardController extends Controller
             $insightsData = $insightsQuery->orderBy('facebook_ad_insights.date', 'desc')
                 ->limit(10000) // Giới hạn 10k records
                 ->get();
+        }
+
+        // Aggregate tất cả chỉ số cần thiết (video, messaging, engagement, leads) có cache theo filter
+        // Bump key version to invalidate old cached aggregates after metric rename fixes
+        $cacheKey = 'fb_overview_agg:v2:' . md5(json_encode([
+            'business' => $selectedBusinessId,
+            'account' => $selectedAccountId,
+            'campaign' => $selectedCampaignId,
+            'page' => $selectedPageId,
+            'from' => $from,
+            'to' => $to,
+        ]));
+        $overviewAgg = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(10), function () use ($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to) {
+            $q = FacebookAdInsight::query();
+            if ($selectedBusinessId || $selectedAccountId || $selectedCampaignId) {
+                $q->join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
+                if ($selectedBusinessId) {
+                    $q->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                      ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+                }
+                if ($selectedAccountId) { $q->where('facebook_ads.account_id', $selectedAccountId); }
+                if ($selectedCampaignId) { $q->where('facebook_ads.campaign_id', $selectedCampaignId); }
+            }
+            if ($selectedPageId) { $q->where('facebook_ad_insights.page_id', $selectedPageId); }
+            if ($from && $to) { $q->whereBetween('facebook_ad_insights.date', [$from, $to]); }
+
+            $q->selectRaw('COALESCE(SUM(spend),0) as spend')
+              ->selectRaw('COALESCE(SUM(impressions),0) as impressions')
+              ->selectRaw('COALESCE(SUM(clicks),0) as clicks')
+              ->selectRaw('COALESCE(SUM(reach),0) as reach')
+              ->selectRaw('COALESCE(AVG(ctr),0) as avg_ctr')
+              ->selectRaw('COALESCE(AVG(cpc),0) as avg_cpc')
+              ->selectRaw('COALESCE(AVG(cpm),0) as avg_cpm')
+              // Video
+              ->selectRaw('COALESCE(SUM(video_plays),0) as video_plays')
+              ->selectRaw('COALESCE(SUM(video_views),0) as video_views')
+              ->selectRaw('COALESCE(SUM(video_view_time),0) as video_view_time')
+              ->selectRaw('COALESCE(AVG(video_avg_time_watched),0) as video_avg_time_watched')
+              ->selectRaw('COALESCE(SUM(video_30_sec_watched),0) as video_30_sec_watched')
+              ->selectRaw('COALESCE(SUM(video_p25_watched_actions),0) as video_p25_watched_actions')
+              ->selectRaw('COALESCE(SUM(video_p50_watched_actions),0) as video_p50_watched_actions')
+              ->selectRaw('COALESCE(SUM(video_p75_watched_actions),0) as video_p75_watched_actions')
+              ->selectRaw('COALESCE(SUM(video_p95_watched_actions),0) as video_p95_watched_actions')
+              ->selectRaw('COALESCE(SUM(video_p100_watched_actions),0) as video_p100_watched_actions')
+            
+              ->selectRaw('COALESCE(SUM(video_30_sec_watched),0) as video_30s')
+              ->selectRaw('COALESCE(SUM(video_p25_watched_actions),0) as v_p25')
+              ->selectRaw('COALESCE(SUM(video_p50_watched_actions),0) as v_p50')
+              ->selectRaw('COALESCE(SUM(video_p75_watched_actions),0) as v_p75')
+              ->selectRaw('COALESCE(SUM(video_p95_watched_actions),0) as v_p95')
+              ->selectRaw('COALESCE(SUM(video_p100_watched_actions),0) as v_p100')
+              ->selectRaw('COALESCE(SUM(thruplays),0) as thruplays')
+              // Messaging
+              ->selectRaw('COALESCE(SUM(messaging_conversation_started_7d),0) as msg_started')
+              ->selectRaw('COALESCE(SUM(total_messaging_connection),0) as msg_total')
+              ->selectRaw('COALESCE(SUM(messaging_conversation_replied_7d),0) as msg_replied')
+              ->selectRaw('COALESCE(SUM(messaging_welcome_message_view),0) as msg_welcome')
+              ->selectRaw('COALESCE(SUM(messaging_first_reply),0) as msg_first_reply')
+              ->selectRaw('COALESCE(SUM(messaging_user_depth_2_message_send),0) as msg_depth2')
+              ->selectRaw('COALESCE(SUM(messaging_user_depth_3_message_send),0) as msg_depth3')
+              ->selectRaw('COALESCE(SUM(messaging_user_depth_5_message_send),0) as msg_depth5')
+              ->selectRaw('COALESCE(SUM(messaging_block),0) as msg_block')
+              // Engagement
+              ->selectRaw('COALESCE(SUM(post_engagement),0) as post_engagement')
+              ->selectRaw('COALESCE(SUM(page_engagement),0) as page_engagement')
+              ->selectRaw('COALESCE(SUM(post_interaction_gross),0) as post_interaction_gross')
+              ->selectRaw('COALESCE(SUM(post_reaction),0) as post_reaction')
+              ->selectRaw('COALESCE(SUM(link_click),0) as link_click')
+              // Leads & Checkout
+              ->selectRaw('COALESCE(SUM(lead),0) as lead')
+              ->selectRaw('COALESCE(SUM(onsite_conversion_lead),0) as onsite_conversion_lead')
+              ->selectRaw('COALESCE(SUM(onsite_web_lead),0) as onsite_web_lead')
+              ->selectRaw('COALESCE(SUM(lead_grouped),0) as lead_grouped')
+              ->selectRaw('COALESCE(SUM(offsite_complete_registration_add_meta_leads),0) as offsite_complete_registration_add_meta_leads')
+              ->selectRaw('COALESCE(SUM(offsite_search_add_meta_leads),0) as offsite_search_add_meta_leads')
+              ->selectRaw('COALESCE(SUM(offsite_content_view_add_meta_leads),0) as offsite_content_view_add_meta_leads')
+              ->selectRaw('COALESCE(SUM(onsite_conversion_initiate_checkout),0) as onsite_conversion_initiate_checkout')
+              ->selectRaw('COALESCE(SUM(onsite_web_initiate_checkout),0) as onsite_web_initiate_checkout')
+              ->selectRaw('COALESCE(SUM(omni_initiated_checkout),0) as omni_initiated_checkout');
+
+            $row = $q->first();
+            return $row ? $row->toArray() : [];
+        });
+
+        // Debug: cho phép dd nhanh aggregate video khi có ?dd=video
+        if ($request->get('dd') === 'video') {
+            dd($overviewAgg);
+        }
+
+        // Fallback: nếu một số chỉ số mới (video/messaging/engagement) bị 0 do dữ liệu lịch sử chưa fill cột,
+        // ta tính nhanh từ JSON actions trong 30 ngày để hiển thị đúng ở Overview
+        $fallbackNeeded = (
+            (int)($overviewAgg['video_plays'] ?? 0) === 0 ||
+            (int)($overviewAgg['msg_started'] ?? 0) === 0 ||
+            (int)($overviewAgg['msg_replied'] ?? 0) === 0 ||
+            (int)($overviewAgg['link_click'] ?? 0) === 0
+        );
+        if ($fallbackNeeded) {
+            $q2 = FacebookAdInsight::query();
+            if ($selectedBusinessId || $selectedAccountId || $selectedCampaignId) {
+                $q2->join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id');
+                if ($selectedBusinessId) {
+                    $q2->join('facebook_ad_accounts', 'facebook_ads.account_id', '=', 'facebook_ad_accounts.id')
+                       ->where('facebook_ad_accounts.business_id', $selectedBusinessId);
+                }
+                if ($selectedAccountId) { $q2->where('facebook_ads.account_id', $selectedAccountId); }
+                if ($selectedCampaignId) { $q2->where('facebook_ads.campaign_id', $selectedCampaignId); }
+            }
+            if ($selectedPageId) { $q2->where('facebook_ad_insights.page_id', $selectedPageId); }
+            if ($from && $to) { $q2->whereBetween('facebook_ad_insights.date', [$from, $to]); }
+
+            $actionTotals = [];
+            $q2->select('facebook_ad_insights.id','facebook_ad_insights.actions')
+               ->orderBy('facebook_ad_insights.id')
+               ->chunk(5000, function ($rows) use (&$actionTotals) {
+                    foreach ($rows as $row) {
+                        $actions = $row->actions;
+                        if (is_string($actions)) {
+                            $decoded = json_decode($actions, true);
+                        } else {
+                            $decoded = is_array($actions) ? $actions : [];
+                        }
+                        foreach ($decoded as $a) {
+                            $type = $a['action_type'] ?? null; $val = (int)($a['value'] ?? 0);
+                            if (!$type || $val === 0) { continue; }
+                            $actionTotals[$type] = ($actionTotals[$type] ?? 0) + $val;
+                        }
+                    }
+               });
+
+            // Map về overviewAgg nếu đang 0
+            $mapIfZero = function(string $key, int $value) use (&$overviewAgg) {
+                if (!isset($overviewAgg[$key]) || (int)$overviewAgg[$key] === 0) { $overviewAgg[$key] = $value; }
+            };
+            // fill canonical keys
+            $mapIfZero('video_plays', (int)($actionTotals['video_view'] ?? 0));
+            $mapIfZero('thruplays', (int)(($actionTotals['video_thruplay_watched_actions'] ?? 0) + ($actionTotals['thruplay'] ?? 0)));
+            $mapIfZero('video_p25_watched_actions', (int)($actionTotals['video_p25_watched_actions'] ?? 0));
+            $mapIfZero('video_p50_watched_actions', (int)($actionTotals['video_p50_watched_actions'] ?? 0));
+            $mapIfZero('video_p75_watched_actions', (int)($actionTotals['video_p75_watched_actions'] ?? 0));
+            $mapIfZero('video_p95_watched_actions', (int)($actionTotals['video_p95_watched_actions'] ?? 0));
+            $mapIfZero('video_p100_watched_actions', (int)($actionTotals['video_p100_watched_actions'] ?? 0));
+            $mapIfZero('video_30_sec_watched', (int)($actionTotals['video_30_sec_watched_actions'] ?? 0));
+            // also backfill legacy alias keys used by the chart
+            $mapIfZero('v_p25', (int)($actionTotals['video_p25_watched_actions'] ?? 0));
+            $mapIfZero('v_p50', (int)($actionTotals['video_p50_watched_actions'] ?? 0));
+            $mapIfZero('v_p75', (int)($actionTotals['video_p75_watched_actions'] ?? 0));
+            $mapIfZero('v_p95', (int)($actionTotals['video_p95_watched_actions'] ?? 0));
+            $mapIfZero('v_p100', (int)($actionTotals['video_p100_watched_actions'] ?? 0));
+
+            $mapIfZero('msg_started', (int)(($actionTotals['onsite_conversion.messaging_conversation_started_7d'] ?? 0) + ($actionTotals['omni_messaging_conversation_started_7d'] ?? 0)));
+            $mapIfZero('msg_total', (int)(($actionTotals['onsite_conversion.total_messaging_connection'] ?? 0) + ($actionTotals['omni_total_messaging_connection'] ?? 0)));
+            $mapIfZero('msg_replied', (int)(($actionTotals['onsite_conversion.messaging_conversation_replied_7d'] ?? 0) + ($actionTotals['omni_messaging_conversation_replied_7d'] ?? 0)));
+            $mapIfZero('msg_welcome', (int)($actionTotals['onsite_conversion.messaging_welcome_message_view'] ?? 0));
+            $mapIfZero('post_engagement', (int)($actionTotals['post_engagement'] ?? 0));
+            $mapIfZero('page_engagement', (int)($actionTotals['page_engagement'] ?? 0));
+            $mapIfZero('post_reaction', (int)($actionTotals['post_reaction'] ?? 0));
+            $mapIfZero('post_interaction_gross', (int)($actionTotals['post_interaction_gross'] ?? 0));
+            $mapIfZero('link_click', (int)($actionTotals['link_click'] ?? 0));
+            $mapIfZero('lead', (int)($actionTotals['lead'] ?? 0));
+            $mapIfZero('onsite_conversion_lead', (int)($actionTotals['onsite_conversion.lead'] ?? 0));
+            $mapIfZero('onsite_web_lead', (int)($actionTotals['onsite_web_lead'] ?? 0));
+            $mapIfZero('lead_grouped', (int)($actionTotals['onsite_conversion.lead_grouped'] ?? 0));
+            $mapIfZero('onsite_conversion_initiate_checkout', (int)($actionTotals['onsite_conversion.initiate_checkout'] ?? 0));
+            $mapIfZero('onsite_web_initiate_checkout', (int)($actionTotals['onsite_web_initiate_checkout'] ?? 0));
+            $mapIfZero('omni_initiated_checkout', (int)($actionTotals['omni_initiated_checkout'] ?? 0));
+        }
+
+        // Ép kiểu số cho các chỉ số tổng hợp để view không bị 0 do kiểu string/null
+        foreach ([
+            'spend','impressions','clicks','reach',
+            'video_plays','video_views','video_view_time','video_30_sec_watched','video_30s',
+            'video_p25_watched_actions','video_p50_watched_actions','video_p75_watched_actions','video_p95_watched_actions','video_p100_watched_actions','v_p25','v_p50','v_p75','v_p95','v_p100','thruplays',
+            'msg_started','msg_total','msg_replied','msg_welcome',
+            'post_engagement','page_engagement','post_interaction_gross','post_reaction','link_click',
+            'lead','onsite_conversion_lead','onsite_web_lead','lead_grouped',
+            'onsite_conversion_initiate_checkout','onsite_web_initiate_checkout','omni_initiated_checkout'
+        ] as $key) {
+            if (isset($overviewAgg[$key]) && is_numeric($overviewAgg[$key])) {
+                $overviewAgg[$key] = (int) $overviewAgg[$key];
+            }
         }
 
         // Chuỗi hoạt động từ trước tới nay (theo dải from/to đã xác định ở trên)
@@ -210,6 +384,7 @@ class FacebookDashboardController extends Controller
         return [
             'totals' => $totals,
             'stats' => $stats,
+            'overviewAgg' => $overviewAgg,
             'last7Days' => $activityAll, // dùng key cũ cho biểu đồ – nay là all-time
             'topAds' => $topAds,
             'topPosts' => $topPosts,
@@ -236,8 +411,9 @@ class FacebookDashboardController extends Controller
      */
     private function calculateOptimizedTotals($selectedBusinessId, $selectedAccountId, $selectedCampaignId, $selectedPageId, $from, $to): array
     {
-        // Kiểm tra xem có filter nào được áp dụng không
-        $hasFilters = $selectedBusinessId || $selectedAccountId || $selectedCampaignId || $selectedPageId || ($from && $to);
+        // Xác định loại filter: entity filters vs chỉ filter theo ngày
+        $entityFiltersApplied = $selectedBusinessId || $selectedAccountId || $selectedCampaignId || $selectedPageId;
+        $hasFilters = $entityFiltersApplied || ($from && $to);
         
         $totals = [
             'businesses' => 0,
@@ -250,16 +426,16 @@ class FacebookDashboardController extends Controller
             'ad_insights' => 0,
         ];
         
-        if (!$hasFilters) {
-            // Khi không có filter, sử dụng count() thay vì load toàn bộ data
+        if (!$hasFilters || (!$entityFiltersApplied && $hasFilters)) {
+            // Khi không có filter, sử dụng count() từ bảng chính
             $totals['businesses'] = FacebookBusiness::count();
             $totals['accounts'] = FacebookAdAccount::count();
             $totals['campaigns'] = FacebookCampaign::count();
             $totals['ads'] = FacebookAd::count();
             $totals['adsets'] = FacebookAdSet::count();
             $totals['ad_insights'] = FacebookAdInsight::count();
-            
-            // Count pages và posts từ insights - sửa lỗi ambiguous column
+
+            // Count pages và posts từ insights
             $totals['pages'] = FacebookAdInsight::whereNotNull('facebook_ad_insights.page_id')->distinct('facebook_ad_insights.page_id')->count();
             $totals['posts'] = FacebookAdInsight::whereNotNull('facebook_ad_insights.post_id')->distinct('facebook_ad_insights.post_id')->count();
         } else {
@@ -293,33 +469,35 @@ class FacebookDashboardController extends Controller
                 $insightsQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
             }
             
-            // Count insights
-            $totals['ad_insights'] = $insightsQuery->count();
+            // Count insights (theo dải ngày nếu có)
+            $totals['ad_insights'] = $insightsQuery->count('facebook_ad_insights.id');
             
             // Count unique values từ insights - sửa lỗi ambiguous column
             $totals['pages'] = $insightsQuery->whereNotNull('facebook_ad_insights.page_id')->distinct('facebook_ad_insights.page_id')->count();
             $totals['posts'] = $insightsQuery->whereNotNull('facebook_ad_insights.post_id')->distinct('facebook_ad_insights.post_id')->count();
             
-            // Count ads, campaigns, accounts từ filtered insights
-            if ($selectedBusinessId || $selectedAccountId || $selectedCampaignId) {
-                $uniqueAdIds = $insightsQuery->pluck('facebook_ads.id')->unique();
-                $totals['ads'] = $uniqueAdIds->count();
-                
-                if ($uniqueAdIds->count() > 0) {
-                    $adsData = FacebookAd::whereIn('id', $uniqueAdIds)->get(['campaign_id', 'account_id', 'adset_id']);
-                    $totals['campaigns'] = $adsData->pluck('campaign_id')->unique()->count();
-                    $totals['accounts'] = $adsData->pluck('account_id')->unique()->count();
-                    $totals['adsets'] = $adsData->pluck('adset_id')->unique()->count();
-                    
-                    // Count businesses từ accounts
-                    $uniqueAccountIds = $adsData->pluck('account_id')->unique();
-                    if ($uniqueAccountIds->count() > 0) {
-                        $totals['businesses'] = FacebookAdAccount::whereIn('id', $uniqueAccountIds)
-                            ->distinct('business_id')
-                            ->count('business_id');
-                    }
-                }
+            // Count ads, campaigns, accounts từ filtered insights (chỉ bị ảnh hưởng bởi entity filters, không theo ngày)
+            $adsScope = FacebookAd::query();
+            if ($selectedBusinessId) {
+                $adsScope->whereIn('account_id', FacebookAdAccount::where('business_id', $selectedBusinessId)->pluck('id'));
             }
+            if ($selectedAccountId) {
+                $adsScope->where('account_id', $selectedAccountId);
+            }
+            if ($selectedCampaignId) {
+                $adsScope->where('campaign_id', $selectedCampaignId);
+            }
+            if ($selectedPageId) {
+                $adsScope->where('page_id', $selectedPageId);
+            }
+            $totals['ads'] = (clone $adsScope)->count('id');
+            $totals['campaigns'] = (clone $adsScope)->distinct('campaign_id')->count('campaign_id');
+            $totals['accounts'] = (clone $adsScope)->distinct('account_id')->count('account_id');
+            $totals['adsets'] = (clone $adsScope)->distinct('adset_id')->count('adset_id');
+            $accountIds = (clone $adsScope)->distinct('account_id')->pluck('account_id');
+            if ($selectedBusinessId) { $totals['businesses'] = 1; }
+            else if ($accountIds->isNotEmpty()) { $totals['businesses'] = FacebookAdAccount::whereIn('id', $accountIds)->distinct('business_id')->count('business_id'); }
+            else { $totals['businesses'] = FacebookBusiness::count(); }
         }
         
         return $totals;

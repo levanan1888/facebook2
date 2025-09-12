@@ -36,8 +36,74 @@ class FacebookDataController extends Controller
         ], $filters);
         
         $data = $this->facebookDataService->getFacebookData($filters);
+
+        // Bổ sung thông tin fanpage (nếu có) để hiển thị tên, fan_count, category
+        if (!empty($data['pages']) && $data['pages'] instanceof \Illuminate\Support\Collection) {
+            $pageIds = $data['pages']->pluck('id')->map(fn($v) => (string)$v)->all();
+            $fanpages = \App\Models\FacebookFanpage::whereIn('page_id', $pageIds)->get()->keyBy('page_id');
+            $data['pages'] = $data['pages']->map(function($p) use ($fanpages){
+                $fp = $fanpages->get((string)$p->id);
+                if ($fp) {
+                    $p->name = $fp->name ?: $p->name;
+                    $p->category = $fp->category ?: ($p->category ?? 'Unknown');
+                    $p->fan_count = (int) ($fp->fan_count ?: $p->fan_count ?: 0);
+                }
+                return $p;
+            });
+        }
+
+        if (!empty($filters['page_id']) && $data['selected_page']) {
+            $fp = \App\Models\FacebookFanpage::where('page_id', (string)$filters['page_id'])->first();
+            if ($fp) {
+                $data['selected_page']->name = $fp->name ?: $data['selected_page']->name;
+                $data['selected_page']->category = $fp->category ?: ($data['selected_page']->category ?? 'Unknown');
+                $data['selected_page']->fan_count = (int) ($fp->fan_count ?: $data['selected_page']->fan_count ?: 0);
+                $data['selected_page']->profile_picture_url = $fp->profile_picture_url;
+                $data['selected_page']->cover_photo_url = $fp->cover_photo_url;
+            }
+        }
         
         return view('facebook.data-management.index', compact('data', 'filters'));
+    }
+
+    /**
+     * Trang quản lý Page: hiển thị các bài viết organic (không chạy ads)
+     */
+    public function pages(Request $request): View
+    {
+        $filters = $request->only(['page_id','date_from','date_to','post_type','search']);
+        $pages = $this->facebookDataService->getAvailablePages();
+
+        // Gộp thông tin từ bảng fanpage nếu có
+        if ($pages->count()) {
+            $fanpages = \App\Models\FacebookFanpage::whereIn('page_id', $pages->pluck('id')->all())->get()->keyBy('page_id');
+            $pages = $pages->map(function($p) use ($fanpages){
+                $fp = $fanpages->get((string)$p->id);
+                if ($fp) {
+                    $p->name = $fp->name ?: $p->name;
+                    $p->category = $fp->category ?: ($p->category ?? 'Unknown');
+                    $p->fan_count = (int) ($fp->fan_count ?: $p->fan_count ?: 0);
+                    $p->profile_picture_url = $fp->profile_picture_url;
+                }
+                return $p;
+            });
+        }
+
+        $selectedPage = null;
+        $posts = collect();
+        if (!empty($filters['page_id'])) {
+            $selectedPage = $pages->firstWhere('id', $filters['page_id']);
+            $posts = $this->facebookDataService->getOrganicPostsByPage((string)$filters['page_id'], $filters);
+        }
+
+        $data = [
+            'pages' => $pages,
+            'selected_page' => $selectedPage,
+            'posts' => $posts,
+            'filters' => $filters,
+        ];
+
+        return view('facebook.data-management.pages', $data);
     }
 
     /**

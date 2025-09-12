@@ -24,7 +24,14 @@ class FacebookAdInsight extends Model
         'video_plays', 'video_play_actions',
         'video_p25_watched_actions', 'video_p50_watched_actions', 
         'video_p75_watched_actions', 'video_p95_watched_actions', 'video_p100_watched_actions',
-        'thruplays', 'video_30_sec_watched'
+        'thruplays', 'video_30_sec_watched',
+        // Messaging & Engagement & Leads (new columns)
+        'messaging_conversation_started_7d', 'total_messaging_connection', 'messaging_conversation_replied_7d', 'messaging_welcome_message_view',
+        'messaging_first_reply', 'messaging_user_depth_2_message_send', 'messaging_user_depth_3_message_send', 'messaging_user_depth_5_message_send', 'messaging_block',
+        'post_engagement', 'page_engagement', 'post_interaction_gross', 'post_reaction', 'link_click',
+        'lead', 'onsite_conversion_lead', 'onsite_web_lead', 'lead_grouped',
+        'offsite_complete_registration_add_meta_leads', 'offsite_search_add_meta_leads', 'offsite_content_view_add_meta_leads',
+        'onsite_conversion_initiate_checkout', 'onsite_web_initiate_checkout', 'omni_initiated_checkout'
     ];
 
     protected $casts = [

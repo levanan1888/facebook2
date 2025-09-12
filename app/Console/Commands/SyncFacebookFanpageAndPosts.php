@@ -172,14 +172,24 @@ class SyncFacebookFanpageAndPosts extends Command
             'fields' => 'id,name,category,about,website,phone,emails,location,cover,picture,followers_count,fan_count,is_published,is_verified,access_token,tasks'
         ];
 
-        $response = Http::get($url, $params);
-
-        if (!$response->successful()) {
-            throw new \Exception("Failed to fetch pages: " . $response->body());
+        $allPages = [];
+        $nextUrl = $url;
+        $safety = 0; // guard loop
+        while ($nextUrl && $safety < 1000) { // practically unlimited pages
+            $this->info("  📄 Fetching fanpages batch " . ($safety + 1) . "...");
+            $response = Http::timeout(30)->get($nextUrl, $params);
+            if (!$response->successful()) {
+                throw new \Exception("Failed to fetch pages: " . $response->body());
+            }
+            $data = $response->json();
+            $batch = $data['data'] ?? [];
+            $allPages = array_merge($allPages, $batch);
+            $nextUrl = $data['paging']['next'] ?? null;
+            $params = []; // next URL already contains query
+            $safety++;
         }
 
-        $data = $response->json();
-        return $data['data'] ?? [];
+        return $allPages;
     }
 
     /**

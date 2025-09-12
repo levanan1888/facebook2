@@ -182,13 +182,28 @@ class FacebookAdsService
     /**
      * Lấy chi tiết Post
      */
-    public function getPostDetails(string $postId): array
+    public function getPostDetails(string $postId, ?string $accessToken = null, ?string $overrideFields = null): array
     {
+        // Graph API yêu cầu post_id ở dạng {pageId}_{postId}. Nếu thiếu phần pageId, API có thể coi như statuses (deprecated).
+        // Hàm này giữ nguyên tham số truyền vào; bên call site sẽ cố gắng chuẩn hoá id trước khi gọi.
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$postId}";
         $params = [
-            'access_token' => $this->accessToken,
-            'fields' => 'id,message,type,status_type,attachments,permalink_url,created_time,updated_time'
+            'access_token' => $accessToken ?: $this->accessToken,
+            'fields' => $overrideFields ?: implode(',', [
+                'id',
+                'message',
+                'created_time',
+                'permalink_url',
+                'from{id,name,picture}',
+                'attachments{media_type,media,url,title,description}',
+                'shares',
+                // tổng quan comment
+                'comments.summary(true).limit(0)',
+                // tổng quan reaction (chỉ 1 field reactions duy nhất)
+                'reactions.summary(true).limit(0)'
+            ])
         ];
+        
 
         return $this->makeRequest($url, $params);
     }
@@ -805,7 +820,9 @@ class FacebookAdsService
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,'
+                . 'video_30_sec_watched_actions,video_avg_time_watched_actions,'
+                . 'video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_p100_watched_actions,video_play_actions';
         
         $params = [
             'access_token' => $this->accessToken,
@@ -854,7 +871,9 @@ class FacebookAdsService
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,'
+                . 'video_30_sec_watched_actions,video_avg_time_watched_actions,'
+                . 'video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_p100_watched_actions,video_play_actions';
         
         $params = [
             'access_token' => $this->accessToken,
@@ -877,7 +896,9 @@ class FacebookAdsService
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,'
+                . 'video_30_sec_watched_actions,video_avg_time_watched_actions,'
+                . 'video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_p100_watched_actions,video_play_actions';
         
         $params = [
             'access_token' => $this->accessToken,
@@ -900,7 +921,9 @@ class FacebookAdsService
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,'
+                . 'video_30_sec_watched_actions,video_avg_time_watched_actions,'
+                . 'video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_p100_watched_actions,video_play_actions';
         
         $params = [
             'access_token' => $this->accessToken,
@@ -923,7 +946,9 @@ class FacebookAdsService
     {
         $url = "https://graph.facebook.com/{$this->apiVersion}/{$objectId}/insights";
         
-        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values';
+        $fields = 'impressions,reach,clicks,ctr,cpc,cpm,spend,frequency,actions,action_values,'
+                . 'video_30_sec_watched_actions,video_avg_time_watched_actions,'
+                . 'video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_p100_watched_actions,video_play_actions';
         
         $params = [
             'access_token' => $this->accessToken,

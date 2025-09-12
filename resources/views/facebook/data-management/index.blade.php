@@ -10,18 +10,19 @@
 <div class="p-6">
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Quản lý dữ liệu Facebook</h1>
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Quản lý dữ liệu Facebook</h1>
         <p class="text-gray-600">Quản lý và phân tích dữ liệu từ các trang Facebook và bài viết</p>
     </div>
 
     <!-- Page Selection -->
     <form id="page-select-form" method="GET" action="{{ route('facebook.data-management.index') }}">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <!-- Card 1: Page selection only -->
+        <div class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-4">
             <div class="flex flex-wrap items-center gap-3">
                 <label for="page-select" class="text-sm font-medium text-gray-700 min-w-[120px]">
                     Chọn Trang Facebook:
                 </label>
-                <select id="page-select" name="page_id" class="flex-1 min-w-[280px] rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <select id="page-select" name="page_id" class="flex-1 min-w-[280px] rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">-- Chọn trang --</option>
                     @foreach($data['pages'] as $page)
                         <option value="{{ $page->id }}" 
@@ -38,8 +39,8 @@
                 </select>
 
                 <!-- Quick search and sort for Page list -->
-                <input id="page-search" type="text" placeholder="Tìm theo tên/ID Page..." class="w-56 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                <select id="page-sort" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <input id="page-search" type="text" placeholder="Tìm theo tên/ID Page..." class="w-56 rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                <select id="page-sort" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="name_asc">Tên A-Z</option>
                     <option value="name_desc">Tên Z-A</option>
                     <option value="created_desc">Ngày tạo mới nhất</option>
@@ -47,30 +48,12 @@
                     <option value="ads_desc">Quảng cáo nhiều nhất</option>
                     <option value="ads_asc">Quảng cáo ít nhất</option>
                 </select>
-
-                <!-- Quick date filter always visible -->
-                <div class="flex items-center gap-2 ml-auto">
-                    <select id="quick_date_preset" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">Tùy chỉnh</option>
-                        <option value="today">Hôm nay</option>
-                        <option value="yesterday">Hôm qua</option>
-                        <option value="this_week">Tuần này</option>
-                        <option value="last_week">Tuần trước</option>
-                        <option value="last_7_days">7 ngày</option>
-                        <option value="last_28_days">28 ngày</option>
-                        <option value="last_30_days">30 ngày</option>
-                        <option value="this_month">Tháng này</option>
-                        <option value="last_month">Tháng trước</option>
-                    </select>
-                    <input type="date" id="quick_from" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                    <span class="text-gray-500">→</span>
-                    <input type="date" id="quick_to" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                    <button id="quick_apply" type="button" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Lọc</button>
-                </div>
             </div>
+        </div>
 
-            <!-- View tabs: Combined / Posts / Ads + Multi-dimension filter controls -->
-            <div class="mt-4 flex items-center gap-3 sticky top-0 bg-white/90 backdrop-blur z-10 py-2">
+        <!-- Card 2: View tabs, breakdowns, sort, quick date filters -->
+        <div class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6">
+            <div class="flex flex-wrap items-center gap-3">
                 <label class="text-sm font-medium text-gray-700">Chế độ xem:</label>
                 <div class="inline-flex rounded-md shadow-sm" role="group">
                     <button type="button" data-view="combined" class="view-tab px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-l-md bg-blue-50 text-blue-700 hover:bg-blue-100">Tổng hợp</button>
@@ -92,7 +75,7 @@
                 <!-- Sort metric -->
                 <div class="ml-4 flex items-center gap-2">
                     <label class="text-sm font-medium text-gray-700">Sắp xếp:</label>
-                    <select id="sort-metric" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <select id="sort-metric" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="spend_desc">Chi phí ↓</option>
                         <option value="spend_asc">Chi phí ↑</option>
                         <option value="impressions_desc">Hiển thị ↓</option>
@@ -102,13 +85,33 @@
                         <option value="ctr_desc">CTR ↓</option>
                     </select>
                 </div>
+
+                <!-- Quick date filter moved here -->
+                <div class="flex items-center gap-2 ml-auto">
+                    <select id="quick_date_preset" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Tùy chỉnh</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="yesterday">Hôm qua</option>
+                        <option value="this_week">Tuần này</option>
+                        <option value="last_week">Tuần trước</option>
+                        <option value="last_7_days">7 ngày</option>
+                        <option value="last_28_days">28 ngày</option>
+                        <option value="last_30_days">30 ngày</option>
+                        <option value="this_month">Tháng này</option>
+                        <option value="last_month">Tháng trước</option>
+                    </select>
+                    <input type="date" id="quick_from" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                    <span class="text-gray-500">→</span>
+                    <input type="date" id="quick_to" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                    <button id="quick_apply" type="button" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700">Lọc</button>
+                </div>
             </div>
         </div>
     </form>
 
     @if($data['selected_page'])
         <!-- Page Header -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div class="bg-white rounded-xl shadow border border-gray-200 p-4 mb-6">
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900">{{ $data['selected_page']->name }}</h2>
@@ -122,14 +125,14 @@
                 </div>
                 <div class="flex items-center space-x-3">
                     <a href="https://facebook.com/{{ $data['selected_page']->id }}" target="_blank" 
-                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100">
+                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 shadow">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
                         </svg>
                         Xem trang Facebook
                     </a>
                     <a href="{{ route('analytics.index') }}" 
-                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100">
+                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 shadow">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
@@ -336,7 +339,7 @@
         </div>
 
         <!-- AI Summary (no charts) -->
-        <div id="page-charts-section" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div id="page-charts-section" class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6">
             <div class="mt-2 bg-indigo-50 border border-indigo-200 rounded-md p-4">
                 <div class="flex items-start">
                     <svg class="w-5 h-5 text-indigo-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,20 +354,20 @@
         </div>
 
         <!-- Posts List -->
-        <div id="posts-list-container" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div id="posts-list-container" class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Danh sách bài viết</h3>
             
             @if($data['posts']->count() > 0)
                 <div class="space-y-4">
                     @foreach($data['posts'] as $post)
-                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                        <div class="border border-gray-200 rounded-xl shadow-sm p-4 hover:bg-gray-50">
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-2 mb-2">
                                         <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                                             {{ ucfirst($post->type) }}
                                         </span>
-                                        <span class="text-sm text-gray-500">
+                                        <span class="text-xs text-gray-500">
                                             {{ $post->created_time->format('d/m/Y H:i') }}
                                         </span>
                                     </div>
@@ -394,7 +397,7 @@
                                             </a>
                                         @endif
                                         <a href="{{ route('facebook.data-management.post-detail', ['postId' => $post->id, 'pageId' => $post->page_id]) }}" 
-                                           class="text-sm text-purple-600 hover:text-purple-800 font-medium">
+                                           class="text-sm text-blue-600 hover:text-blue-800 font-medium">
                                             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                             </svg>
@@ -417,21 +420,21 @@
                                     </div>
                                     
                                     <!-- Post Stats Summary -->
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
+                                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
                                         <div class="text-center">
-                                            <div class="font-semibold text-blue-600">{{ number_format($post->likes_count ?? 0) }}</div>
+                                            <div class="font-semibold {{ ($post->likes_count ?? 0) > 0 ? 'text-blue-600' : 'text-gray-400' }}">💙 {{ number_format($post->likes_count ?? 0) }}</div>
                                             <div class="text-gray-600">Lượt thích</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="font-semibold text-green-600">{{ number_format($post->shares_count ?? 0) }}</div>
+                                            <div class="font-semibold {{ ($post->shares_count ?? 0) > 0 ? 'text-green-600' : 'text-gray-400' }}">🔁 {{ number_format($post->shares_count ?? 0) }}</div>
                                             <div class="text-gray-600">Chia sẻ</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="font-semibold text-purple-600">{{ number_format($post->comments_count ?? 0) }}</div>
+                                            <div class="font-semibold {{ ($post->comments_count ?? 0) > 0 ? 'text-purple-600' : 'text-gray-400' }}">💬 {{ number_format($post->comments_count ?? 0) }}</div>
                                             <div class="text-gray-600">Bình luận</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="font-semibold text-orange-600">{{ number_format($post->reactions_count ?? 0) }}</div>
+                                            <div class="font-semibold {{ ($post->reactions_count ?? 0) > 0 ? 'text-orange-600' : 'text-gray-400' }}">❤️ {{ number_format($post->reactions_count ?? 0) }}</div>
                                             <div class="text-gray-600">Tương tác</div>
                                         </div>
                                     </div>
@@ -441,26 +444,26 @@
                                         <div class="flex items-center justify-between mb-2">
                                             <div class="text-sm font-medium text-gray-700">Chiến dịch quảng cáo:</div>
                                             <button onclick="showAdCampaigns('{{ $post->id }}', '{{ $post->page_id }}')" 
-                                                    class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                                    class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700">
                                                 Xem chi tiết →
                                             </button>
                                         </div>
-                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                        <div class="grid grid-cols-2 gap-3 text-sm">
                                             <div>
                                                 <span class="text-gray-600">Số lần chạy:</span>
-                                                <span class="font-semibold text-purple-600 ml-1">{{ number_format($post->ad_count ?? 0) }}</span>
+                                                <span class="font-semibold {{ ($post->ad_count ?? 0) > 0 ? 'text-purple-600' : 'text-gray-400' }} ml-1">{{ number_format($post->ad_count ?? 0) }}</span>
                                             </div>
                                             <div>
                                                 <span class="text-gray-600">Chi phí:</span>
-                                                <span class="font-semibold text-red-600 ml-1">{{ number_format($post->total_spend ?? 0, 0) }} VND</span>
+                                                <span class="font-semibold {{ ($post->total_spend ?? 0) > 0 ? 'text-red-600' : 'text-gray-400' }} ml-1">💰 {{ number_format($post->total_spend ?? 0, 0) }} VND</span>
                                             </div>
                                             <div>
                                                 <span class="text-gray-600">Hiển thị:</span>
-                                                <span class="font-semibold text-blue-600 ml-1">{{ number_format($post->total_impressions ?? 0) }}</span>
+                                                <span class="font-semibold {{ ($post->total_impressions ?? 0) > 0 ? 'text-blue-600' : 'text-gray-400' }} ml-1">👀 {{ number_format($post->total_impressions ?? 0) }}</span>
                                             </div>
                                             <div>
                                                 <span class="text-gray-600">Click:</span>
-                                                <span class="font-semibold text-green-600 ml-1">{{ number_format($post->total_clicks ?? 0) }}</span>
+                                                <span class="font-semibold {{ ($post->total_clicks ?? 0) > 0 ? 'text-green-600' : 'text-gray-400' }} ml-1">🖱️ {{ number_format($post->total_clicks ?? 0) }}</span>
                                             </div>
                                         </div>
                                         
@@ -468,27 +471,27 @@
                                         @if(($post->total_video_views ?? 0) > 0 || ($post->total_video_plays ?? 0) > 0)
                                             <div class="mt-3 pt-3 border-t border-gray-200">
                                                 <div class="text-sm font-medium text-gray-700 mb-2">Thống kê video:</div>
-                                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                <div class="grid grid-cols-2 gap-3 text-sm">
                                                     <div>
                                                         <span class="text-gray-600">Lượt xem:</span>
-                                                        <span class="font-semibold text-blue-600 ml-1">{{ number_format($post->total_video_views ?? 0) }}</span>
+                                                        <span class="font-semibold {{ ($post->total_video_views ?? 0) > 0 ? 'text-blue-600' : 'text-gray-400' }} ml-1">{{ number_format($post->total_video_views ?? 0) }}</span>
                                                     </div>
                                                     @if(($post->total_video_plays ?? 0) > 0)
                                                     <div>
                                                         <span class="text-gray-600">Lượt phát:</span>
-                                                        <span class="font-semibold text-green-600 ml-1">{{ number_format($post->total_video_plays) }}</span>
+                                                        <span class="font-semibold {{ ($post->total_video_plays ?? 0) > 0 ? 'text-green-600' : 'text-gray-400' }} ml-1">{{ number_format($post->total_video_plays) }}</span>
                                                     </div>
                                                     @endif
                                                     @if(($post->total_video_p75_watched_actions ?? 0) > 0)
                                                     <div>
                                                         <span class="text-gray-600">Xem 75%:</span>
-                                                        <span class="font-semibold text-orange-600 ml-1">{{ number_format($post->total_video_p75_watched_actions) }}</span>
+                                                        <span class="font-semibold {{ ($post->total_video_p75_watched_actions ?? 0) > 0 ? 'text-orange-600' : 'text-gray-400' }} ml-1">{{ number_format($post->total_video_p75_watched_actions) }}</span>
                                                     </div>
                                                     @endif
                                                     @if(($post->total_video_p100_watched_actions ?? 0) > 0)
                                                     <div>
                                                         <span class="text-gray-600">Xem 100%:</span>
-                                                        <span class="font-semibold text-purple-600 ml-1">{{ number_format($post->total_video_p100_watched_actions) }}</span>
+                                                        <span class="font-semibold {{ ($post->total_video_p100_watched_actions ?? 0) > 0 ? 'text-purple-600' : 'text-gray-400' }} ml-1">{{ number_format($post->total_video_p100_watched_actions) }}</span>
                                                     </div>
                                                     @endif
                                                 </div>
@@ -498,22 +501,22 @@
                                         <!-- CTR và Performance -->
                                         <div class="mt-3 pt-3 border-t border-gray-200">
                                             <div class="text-sm font-medium text-gray-700 mb-2">Hiệu suất:</div>
-                                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                            <div class="grid grid-cols-2 gap-3 text-sm">
                                                 <div>
                                                     <span class="text-gray-600">CTR:</span>
-                                                    <span class="font-semibold text-blue-600 ml-1">{{ number_format(($post->avg_ctr ?? 0) * 100, 2) }}%</span>
+                                                    <span class="font-semibold {{ (($post->avg_ctr ?? 0) * 100) > 0 ? 'text-orange-600' : 'text-gray-400' }} ml-1">📈 {{ number_format(($post->avg_ctr ?? 0) * 100, 2) }}%</span>
                                                 </div>
                                                 <div>
                                                     <span class="text-gray-600">CPC:</span>
-                                                    <span class="font-semibold text-red-600 ml-1">{{ number_format($post->avg_cpc ?? 0, 0) }} VND</span>
+                                                    <span class="font-semibold {{ ($post->avg_cpc ?? 0) > 0 ? 'text-red-600' : 'text-gray-400' }} ml-1">{{ number_format($post->avg_cpc ?? 0, 0) }} VND</span>
                                                 </div>
                                                 <div>
                                                     <span class="text-gray-600">CPM:</span>
-                                                    <span class="font-semibold text-orange-600 ml-1">{{ number_format($post->avg_cpm ?? 0, 0) }} VND</span>
+                                                    <span class="font-semibold {{ ($post->avg_cpm ?? 0) > 0 ? 'text-orange-600' : 'text-gray-400' }} ml-1">{{ number_format($post->avg_cpm ?? 0, 0) }} VND</span>
                                                 </div>
                                                 <div>
                                                     <span class="text-gray-600">Conversions:</span>
-                                                    <span class="font-semibold text-green-600 ml-1">{{ number_format($post->total_conversions ?? 0) }}</span>
+                                                    <span class="font-semibold {{ ($post->total_conversions ?? 0) > 0 ? 'text-green-600' : 'text-gray-400' }} ml-1">{{ number_format($post->total_conversions ?? 0) }}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -523,7 +526,7 @@
                                 <div class="flex flex-col space-y-2 ml-4">
                                     @if($post->permalink_url)
                                         <a href="{{ $post->permalink_url }}" target="_blank" 
-                                           class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100">
+                                           class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-xl shadow hover:bg-blue-700">
                                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                                             </svg>
@@ -533,7 +536,7 @@
                                     
                                     @if($data['selected_page'])
                                         <a href="https://facebook.com/{{ $data['selected_page']->id }}" target="_blank"
-                                           class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100">
+                                           class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-xl shadow hover:bg-blue-700">
                                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                             </svg>
@@ -783,7 +786,7 @@ function initializeDataManagement() {
         });
         
         // Make AJAX request with timeout
-        console.log('Loading page data for:', pageId, 'with filters:', filters);
+        // console.debug('Loading page data', { pageId, filters });
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
@@ -797,7 +800,7 @@ function initializeDataManagement() {
         })
             .then(response => {
                 clearTimeout(timeoutId);
-                console.log('Response status:', response.status);
+                // console.debug('Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -811,7 +814,7 @@ function initializeDataManagement() {
                 throw error;
             })
             .then(data => {
-                console.log('Received data:', data);
+                // console.debug('Received data');
                 
                 // Save to cache
                 if (window.__dmCache) {
@@ -919,11 +922,11 @@ function initializeDataManagement() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter, Roboto, system-ui', size: 11 }, color: '#333' } } },
                 scales: {
-                    ySpend: { beginAtZero: true, position: 'left', title: { display: true, text: 'Chi phí (VND)' } },
-                    yCount: { beginAtZero: true, position: 'left', grid: { drawOnChartArea: false }, title: { display: true, text: 'Số lượng' } },
-                    yCtr: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'CTR (%)' } }
+                    ySpend: { beginAtZero: true, position: 'left', title: { display: true, text: 'Chi phí (VND)' }, ticks: { color: '#374151' } },
+                    yCount: { beginAtZero: true, position: 'left', grid: { drawOnChartArea: false }, title: { display: true, text: 'Số lượng' }, ticks: { color: '#374151' } },
+                    yCtr: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'CTR (%)' }, ticks: { color: '#374151' } }
                 }
             }
         });
@@ -973,10 +976,10 @@ function initializeDataManagement() {
         if (data.posts && data.posts.length > 0) {
             // Hiển thị thông báo thành công
             html += `
-                <div class="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+                <div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-6">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                             </svg>
                         </div>
@@ -991,9 +994,9 @@ function initializeDataManagement() {
             
             // Charts section at top of content (follows selected page)
             html += `
-                <div id="dynamic-charts" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div id="dynamic-charts" class="bg-white rounded-xl shadow border border-gray-200 p-5 mb-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Biểu đồ tổng hợp của Page</h3>
-                    <div><canvas id="overview-chart" class="w-full" style="height:180px" height="180"></canvas></div>
+                    <div class="max-w-4xl mx-auto"><canvas id="overview-chart" class="w-full" style="height:160px" height="160"></canvas></div>
                 </div>`;
 
             // Placeholders for posts and pagination

@@ -61,6 +61,10 @@ class SyncInsightsForExistingAds extends Command
 
         try {
             $result = $service->syncInsightsForExistingAds($progress, $since, $until, $limit, $withBreakdowns);
+            // Bổ sung: lưu thông tin post gắn với ads vào bảng facebook_post_ads (time=lifetime)
+            $this->info('>>> calling saveAdPostsLifetime');
+            $this->saveAdPostsLifetime($since, $until);
+            $this->info('<<< finished saveAdPostsLifetime');
             $this->info('Completed.');
             $this->table(
                 ['Metric', 'Count'],
@@ -74,6 +78,71 @@ class SyncInsightsForExistingAds extends Command
         } catch (\Throwable $e) {
             $this->error('Error: ' . $e->getMessage());
             return 1;
+        }
+    }
+
+    /**
+     * Lưu thông tin các post gắn với ads vào bảng facebook_post_ads (lifetime)
+     */
+    private function saveAdPostsLifetime(string $since, string $until): void
+    {
+        try {
+          
+            if (!\Illuminate\Support\Facades\Schema::hasTable('facebook_post_ads')) {
+                $this->warn('facebook_post_ads table not found. Run migrations to enable saving post data.');
+                return;
+            }
+
+            // Lấy danh sách cặp (page_id, post_id) từ bảng insights theo khoảng ngày
+            $pairs = \App\Models\FacebookAdInsight::query()
+                ->select(['page_id','post_id'])
+                ->whereNotNull('post_id')
+                ->when($since && $until, function($q) use ($since,$until){
+                    $q->whereBetween('date', [$since, $until]);
+                })
+                ->groupBy('page_id','post_id')
+                ->get();
+            $this->info('Pairs to process: ' . $pairs->count());
+
+            $api = app(\App\Services\FacebookAdsService::class);
+
+            $saved = 0; $skipped = 0;
+            foreach ($pairs as $p) {
+                $postId = (string) $p->post_id;
+                $pageId = (string) ($p->page_id ?? '');
+                if (!$postId || !$pageId) { continue; }
+
+                // Bỏ qua nếu đã có
+                $exists = \Illuminate\Support\Facades\DB::table('facebook_post_ads')
+                    ->where('page_id', $pageId)
+                    ->where('post_id', $postId)
+                    ->exists();
+                if ($exists) { $skipped++; continue; }
+
+                // Gọi API lấy chi tiết post
+                $details = $api->getPostDetails($postId);
+                if (!is_array($details) || isset($details['error'])) { continue; }
+
+                \Illuminate\Support\Facades\DB::table('facebook_post_ads')->insert([
+                    'page_id' => $pageId,
+                    'post_id' => $postId,
+                    'time_range' => 'lifetime',
+                    'message' => $details['message'] ?? null,
+                    'type' => $details['type'] ?? null,
+                    'permalink_url' => $details['permalink_url'] ?? null,
+                    'created_time' => isset($details['created_time']) ? \Carbon\Carbon::parse($details['created_time']) : null,
+                    'updated_time' => isset($details['updated_time']) ? \Carbon\Carbon::parse($details['updated_time']) : null,
+                    'raw' => json_encode($details),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $saved++;
+            }
+
+            $this->info("Saved post details for ads to facebook_post_ads (lifetime). saved={$saved}, skipped_existing={$skipped}");
+        } catch (\Throwable $e) {
+            $this->warn('Could not save post details for ads: ' . $e->getMessage());
         }
     }
 }

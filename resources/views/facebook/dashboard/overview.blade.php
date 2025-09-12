@@ -207,7 +207,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <div class="flex items-center">
                         <div class="p-2 bg-blue-100 rounded-lg">
@@ -234,42 +234,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-purple-100 rounded-lg">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Chiến dịch</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ number_format($data['totals']['campaigns'] ?? 0) }}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-orange-100 rounded-lg">
-                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.122 2.122"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Bài đăng</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ number_format($data['totals']['posts'] ?? 0) }}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                @if(($data['totals']['posts'] ?? 0) > 0)
-                                    {{ number_format($data['totals']['ads'] ?? 0) }} quảng cáo
-                                @else
-                                    Chưa có dữ liệu
-                                @endif
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-purple-100 rounded-lg"><svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A2 2 0 0021 6.894V5a2 2 0 00-2-2h-5M9 14l-4.553 2.276A2 2 0 013 17.106V19a2 2 0 002 2h5"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Lượt phát video</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['video_plays'] ?? 0) }}</p></div></div></div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-rose-100 rounded-lg"><svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Bắt đầu trò chuyện (7 ngày)</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['msg_started'] ?? 0) }}</p></div></div></div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-emerald-100 rounded-lg"><svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Trả lời tin nhắn (7 ngày)</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['msg_replied'] ?? 0) }}</p></div></div></div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-sky-100 rounded-lg"><svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Nhấp liên kết</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['link_click'] ?? 0) }}</p></div></div></div>
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <div class="flex items-center">
                         <div class="p-2 bg-red-100 rounded-lg">
@@ -334,6 +302,8 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6"></div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-lg shadow p-6">
                     <div class="flex items-center justify-between mb-4">
@@ -379,7 +349,42 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Moved up: Video & Messaging overview -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Tổng quan Video</h3>
+                    <div class="h-72"><canvas id="videoOverviewChart"></canvas></div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Tổng quan Tin nhắn</h3>
+                    <div class="h-72"><canvas id="messagingOverviewChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Breakdown charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Thiết bị hiển thị</h3>
+                    <div class="h-72"><canvas id="deviceBreakdownChart"></canvas></div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quốc gia (Top 10 theo hiển thị)</h3>
+                    <div class="h-72"><canvas id="countryBreakdownChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Tỉnh/Thành (Top 10 theo reach)</h3>
+                    <div class="h-72"><canvas id="regionBreakdownChart"></canvas></div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Độ tuổi (clicks theo age bucket)</h3>
+                    <div class="h-72"><canvas id="ageBreakdownChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <div class="bg-white rounded-lg shadow">
                     <div class="p-6 border-b border-gray-200"><h3 class="text-lg font-semibold text-gray-900">Top 5 Quảng cáo (Theo thời gian đồng bộ)</h3></div>
                     <div class="p-6">
@@ -456,7 +461,6 @@
                     </div>
                 </div>
             </div>
-
 
         </div>
 
@@ -1020,6 +1024,123 @@
                     });
                 }
             }
+
+            const videoEl = document.getElementById('videoOverviewChart');
+            const msgEl = document.getElementById('messagingOverviewChart');
+            const agg = @json($data['overviewAgg'] ?? []);
+            if (videoEl) {
+                const vctx = videoEl.getContext('2d');
+                window.__fbCharts.video && window.__fbCharts.video.destroy();
+                const plays = Number(agg.video_views||0);
+                const p25 = Number(agg.v_p25||agg.video_p25_watched_actions||0);
+                const p50 = Number(agg.v_p50||agg.video_p50_watched_actions||0);
+                const p75 = Number(agg.v_p75||agg.video_p75_watched_actions||0);
+                const p95 = Number(agg.v_p95||agg.video_p95_watched_actions||0);
+                const p100 = Number(agg.v_p100||agg.video_p100_watched_actions||0);
+                const tp = Number(agg.thruplays||0);
+                const v30s = Number(agg.video_30s||agg.video_30_sec_watched||0);
+                window.__fbCharts.video = new Chart(vctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Plays','P25','P50','P75','P95','P100','Thruplays','30s'],
+                        datasets: [{
+                            label: 'Video',
+                            data: [plays,p25,p50,p75,p95,p100,tp,v30s].map(n => Number(n||0)),
+                            backgroundColor: ['#6366F1','#93C5FD','#60A5FA','#A78BFA','#F472B6','#EC4899','#10B981','#F59E0B']
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+            if (msgEl) {
+                const mctx = msgEl.getContext('2d');
+                window.__fbCharts.msg && window.__fbCharts.msg.destroy();
+                window.__fbCharts.msg = new Chart(mctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Bắt đầu','Đã trả lời','Chào mừng','Tổng'],
+                        datasets: [{
+                            label: 'Tin nhắn',
+                            data: [Number(agg.msg_started||0), Number(agg.msg_replied||0), Number(agg.msg_welcome||0), Number(agg.msg_total||0)],
+                            backgroundColor: ['#06B6D4','#10B981','#60A5FA','#F59E0B']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+
+            // Render breakdown charts (device & country)
+            const breakdowns = @json($data['breakdowns'] ?? []);
+            const deviceChartEl = document.getElementById('deviceBreakdownChart');
+            const countryChartEl = document.getElementById('countryBreakdownChart');
+            const regionChartEl = document.getElementById('regionBreakdownChart');
+            const ageChartEl = document.getElementById('ageBreakdownChart');
+            function pickDeviceBucket(bd){
+                if (bd && bd.impression_device) return bd.impression_device;
+                if (bd && bd.device_platform) return bd.device_platform;
+                if (bd && bd.action_device) return bd.action_device;
+                return null;
+            }
+            if (deviceChartEl) {
+                const bucket = pickDeviceBucket(breakdowns) || {};
+                const labels = Object.keys(bucket);
+                const values = labels.map(k => Number((bucket[k]?.impressions)||0));
+                const dctx = deviceChartEl.getContext('2d');
+                window.__fbCharts.device && window.__fbCharts.device.destroy();
+                window.__fbCharts.device = new Chart(dctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#93C5FD' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+            if (countryChartEl) {
+                const bucket = (breakdowns && breakdowns.country) ? breakdowns.country : {};
+                const entries = Object.entries(bucket).map(([k,v]) => ({ label:k, val: Number((v?.impressions)||0) }));
+                entries.sort((a,b)=>b.val-a.val);
+                const top = entries.slice(0,10);
+                const labels = top.map(x=>x.label);
+                const values = top.map(x=>x.val);
+                const cctx = countryChartEl.getContext('2d');
+                window.__fbCharts.country && window.__fbCharts.country.destroy();
+                window.__fbCharts.country = new Chart(cctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#F59E0B' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+            if (regionChartEl) {
+                const bucket = (breakdowns && breakdowns.region) ? breakdowns.region : {};
+                const entries = Object.entries(bucket).map(([k,v]) => ({ label:k, val: Number((v?.impressions)||0) }));
+                entries.sort((a,b)=>b.val-a.val);
+                const top = entries.slice(0,10);
+                const labels = top.map(x=>x.label);
+                const values = top.map(x=>x.val);
+                const rctx = regionChartEl.getContext('2d');
+                window.__fbCharts.region && window.__fbCharts.region.destroy();
+                window.__fbCharts.region = new Chart(rctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#34D399' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+            if (ageChartEl) {
+                const bucket = (breakdowns && breakdowns.age) ? breakdowns.age : {};
+                const labels = Object.keys(bucket);
+                const values = labels.map(k => Number((bucket[k]?.impressions)||0));
+                const actx = ageChartEl.getContext('2d');
+                window.__fbCharts.age && window.__fbCharts.age.destroy();
+                window.__fbCharts.age = new Chart(actx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#60A5FA' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
         }
 
         // Singleton fetch: chỉ gọi API 1 lần, các nơi khác dùng chung Promise
@@ -1398,9 +1519,9 @@
             const btnToggleFilter = document.getElementById('btnToggleFilter');
             const filterPanel = document.getElementById('filterPanel');
             const btnCloseFilter = document.getElementById('btnCloseFilter');
-            const businessFilter = document.getElementById('businessFilter');
-            const accountFilter = document.getElementById('accountFilter');
-            const campaignFilter = document.getElementById('campaignFilter');
+            const businessFilter = document.getElementById('business_id');
+            const accountFilter = document.getElementById('account_id');
+            const campaignFilter = document.getElementById('campaign_id');
             const filterForm = document.getElementById('filterForm');
             const filterCount = document.getElementById('filterCount');
 
@@ -1554,7 +1675,7 @@
         }
 
         function filterAccountsByBusiness(businessId) {
-            const accountFilter = document.getElementById('accountFilter');
+            const accountFilter = document.getElementById('account_id');
             if (!accountFilter) return;
 
             const options = accountFilter.querySelectorAll('option');
@@ -1580,14 +1701,14 @@
             }
             
             // Reset campaign selection when business changes
-            const campaignFilter = document.getElementById('campaignFilter');
+            const campaignFilter = document.getElementById('campaign_id');
             if (campaignFilter) {
                 campaignFilter.value = '';
             }
         }
 
         function filterCampaignsByAccount(accountId) {
-            const campaignFilter = document.getElementById('campaignFilter');
+            const campaignFilter = document.getElementById('campaign_id');
             if (!campaignFilter) return;
 
             const options = campaignFilter.querySelectorAll('option');
@@ -1761,7 +1882,7 @@
                 updateFilterCount();
                 
                 // Reset dependent filters
-                const businessFilter = document.getElementById('businessFilter');
+                const businessFilter = document.getElementById('business_id');
                 const accountFilter = document.getElementById('accountFilter');
                 const campaignFilter = document.getElementById('campaignFilter');
                 const pageFilter = document.querySelector('select[name="page_id"]');

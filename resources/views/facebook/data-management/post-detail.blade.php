@@ -265,7 +265,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['cpm'], 0) }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['reach']) }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['frequency'], 2) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">{{ number_format($metrics['video_views']) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">{{ number_format($metrics['video_plays'] ?? ($metrics['video_views'] ?? 0)) }}</td>
                                     </tr>
                                    
                                 @endforeach
@@ -274,7 +274,10 @@
                     </div>
 
                     <!-- Video Metrics Table -->
-                    @if(array_sum(array_column($breakdownData, 'video_views')) > 0)
+                    @php
+                        $sumVideoPlays = array_sum(array_map(function($m){ return (int)($m['video_plays'] ?? ($m['video_views'] ?? 0)); }, $breakdownData));
+                    @endphp
+                    @if($sumVideoPlays > 0)
                         <div class="overflow-x-auto">
                             <h4 class="text-md font-medium text-gray-900 mb-3">Thống kê Video</h4>
                             <table class="min-w-full divide-y divide-gray-200">
@@ -294,7 +297,8 @@
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($breakdownData as $value => $metrics)
-                                        @if($metrics['video_views'] > 0)
+                                        @php $rowVideoPlays = (int)($metrics['video_plays'] ?? ($metrics['video_views'] ?? 0)); @endphp
+                                        @if($rowVideoPlays > 0)
                                             <tr class="hover:bg-gray-50">
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                     @if($value === 'unknown')
@@ -354,8 +358,8 @@
                                                         {{ $value }}
                                                     @endif
                                                 </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">{{ number_format($metrics['video_views']) }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_plays']) }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-purple-600 font-semibold">{{ number_format($rowVideoPlays) }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_plays'] ?? 0) }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_p25_watched_actions']) }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_p50_watched_actions']) }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-semibold">{{ number_format($metrics['video_p75_watched_actions']) }}</td>
@@ -363,6 +367,49 @@
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">{{ number_format($metrics['video_p100_watched_actions']) }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['thruplays']) }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['video_30_sec_watched']) }}</td>
+                                            </tr>
+                                        @endif
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+
+                    @php
+                        $sumMessaging = array_sum(array_map(function($m){
+                            return (int)($m['messaging_conversation_started_7d'] ?? 0)
+                                 + (int)($m['total_messaging_connection'] ?? 0)
+                                 + (int)($m['messaging_conversation_replied_7d'] ?? 0)
+                                 + (int)($m['messaging_welcome_message_view'] ?? 0);
+                        }, $breakdownData));
+                    @endphp
+                    @if($sumMessaging > 0)
+                        <div class="overflow-x-auto mt-6">
+                            <h4 class="text-md font-medium text-gray-900 mb-3">Thống kê Tin nhắn</h4>
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ ucfirst(str_replace('_', ' ', $breakdownType)) }}</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bắt đầu trò chuyện (7d)</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng kết nối</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trả lời (7d)</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Xem tin nhắn chào mừng</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    @foreach($breakdownData as $value => $metrics)
+                                        @php $rowMsg = (int)($metrics['messaging_conversation_started_7d'] ?? 0)
+                                            + (int)($metrics['total_messaging_connection'] ?? 0)
+                                            + (int)($metrics['messaging_conversation_replied_7d'] ?? 0)
+                                            + (int)($metrics['messaging_welcome_message_view'] ?? 0);
+                                        @endphp
+                                        @if($rowMsg > 0)
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $value }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['messaging_conversation_started_7d'] ?? 0) }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['total_messaging_connection'] ?? 0) }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['messaging_conversation_replied_7d'] ?? 0) }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($metrics['messaging_welcome_message_view'] ?? 0) }}</td>
                                             </tr>
                                         @endif
                                     @endforeach
@@ -910,24 +957,24 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
 
-        // Performance Chart
+        // Performance Chart (bar for clearer up/down)
         const performanceCtx = document.getElementById('performance-chart').getContext('2d');
         new Chart(performanceCtx, {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Impressions',
                     data: impressions,
-                    borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.1
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1
                 }, {
                     label: 'Clicks',
                     data: clicks,
-                    borderColor: 'rgb(34, 197, 94)',
-                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                    tension: 0.1
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    borderWidth: 1
                 }]
             },
             options: {
@@ -955,20 +1002,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Spend Time Chart
+        // Spend Time Chart (bar)
         const spendTimeElement = document.getElementById('spend-time-chart');
         if (spendTimeElement) {
             const spendTimeCtx = spendTimeElement.getContext('2d');
             new Chart(spendTimeCtx, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Chi phí (VND)',
                         data: spend,
-                        borderColor: 'rgb(239, 68, 68)',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.1
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 1
                     }]
                 },
                 options: {
@@ -997,32 +1044,32 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Video Metrics Chart
+        // Video Metrics Chart (bar)
         const videoMetricsElement = document.getElementById('video-metrics-chart');
         if (videoMetricsElement) {
             const videoMetricsCtx = videoMetricsElement.getContext('2d');
             new Chart(videoMetricsCtx, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Video Views',
                         data: videoViews,
-                        borderColor: 'rgb(251, 146, 60)',
-                        backgroundColor: 'rgba(251, 146, 60, 0.1)',
-                        tension: 0.1
+                        backgroundColor: 'rgba(251, 146, 60, 0.8)',
+                        borderColor: 'rgba(251, 146, 60, 1)',
+                        borderWidth: 1
                     }, {
                         label: 'P75 Watched',
                         data: videoP75,
-                        borderColor: 'rgb(168, 85, 247)',
-                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                        tension: 0.1
+                        backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        borderWidth: 1
                     }, {
                         label: 'P100 Watched',
                         data: videoP100,
-                        borderColor: 'rgb(236, 72, 153)',
-                        backgroundColor: 'rgba(236, 72, 153, 0.1)',
-                        tension: 0.1
+                        backgroundColor: 'rgba(236, 72, 153, 0.8)',
+                        borderColor: 'rgba(236, 72, 153, 1)',
+                        borderWidth: 1
                     }]
                 },
                 options: {
@@ -1051,20 +1098,20 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // CTR Time Chart
+        // CTR Time Chart (bar)
         const ctrTimeElement = document.getElementById('ctr-time-chart');
         if (ctrTimeElement) {
             const ctrTimeCtx = ctrTimeElement.getContext('2d');
             new Chart(ctrTimeCtx, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'CTR (%)',
                         data: ctr,
-                        borderColor: 'rgb(168, 85, 247)',
-                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                        tension: 0.1
+                        backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        borderWidth: 1
                 }]
                 },
                 options: {
