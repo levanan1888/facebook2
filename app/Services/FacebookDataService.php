@@ -69,6 +69,33 @@ class FacebookDataService
     }
 
     /**
+     * Lấy danh sách Page có bài viết organic (không chạy ads)
+     */
+    public function getAvailableOrganicPages(): Collection
+    {
+        $pages = \App\Models\PostFacebookFanpageNotAds::query()
+            ->whereNotNull('page_id')
+            ->select('page_id')
+            ->groupBy('page_id')
+            ->orderBy('page_id')
+            ->get();
+
+        return new \Illuminate\Database\Eloquent\Collection(
+            $pages->map(function ($row) {
+                $pageId = (string) $row->page_id;
+                $fanpage = \App\Models\FacebookFanpage::where('page_id', $pageId)->first();
+                return (object) [
+                    'id' => $pageId,
+                    'name' => $fanpage?->name ?: ('Page ' . $pageId),
+                    'category' => $fanpage?->category ?: 'Unknown',
+                    'fan_count' => (int) ($fanpage?->fan_count ?: 0),
+                    'profile_picture_url' => $fanpage?->profile_picture_url,
+                ];
+            })
+        );
+    }
+
+    /**
      * Lấy bài viết organic từ post_facebook_fanpage_not_ads theo page
      */
     public function getOrganicPostsByPage(string $pageId, array $filters = []): \Illuminate\Database\Eloquent\Collection

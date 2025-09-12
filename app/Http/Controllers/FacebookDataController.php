@@ -72,7 +72,8 @@ class FacebookDataController extends Controller
     public function pages(Request $request): View
     {
         $filters = $request->only(['page_id','date_from','date_to','post_type','search']);
-        $pages = $this->facebookDataService->getAvailablePages();
+        // Ưu tiên lấy page từ bảng organic posts nếu có
+        $pages = $this->facebookDataService->getAvailableOrganicPages();
 
         // Gộp thông tin từ bảng fanpage nếu có
         if ($pages->count()) {
