@@ -3296,8 +3296,9 @@ class FacebookAdsSyncService
                     'cpc' => (float) ($data['cpc'] ?? 0),
                     'cpm' => (float) ($data['cpm'] ?? 0),
                     'frequency' => (float) ($data['frequency'] ?? 0),
-                    // Video metrics (ưu tiên từ actions)
-                    'video_plays' => (int) ($actionTotals['video_view'] ?? $extractActionMetric($data, 'video_play_actions') ?? 0),
+                    // Video metrics (phân biệt rõ ràng)
+                    'video_views' => (int) ($actionTotals['video_view'] ?? 0), // Chỉ lấy từ actions
+                    'video_plays' => (int) ($extractActionMetric($data, 'video_play_actions', 'video_view') ?? 0), // Chỉ lấy từ video_play_actions
                     'video_plays_at_25_percent' => (int) (($actionTotals['video_p25_watched_actions'] ?? 0) ?: $extractActionMetric($data, 'video_p25_watched_actions')),
                     'video_plays_at_50_percent' => (int) (($actionTotals['video_p50_watched_actions'] ?? 0) ?: $extractActionMetric($data, 'video_p50_watched_actions')),
                     'video_plays_at_75_percent' => (int) (($actionTotals['video_p75_watched_actions'] ?? 0) ?: $extractActionMetric($data, 'video_p75_watched_actions')),
@@ -3348,8 +3349,12 @@ class FacebookAdsSyncService
                         unset($metrics[$metricKey]);
                     }
                 }
-                // Chỉ giữ video_plays nếu có video_view
-                if (empty($metrics['video_plays']) && !isset($actionTotals['video_view'])) {
+                // Chỉ giữ video_views nếu có video_view
+                if (empty($metrics['video_views']) && !isset($actionTotals['video_view'])) {
+                    unset($metrics['video_views']);
+                }
+                // Chỉ giữ video_plays nếu có video_play hoặc video_view
+                if (empty($metrics['video_plays']) && !isset($actionTotals['video_play']) && !isset($actionTotals['video_view'])) {
                     unset($metrics['video_plays']);
                 }
                 // Bỏ thruplays nếu không có nguồn

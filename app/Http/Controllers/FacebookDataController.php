@@ -126,10 +126,33 @@ class FacebookDataController extends Controller
     public function getPageData(Request $request)
     {
         $pageId = $request->input('page_id');
-        $filters = $request->only(['date_from', 'date_to', 'post_type', 'status', 'search']);
+        $filters = $request->only(['date_from', 'date_to', 'post_type', 'status', 'search', 'view_type']);
+        
+        // Lấy thông tin fanpage
+        $fanpage = \App\Models\FacebookFanpage::where('page_id', $pageId)->first();
+        
+        // Lấy posts gộp (có ads + không ads)
+        $posts = $this->facebookDataService->getCombinedPostsByPage($pageId, $filters);
         
         $data = [
-            'posts' => $this->facebookDataService->getPostsByPage($pageId, $filters),
+            'posts' => $posts,
+            'fanpage_info' => $fanpage ? [
+                'id' => $fanpage->id,
+                'page_id' => $fanpage->page_id,
+                'name' => $fanpage->name,
+                'category' => $fanpage->category,
+                'fan_count' => $fanpage->fan_count,
+                'followers_count' => $fanpage->followers_count,
+                'profile_picture_url' => $fanpage->profile_picture_url,
+                'cover_photo_url' => $fanpage->cover_photo_url,
+                'about' => $fanpage->about,
+                'website' => $fanpage->website,
+                'phone' => $fanpage->phone,
+                'email' => $fanpage->email,
+                'is_published' => $fanpage->is_published,
+                'is_verified' => $fanpage->is_verified,
+                'last_synced_at' => $fanpage->last_synced_at,
+            ] : null,
             'spending_stats' => $this->facebookDataService->getPostSpendingStats($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
             'page_summary' => $this->facebookDataService->getPageSummary($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
             'breakdowns' => [

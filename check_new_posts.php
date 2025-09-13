@@ -35,3 +35,4 @@ foreach($allPosts as $post) {
     echo "Post: {$post->post_id} - Page: {$post->page_id} - Created: {$post->created_time}\n";
 }
 
+

@@ -69,3 +69,4 @@ foreach($recentVideoInsights as $insight) {
     echo "  -> Complete views: {$insight->video_complete_views}\n";
 }
 
+

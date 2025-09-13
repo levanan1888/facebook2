@@ -101,6 +101,98 @@ class FacebookDataService
     public function getOrganicPostsByPage(string $pageId, array $filters = []): \Illuminate\Database\Eloquent\Collection
     {
         $query = \App\Models\PostFacebookFanpageNotAds::query()
+            ->leftJoin('facebook_fanpage', 'post_facebook_fanpage_not_ads.page_id', '=', 'facebook_fanpage.page_id')
+            ->select('post_facebook_fanpage_not_ads.*', 'facebook_fanpage.name as page_name', 'facebook_fanpage.profile_picture_url as page_profile_picture_url')
+            ->where('post_facebook_fanpage_not_ads.page_id', $pageId);
+
+        if (!empty($filters['date_from'])) {
+            $query->where('post_facebook_fanpage_not_ads.created_time', '>=', $filters['date_from']);
+        }
+        if (!empty($filters['date_to'])) {
+            $query->where('post_facebook_fanpage_not_ads.created_time', '<=', $filters['date_to']);
+        }
+        if (!empty($filters['post_type'])) {
+            $query->where('post_facebook_fanpage_not_ads.type', $filters['post_type']);
+        }
+        if (!empty($filters['search'])) {
+            $q = (string) $filters['search'];
+            $query->where(function($sub) use ($q){
+                $sub->where('post_facebook_fanpage_not_ads.message', 'like', "%$q%")
+                    ->orWhere('post_facebook_fanpage_not_ads.name', 'like', "%$q%");
+            });
+        }
+
+        $posts = $query->orderByDesc('post_facebook_fanpage_not_ads.created_time')->get();
+
+        if (!$posts || $posts->count() === 0) {
+            return new \Illuminate\Database\Eloquent\Collection([]);
+        }
+
+        return new \Illuminate\Database\Eloquent\Collection(
+            $posts->map(function($p){
+                return (object) [
+                    'id' => $p->post_id,
+                    'page_id' => $p->page_id,
+                    'message' => $p->message ?: ($p->name ?: ''),
+                    'name' => $p->name,
+                    'description' => $p->description,
+                    'type' => $p->type ?: 'post',
+                    'created_time' => $p->created_time,
+                    'permalink_url' => $p->link ?: null,
+                    'link' => $p->link,
+                    'full_picture' => $p->full_picture,
+                    'picture' => $p->picture,
+                    'source' => $p->source,
+                    'attachments' => $p->attachments,
+                    'attachments_image' => $p->attachments_image,
+                    'attachments_source' => $p->attachments_source,
+                    'is_hidden' => $p->is_hidden,
+                    'is_expired' => $p->is_expired,
+                    // Page info
+                    'page_name' => $p->page_name,
+                    'page_profile_picture_url' => $p->page_profile_picture_url,
+                    // Organic posts metrics từ bảng post_facebook_not_ads (theo pages.blade.php)
+                    'likes_count' => $p->post_reactions_like_total ?? 0,
+                    'comments_count' => $p->post_comments ?? 0,
+                    'shares_count' => $p->post_shares ?? 0,
+                    'love_count' => $p->post_reactions_love_total ?? 0,
+                    'wow_count' => $p->post_reactions_wow_total ?? 0,
+                    'haha_count' => $p->post_reactions_haha_total ?? 0,
+                    'sorry_count' => $p->post_reactions_sorry_total ?? 0,
+                    'anger_count' => $p->post_reactions_anger_total ?? 0,
+                    'reactions_count' => ($p->post_reactions_like_total ?? 0) + ($p->post_reactions_love_total ?? 0) + ($p->post_reactions_wow_total ?? 0) + ($p->post_reactions_haha_total ?? 0) + ($p->post_reactions_sorry_total ?? 0) + ($p->post_reactions_anger_total ?? 0),
+                    'impressions' => $p->post_impressions ?? 0,
+                    'impressions_unique' => $p->post_impressions_unique ?? 0,
+                    'impressions_organic' => $p->post_impressions_organic ?? 0,
+                    'impressions_paid' => $p->post_impressions_paid ?? 0,
+                    'impressions_viral' => $p->post_impressions_viral ?? 0,
+                    'impressions_viral_unique' => $p->post_impressions_viral_unique ?? 0,
+                    'engaged_users' => $p->post_engaged_users ?? 0,
+                    'clicks' => $p->post_clicks ?? 0,
+                    'clicks_unique' => $p->post_clicks_unique ?? 0,
+                    'video_views' => $p->post_video_views ?? 0,
+                    'video_views_organic' => $p->post_video_views_organic ?? 0,
+                    'video_views_paid' => $p->post_video_views_paid ?? 0,
+                    'video_complete_views' => $p->post_video_complete_views ?? 0,
+                    // Legacy fields for compatibility
+                    'post_clicks' => $p->post_clicks ?? 0,
+                    'post_impressions' => $p->post_impressions ?? 0,
+                    'post_reactions' => $p->post_reactions ?? 0,
+                    'post_comments' => $p->post_comments ?? 0,
+                    'post_shares' => $p->post_shares ?? 0,
+                    'post_video_views' => $p->post_video_views ?? 0,
+                    'post_video_complete_views' => $p->post_video_complete_views ?? 0,
+                ];
+            })->toArray()
+        );
+    }
+
+    /**
+     * Lấy bài viết có ads từ bảng facebook_post_ads
+     */
+    public function getAdsPostsByPage(string $pageId, array $filters = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = \App\Models\FacebookPostAd::query()
             ->where('page_id', $pageId);
 
         if (!empty($filters['date_from'])) {
@@ -116,33 +208,231 @@ class FacebookDataService
             $q = (string) $filters['search'];
             $query->where(function($sub) use ($q){
                 $sub->where('message', 'like', "%$q%")
-                    ->orWhere('name', 'like', "%$q%");
+                    ->orWhere('post_id', 'like', "%$q%");
             });
         }
 
         $posts = $query->orderByDesc('created_time')->get();
 
+        // Chuyển đổi thành Eloquent Collection với thông tin bổ sung
+        if (!$posts || $posts->count() === 0) {
+            return new \Illuminate\Database\Eloquent\Collection([]);
+        }
+        
         return new \Illuminate\Database\Eloquent\Collection(
-            $posts->map(function($p){
+            $posts->map(function ($post) {
+                // Lấy insights cho post này
+                $insights = \App\Models\FacebookAdInsight::where('post_id', $post->post_id)
+                    ->where('page_id', $post->page_id)
+                    ->get();
+                
+                $totalSpend = $insights->sum('spend');
+                $totalImpressions = $insights->sum('impressions');
+                $totalClicks = $insights->sum('clicks');
+                $avgCtr = $insights->avg('ctr');
+                $avgCpc = $insights->avg('cpc');
+                $avgCpm = $insights->avg('cpm');
+                $totalConversions = $insights->sum('conversions');
+                $totalVideoViews = $insights->sum('video_views');
+                $totalVideoPlays = $insights->sum('video_plays');
+                $totalVideoP75 = $insights->sum('video_p75_watched_actions');
+                $totalVideoP100 = $insights->sum('video_p100_watched_actions');
+                
                 return (object) [
-                    'id' => $p->post_id,
-                    'page_id' => $p->page_id,
-                    'type' => $p->type ?: 'post',
-                    'message' => $p->message ?: ($p->name ?: ''),
-                    'created_time' => $p->created_time,
-                    'permalink_url' => $p->link ?: null,
-                    'picture' => $p->full_picture ?: $p->picture,
-                    'reactions_count' => (int) $p->post_reactions,
-                    'comments_count' => (int) $p->post_comments,
-                    'shares_count' => (int) $p->post_shares,
-                    'impressions' => (int) $p->post_impressions,
-                    'engaged_users' => (int) $p->post_engaged_users,
-                    'post_clicks' => (int) $p->post_clicks,
-                    'video_views' => (int) $p->post_video_views,
-                    'video_complete_views' => (int) $p->post_video_complete_views,
+                    'id' => $post->post_id,
+                    'page_id' => $post->page_id,
+                    'message' => $post->message,
+                    'name' => $post->name,
+                    'description' => $post->description,
+                    'type' => $post->type,
+                    'created_time' => $post->created_time,
+                    'permalink_url' => $post->permalink_url,
+                    'link' => $post->link,
+                    'full_picture' => $post->full_picture,
+                    'picture' => $post->picture,
+                    'source' => $post->source,
+                    'attachment_type' => $post->attachment_type,
+                    'attachment_image' => $post->attachment_image,
+                    'attachment_source' => $post->attachment_source,
+                    'from_id' => $post->from_id,
+                    'from_name' => $post->from_name,
+                    'from_picture' => $post->from_picture,
+                    'is_hidden' => $post->is_hidden,
+                    'is_expired' => $post->is_expired,
+                    // Ads metrics từ insights
+                    'total_spend' => $totalSpend,
+                    'total_impressions' => $totalImpressions,
+                    'total_clicks' => $totalClicks,
+                    'avg_ctr' => $avgCtr,
+                    'avg_cpc' => $avgCpc,
+                    'avg_cpm' => $avgCpm,
+                    'total_conversions' => $totalConversions,
+                    'ad_count' => $insights->count(),
+                    'total_video_views' => $totalVideoViews,
+                    'total_video_plays' => $totalVideoPlays,
+                    'total_video_p75_watched_actions' => $totalVideoP75,
+                    'total_video_p100_watched_actions' => $totalVideoP100,
+                    'total_messages' => $insights->sum('messages'),
+                    'total_message_conversations' => $insights->sum('message_conversations'),
+                    // Post metrics từ bảng facebook_post_ads
+                    'likes_count' => $post->likes_count ?? 0,
+                    'comments_count' => $post->comments_count ?? 0,
+                    'shares_count' => $post->shares_count ?? 0,
+                    'reactions_count' => $post->reactions_count ?? 0,
+                    'love_count' => 0,
+                    'wow_count' => 0,
+                    'haha_count' => 0,
+                    'sorry_count' => 0,
+                    'anger_count' => 0,
+                    'impressions' => $totalImpressions,
+                    'impressions_unique' => 0,
+                    'impressions_organic' => 0,
+                    'impressions_paid' => $totalImpressions,
+                    'impressions_viral' => 0,
+                    'impressions_viral_unique' => 0,
+                    'engaged_users' => 0,
+                    'clicks' => $totalClicks,
+                    'clicks_unique' => 0,
+                    'video_views' => $totalVideoViews,
+                    'video_views_organic' => 0,
+                    'video_views_paid' => $totalVideoViews,
+                    'video_complete_views' => $totalVideoP100,
                 ];
-            })->toArray()
+            })
         );
+    }
+
+    /**
+     * Lấy cả bài viết có ads và không ads, gộp lại và sắp xếp theo thời gian
+     */
+    public function getCombinedPostsByPage(string $pageId, array $filters = []): array
+    {
+        try {
+            // Lấy posts có ads từ bảng facebook_post_ads
+            $adsPosts = $this->getAdsPostsByPage($pageId, $filters);
+            
+            // Lấy posts không ads
+            $organicPosts = $this->getOrganicPostsByPage($pageId, $filters);
+            
+            // Gộp hai collection và đánh dấu loại
+            $allPosts = collect();
+            
+            // Thêm posts có ads với marker
+            if ($adsPosts && $adsPosts->count() > 0) {
+                foreach ($adsPosts as $post) {
+                    $post->post_source = 'ads';
+                    $post->has_ads = true;
+                    $allPosts->push($post);
+                }
+            }
+            
+            // Thêm posts không ads với marker - theo logic pages.blade.php
+            if ($organicPosts && $organicPosts->count() > 0) {
+                foreach ($organicPosts as $post) {
+                    $post->post_source = 'organic';
+                    $post->has_ads = false;
+                    
+                    // Ads metrics (không có cho organic posts)
+                    $post->total_spend = 0;
+                    $post->avg_ctr = 0;
+                    $post->avg_cpc = 0;
+                    $post->avg_cpm = 0;
+                    $post->total_conversions = 0;
+                    $post->ad_count = 0;
+                    $post->total_video_plays = 0;
+                    $post->total_video_p75_watched_actions = 0;
+                    $post->total_video_p100_watched_actions = 0;
+                    $post->total_messages = 0;
+                    
+                    // Organic posts metrics từ bảng post_facebook_not_ads (theo pages.blade.php)
+                    $post->total_impressions = $post->post_impressions ?? 0;
+                    $post->total_clicks = $post->post_clicks ?? 0;
+                    $post->total_video_views = $post->post_video_views ?? 0;
+                    
+                    // Reactions metrics (theo pages.blade.php)
+                    $post->likes_count = $post->post_reactions_like_total ?? 0;
+                    $post->comments_count = $post->post_comments ?? 0;
+                    $post->shares_count = $post->post_shares ?? 0;
+                    $post->love_count = $post->post_reactions_love_total ?? 0;
+                    $post->wow_count = $post->post_reactions_wow_total ?? 0;
+                    $post->haha_count = $post->post_reactions_haha_total ?? 0;
+                    $post->sorry_count = $post->post_reactions_sorry_total ?? 0;
+                    $post->anger_count = $post->post_reactions_anger_total ?? 0;
+                    
+                    // Tổng reactions
+                    $post->reactions_count = $post->likes_count + $post->love_count + $post->wow_count + $post->haha_count + $post->sorry_count + $post->anger_count;
+                    
+                    // Impressions breakdown (theo pages.blade.php)
+                    $post->impressions = $post->post_impressions ?? 0;
+                    $post->impressions_unique = $post->post_impressions_unique ?? 0;
+                    $post->impressions_organic = $post->post_impressions_organic ?? 0;
+                    $post->impressions_paid = $post->post_impressions_paid ?? 0;
+                    $post->impressions_viral = $post->post_impressions_viral ?? 0;
+                    $post->impressions_viral_unique = $post->post_impressions_viral_unique ?? 0;
+                    
+                    // Engagement metrics (theo pages.blade.php)
+                    $post->engaged_users = $post->post_engaged_users ?? 0;
+                    $post->clicks = $post->post_clicks ?? 0;
+                    $post->clicks_unique = $post->post_clicks_unique ?? 0;
+                    
+                    // Video metrics (theo pages.blade.php)
+                    $post->video_views = $post->post_video_views ?? 0;
+                    $post->video_views_organic = $post->post_video_views_organic ?? 0;
+                    $post->video_views_paid = $post->post_video_views_paid ?? 0;
+                    $post->video_complete_views = $post->post_video_complete_views ?? 0;
+                    
+                    $allPosts->push($post);
+                }
+            }
+            
+            // Sắp xếp theo thời gian giảm dần (mới nhất trước)
+            return $allPosts->sortByDesc(function($post) {
+                return $post->created_time ?? '1970-01-01';
+            })->values()->toArray();
+            
+        } catch (\Exception $e) {
+            // Log error và return empty array
+            \Illuminate\Support\Facades\Log::error('Error in getCombinedPostsByPage: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Lấy thông tin fanpage chi tiết
+     */
+    public function getPageInfo(string $pageId): ?object
+    {
+        try {
+            $fanpage = \App\Models\FacebookFanpage::where('page_id', $pageId)->first();
+            
+            if (!$fanpage) {
+                return null;
+            }
+            
+            return (object) [
+                'page_id' => $fanpage->page_id,
+                'name' => $fanpage->name,
+                'access_token' => $fanpage->access_token,
+                'category' => $fanpage->category,
+                'category_list' => $fanpage->category_list,
+                'about' => $fanpage->about,
+                'website' => $fanpage->website,
+                'phone' => $fanpage->phone,
+                'email' => $fanpage->email,
+                'location' => $fanpage->location,
+                'cover_photo_url' => $fanpage->cover_photo_url,
+                'profile_picture_url' => $fanpage->profile_picture_url,
+                'is_published' => $fanpage->is_published,
+                'is_verified' => $fanpage->is_verified,
+                'fan_count' => $fanpage->fan_count,
+                'followers_count' => $fanpage->followers_count,
+                'likes_count' => $fanpage->likes_count,
+                'last_synced_at' => $fanpage->last_synced_at,
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error in getPageInfo: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -250,6 +540,10 @@ class FacebookDataService
         $posts = $query->orderBy('last_date', 'desc')->get();
 
         // Chuyển đổi thành Eloquent Collection với thông tin bổ sung
+        if (!$posts || $posts->count() === 0) {
+            return new \Illuminate\Database\Eloquent\Collection([]);
+        }
+        
         return new \Illuminate\Database\Eloquent\Collection(
             $posts->map(function ($post) {
                 // Lấy thông tin từ ad để có message và các thông tin khác
@@ -855,44 +1149,66 @@ class FacebookDataService
     public function getPostById(string $postId, string $pageId): ?object
     {
         try {
-            // Thử lấy từ FacebookAdInsight trước
-            $post = FacebookAdInsight::where('post_id', $postId)
+            // Thử lấy từ FacebookPostAd trước (ads posts) để có đầy đủ thông tin
+            $post = \App\Models\FacebookPostAd::where('post_id', $postId)
                 ->where('page_id', $pageId)
-                ->select([
-                    'post_id as id',
-                    'page_id',
-                    DB::raw('SUM(spend) as total_spend'),
-                    DB::raw('SUM(impressions) as total_impressions'),
-                    DB::raw('SUM(clicks) as total_clicks'),
-                    DB::raw('SUM(video_views) as total_video_views'),
-                    DB::raw('SUM(video_p75_watched_actions) as total_video_p75_watched_actions'),
-                    DB::raw('SUM(video_p100_watched_actions) as total_video_p100_watched_actions'),
-                ])
-                ->groupBy('post_id', 'page_id')
                 ->first();
 
-            // Lấy thông tin bổ sung từ FacebookAd
             if ($post) {
-                $adInfo = FacebookAd::where('post_id', $postId)
+                // Lấy thông tin insights từ FacebookAdInsight
+                $insights = FacebookAdInsight::where('post_id', $postId)
                     ->where('page_id', $pageId)
+                    ->select([
+                        DB::raw('SUM(spend) as total_spend'),
+                        DB::raw('SUM(impressions) as total_impressions'),
+                        DB::raw('SUM(clicks) as total_clicks'),
+                        DB::raw('SUM(video_views) as total_video_views'),
+                        DB::raw('SUM(video_p75_watched_actions) as total_video_p75_watched_actions'),
+                        DB::raw('SUM(video_p100_watched_actions) as total_video_p100_watched_actions'),
+                    ])
                     ->first();
+
+                // Gộp thông tin
+                $post->total_spend = $insights->total_spend ?? 0;
+                $post->total_impressions = $insights->total_impressions ?? 0;
+                $post->total_clicks = $insights->total_clicks ?? 0;
+                $post->total_video_views = $insights->total_video_views ?? 0;
+                $post->total_video_p75_watched_actions = $insights->total_video_p75_watched_actions ?? 0;
+                $post->total_video_p100_watched_actions = $insights->total_video_p100_watched_actions ?? 0;
+                $post->has_ads = true;
                 
-                if ($adInfo) {
-                    $post->message = $adInfo->name ?? 'Không có nội dung';
-                    $post->type = $adInfo->type ?? 'post';
-                    // Không set created_time = now() vì sẽ ghi đè thời gian thực từ Facebook
-                    // $post->created_time = $adInfo->created_time ?? now();
-                    $post->permalink_url = $adInfo->permalink_url ?? null;
-                } else {
+                // Đảm bảo có message
+                if (!$post->message) {
                     $post->message = 'Không có nội dung';
-                    $post->type = 'post';
-                    // Không set created_time = now() vì sẽ ghi đè thời gian thực từ Facebook
-                    // $post->created_time = now();
-                    $post->permalink_url = null;
                 }
             }
 
-            // Nếu không có data, thử lấy từ FacebookPost
+            // Nếu không có data, thử lấy từ PostFacebookFanpageNotAds (organic posts)
+            if (!$post) {
+                $post = \App\Models\PostFacebookFanpageNotAds::where('post_id', $postId)
+                    ->where('page_id', $pageId)
+                    ->select([
+                        'post_id as id',
+                        'page_id',
+                        'message',
+                        'type',
+                        'created_time',
+                        'link as permalink_url',
+                        DB::raw('0 as total_spend'),
+                        DB::raw('post_impressions as total_impressions'),
+                        DB::raw('post_clicks as total_clicks'),
+                        DB::raw('post_video_views as total_video_views'),
+                        DB::raw('0 as total_video_p75_watched_actions'),
+                        DB::raw('0 as total_video_p100_watched_actions'),
+                    ])
+                    ->first();
+                
+                if ($post) {
+                    $post->has_ads = false;
+                }
+            }
+
+            // Nếu vẫn không có data, thử lấy từ FacebookPost
             if (!$post) {
                 $post = \App\Models\FacebookPost::where('id', $postId)
                     ->where('page_id', $pageId)
@@ -911,6 +1227,10 @@ class FacebookDataService
                         DB::raw('0 as total_video_p100_watched_actions'),
                     ])
                     ->first();
+                
+                if ($post) {
+                    $post->has_ads = false;
+                }
             }
 
             return $post;
@@ -1064,6 +1384,16 @@ class FacebookDataService
                                 'video_30_sec_watched' => 0,
                                 'video_avg_time_watched' => 0,
                                 'video_view_time' => 0,
+                                // Messaging metrics
+                                'messaging_conversation_started_7d' => 0,
+                                'total_messaging_connection' => 0,
+                                'messaging_conversation_replied_7d' => 0,
+                                'messaging_welcome_message_view' => 0,
+                                'messaging_first_reply' => 0,
+                                'messaging_user_depth_2_message_send' => 0,
+                                'messaging_user_depth_3_message_send' => 0,
+                                'messaging_user_depth_5_message_send' => 0,
+                                'messaging_block' => 0,
                             ];
                         }
                         
@@ -1179,6 +1509,57 @@ class FacebookDataService
                         if ($videoAvgTime > 0 && $videoViews > 0) {
                             $result[$breakdownType][$breakdownValue]['video_view_time'] += ($videoAvgTime * $videoViews);
                         }
+                        
+                        // Xử lý messaging metrics từ actions
+                        if (isset($metrics['actions']) && is_array($metrics['actions'])) {
+                            foreach ($metrics['actions'] as $action) {
+                                if (!isset($action['action_type'])) continue;
+                                
+                                $actionType = $action['action_type'];
+                                $value = (int)($action['value'] ?? 0);
+                                
+                                switch ($actionType) {
+                                    case 'onsite_conversion.messaging_conversation_started_7d':
+                                        $result[$breakdownType][$breakdownValue]['messaging_conversation_started_7d'] += $value;
+                                        break;
+                                    case 'onsite_conversion.total_messaging_connection':
+                                        $result[$breakdownType][$breakdownValue]['total_messaging_connection'] += $value;
+                                        break;
+                                    case 'onsite_conversion.messaging_conversation_replied_7d':
+                                        $result[$breakdownType][$breakdownValue]['messaging_conversation_replied_7d'] += $value;
+                                        break;
+                                    case 'onsite_conversion.messaging_welcome_message_view':
+                                        $result[$breakdownType][$breakdownValue]['messaging_welcome_message_view'] += $value;
+                                        break;
+                                    case 'onsite_conversion.messaging_first_reply':
+                                        $result[$breakdownType][$breakdownValue]['messaging_first_reply'] += $value;
+                                        break;
+                                    case 'onsite_conversion.messaging_user_depth_2_message_send':
+                                        $result[$breakdownType][$breakdownValue]['messaging_user_depth_2_message_send'] += $value;
+                                        break;
+                                    case 'onsite_conversion.messaging_user_depth_3_message_send':
+                                        $result[$breakdownType][$breakdownValue]['messaging_user_depth_3_message_send'] += $value;
+                                        break;
+                                    case 'onsite_conversion.messaging_user_depth_5_message_send':
+                                        $result[$breakdownType][$breakdownValue]['messaging_user_depth_5_message_send'] += $value;
+                                        break;
+                                    case 'onsite_conversion.messaging_block':
+                                        $result[$breakdownType][$breakdownValue]['messaging_block'] += $value;
+                                        break;
+                                }
+                            }
+                        }
+                        
+                        // Xử lý messaging metrics trực tiếp từ metrics (nếu có)
+                        $result[$breakdownType][$breakdownValue]['messaging_conversation_started_7d'] += (int)($metrics['messaging_conversation_started_7d'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['total_messaging_connection'] += (int)($metrics['total_messaging_connection'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['messaging_conversation_replied_7d'] += (int)($metrics['messaging_conversation_replied_7d'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['messaging_welcome_message_view'] += (int)($metrics['messaging_welcome_message_view'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['messaging_first_reply'] += (int)($metrics['messaging_first_reply'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['messaging_user_depth_2_message_send'] += (int)($metrics['messaging_user_depth_2_message_send'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['messaging_user_depth_3_message_send'] += (int)($metrics['messaging_user_depth_3_message_send'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['messaging_user_depth_5_message_send'] += (int)($metrics['messaging_user_depth_5_message_send'] ?? 0);
+                        $result[$breakdownType][$breakdownValue]['messaging_block'] += (int)($metrics['messaging_block'] ?? 0);
                     }
                 }
             }
@@ -1716,6 +2097,16 @@ class FacebookDataService
                     'total_video_plays' => 0,
                     'total_video_p75_watched_actions' => 0,
                     'total_video_p100_watched_actions' => 0,
+                    // Messaging metrics
+                    'messaging_conversation_started_7d' => 0,
+                    'total_messaging_connection' => 0,
+                    'messaging_conversation_replied_7d' => 0,
+                    'messaging_welcome_message_view' => 0,
+                    'messaging_first_reply' => 0,
+                    'messaging_user_depth_2_message_send' => 0,
+                    'messaging_user_depth_3_message_send' => 0,
+                    'messaging_user_depth_5_message_send' => 0,
+                    'messaging_block' => 0,
                 ]
             ];
 

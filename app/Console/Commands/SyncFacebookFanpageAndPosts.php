@@ -493,73 +493,86 @@ class SyncFacebookFanpageAndPosts extends Command
                 $insightsCount++;
             }
 
+            // Check if post already exists to preserve original created_time
+            // created_time = when the post was created on Facebook (from API)
+            // created_at = when the record was synced to our database
+            $existingPost = DB::table('post_facebook_fanpage_not_ads')
+                ->where('post_id', $post['id'])
+                ->first();
+            
+            $postData = [
+                'post_id' => $post['id'],
+                'page_id' => $pageId,
+                'message' => $post['message'] ?? null,
+                'story' => $post['story'] ?? null,
+                'type' => $post['type'] ?? null,
+                'status_type' => $post['status_type'] ?? null,
+                'link' => $post['link'] ?? null,
+                'picture' => $post['picture'] ?? null,
+                'full_picture' => $post['full_picture'] ?? null,
+                'source' => $post['source'] ?? null,
+                'description' => $post['description'] ?? null,
+                'caption' => $post['caption'] ?? null,
+                'name' => $post['name'] ?? null,
+                'attachments' => isset($post['attachments']) ? json_encode($post['attachments']) : null,
+                'properties' => isset($post['properties']) ? json_encode($post['properties']) : null,
+                'is_published' => $post['is_published'] ?? true,
+                'is_hidden' => $post['is_hidden'] ?? false,
+                'is_expired' => $post['is_expired'] ?? false,
+                'updated_time' => isset($post['updated_time']) ? Carbon::parse($post['updated_time']) : null,
+                
+                // Breakdown fields
+                'permalink_url' => $post['permalink_url'] ?? null,
+                'from_data' => json_encode($fromData),
+                'shares_data' => json_encode($sharesData),
+                'comments_data' => json_encode($commentsData),
+                'likes_data' => json_encode($likesData),
+                
+                // Basic insights
+                'post_impressions' => $postImpressions,
+                'post_engaged_users' => $postEngagedUsers,
+                'post_clicks' => $postClicks,
+                'post_reactions' => $postReactions,
+                'post_comments' => $postComments,
+                'post_shares' => $postShares,
+                'post_video_views' => $postVideoViews,
+                'post_video_complete_views' => $postVideoCompleteViews,
+                
+                // Breakdown insights
+                'post_impressions_unique' => $postImpressionsUnique,
+                'post_impressions_paid' => $postImpressionsPaid,
+                'post_impressions_paid_unique' => $postImpressionsPaidUnique,
+                'post_impressions_organic' => $postImpressionsOrganic,
+                'post_impressions_organic_unique' => $postImpressionsOrganicUnique,
+                'post_impressions_viral' => $postImpressionsViral,
+                'post_impressions_viral_unique' => $postImpressionsViralUnique,
+                'post_clicks_unique' => $postClicksUnique,
+                'post_video_views_paid' => $postVideoViewsPaid,
+                'post_video_views_organic' => $postVideoViewsOrganic,
+                
+                // Reactions breakdown
+                'post_reactions_like_total' => $postReactionsLikeTotal,
+                'post_reactions_love_total' => $postReactionsLoveTotal,
+                'post_reactions_wow_total' => $postReactionsWowTotal,
+                'post_reactions_haha_total' => $postReactionsHahaTotal,
+                'post_reactions_sorry_total' => $postReactionsSorryTotal,
+                'post_reactions_anger_total' => $postReactionsAngerTotal,
+                
+                'insights_data' => json_encode($insightsData),
+                'insights_synced_at' => now(),
+                'last_synced_at' => now(),
+                'updated_at' => now(),
+            ];
+            
+            // Only set created_time and created_at for new posts
+            if (!$existingPost) {
+                $postData['created_time'] = Carbon::parse($post['created_time']);
+                $postData['created_at'] = now();
+            }
+            
             DB::table('post_facebook_fanpage_not_ads')->updateOrInsert(
                 ['post_id' => $post['id']],
-                [
-                    'post_id' => $post['id'],
-                    'page_id' => $pageId,
-                    'message' => $post['message'] ?? null,
-                    'story' => $post['story'] ?? null,
-                    'type' => $post['type'] ?? null,
-                    'status_type' => $post['status_type'] ?? null,
-                    'link' => $post['link'] ?? null,
-                    'picture' => $post['picture'] ?? null,
-                    'full_picture' => $post['full_picture'] ?? null,
-                    'source' => $post['source'] ?? null,
-                    'description' => $post['description'] ?? null,
-                    'caption' => $post['caption'] ?? null,
-                    'name' => $post['name'] ?? null,
-                    'attachments' => isset($post['attachments']) ? json_encode($post['attachments']) : null,
-                    'properties' => isset($post['properties']) ? json_encode($post['properties']) : null,
-                    'is_published' => $post['is_published'] ?? true,
-                    'is_hidden' => $post['is_hidden'] ?? false,
-                    'is_expired' => $post['is_expired'] ?? false,
-                    'created_time' => Carbon::parse($post['created_time']),
-                    'updated_time' => isset($post['updated_time']) ? Carbon::parse($post['updated_time']) : null,
-                    
-                    // Breakdown fields
-                    'permalink_url' => $post['permalink_url'] ?? null,
-                    'from_data' => json_encode($fromData),
-                    'shares_data' => json_encode($sharesData),
-                    'comments_data' => json_encode($commentsData),
-                    'likes_data' => json_encode($likesData),
-                    
-                    // Basic insights
-                    'post_impressions' => $postImpressions,
-                    'post_engaged_users' => $postEngagedUsers,
-                    'post_clicks' => $postClicks,
-                    'post_reactions' => $postReactions,
-                    'post_comments' => $postComments,
-                    'post_shares' => $postShares,
-                    'post_video_views' => $postVideoViews,
-                    'post_video_complete_views' => $postVideoCompleteViews,
-                    
-                    // Breakdown insights
-                    'post_impressions_unique' => $postImpressionsUnique,
-                    'post_impressions_paid' => $postImpressionsPaid,
-                    'post_impressions_paid_unique' => $postImpressionsPaidUnique,
-                    'post_impressions_organic' => $postImpressionsOrganic,
-                    'post_impressions_organic_unique' => $postImpressionsOrganicUnique,
-                    'post_impressions_viral' => $postImpressionsViral,
-                    'post_impressions_viral_unique' => $postImpressionsViralUnique,
-                    'post_clicks_unique' => $postClicksUnique,
-                    'post_video_views_paid' => $postVideoViewsPaid,
-                    'post_video_views_organic' => $postVideoViewsOrganic,
-                    
-                    // Reactions breakdown
-                    'post_reactions_like_total' => $postReactionsLikeTotal,
-                    'post_reactions_love_total' => $postReactionsLoveTotal,
-                    'post_reactions_wow_total' => $postReactionsWowTotal,
-                    'post_reactions_haha_total' => $postReactionsHahaTotal,
-                    'post_reactions_sorry_total' => $postReactionsSorryTotal,
-                    'post_reactions_anger_total' => $postReactionsAngerTotal,
-                    
-                    'insights_data' => json_encode($insightsData),
-                    'insights_synced_at' => now(),
-                    'last_synced_at' => now(),
-                    'updated_at' => now(),
-                    'created_at' => now()
-                ]
+                $postData
             );
             
             // Delay between posts to avoid rate limiting

@@ -98,6 +98,9 @@ class SyncAllFacebookData extends Command
     
     /**
      * Generate summary report
+     * 
+     * Note: created_time = when the post was created on Facebook
+     *       created_at = when the record was synced to our database
      */
     private function generateSummaryReport()
     {
@@ -146,9 +149,9 @@ class SyncAllFacebookData extends Command
             $this->warn("   Ads data not available");
         }
         
-        // Recent activity
+        // Recent activity - Use created_time (post creation time) not created_at (sync time)
         $recentPosts = DB::table('post_facebook_fanpage_not_ads')
-            ->where('created_at', '>=', now()->subDays(7))
+            ->where('created_time', '>=', now()->subDays(7))
             ->count();
         
         $this->info("\n📅 Recent Activity (Last 7 days):");

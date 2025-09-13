@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FacebookAdInsight extends Model
 {
@@ -50,6 +51,14 @@ class FacebookAdInsight extends Model
     public function ad(): BelongsTo
     {
         return $this->belongsTo(FacebookAd::class, 'ad_id', 'id');
+    }
+
+    /**
+     * Relationship với Breakdowns
+     */
+    public function breakdowns(): HasMany
+    {
+        return $this->hasMany(FacebookBreakdown::class, 'ad_insight_id');
     }
 
     /**

@@ -51,62 +51,6 @@
             </div>
         </div>
 
-        <!-- Card 2: View tabs, breakdowns, sort, quick date filters -->
-        <div class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6">
-            <div class="flex flex-wrap items-center gap-3">
-                <label class="text-sm font-medium text-gray-700">Chế độ xem:</label>
-                <div class="inline-flex rounded-md shadow-sm" role="group">
-                    <button type="button" data-view="combined" class="view-tab px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-l-md bg-blue-50 text-blue-700 hover:bg-blue-100">Tổng hợp</button>
-                    <button type="button" data-view="posts" class="view-tab px-3 py-1.5 text-sm font-medium border-t border-b border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Posts</button>
-                    <button type="button" data-view="ads" class="view-tab px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-r-md bg-white text-gray-700 hover:bg-gray-50">Ads</button>
-                </div>
-                <input type="hidden" id="view_type" name="view_type" value="{{ $filters['view_type'] ?? 'combined' }}" />
-
-                <!-- Breakdown controls -->
-                <div class="ml-4 flex items-center gap-2">
-                    <label class="text-sm font-medium text-gray-700">Breakdown:</label>
-                    <div class="inline-flex rounded-md border border-gray-300 overflow-hidden">
-                        <button type="button" class="bd-tab px-3 py-1.5 text-sm bg-white hover:bg-gray-50" data-bd="content">Loại nội dung</button>
-                        <button type="button" class="bd-tab px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border-l" data-bd="audience">Đối tượng</button>
-                        <button type="button" class="bd-tab px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border-l" data-bd="channel">Kênh</button>
-                    </div>
-                </div>
-
-                <!-- Sort metric -->
-                <div class="ml-4 flex items-center gap-2">
-                    <label class="text-sm font-medium text-gray-700">Sắp xếp:</label>
-                    <select id="sort-metric" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="spend_desc">Chi phí ↓</option>
-                        <option value="spend_asc">Chi phí ↑</option>
-                        <option value="impressions_desc">Hiển thị ↓</option>
-                        <option value="clicks_desc">Tương tác/Click ↓</option>
-                        <option value="cpc_asc">CPC ↑</option>
-                        <option value="cpm_asc">CPM ↑</option>
-                        <option value="ctr_desc">CTR ↓</option>
-                    </select>
-                </div>
-
-                <!-- Quick date filter moved here -->
-                <div class="flex items-center gap-2 ml-auto">
-                    <select id="quick_date_preset" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">Tùy chỉnh</option>
-                        <option value="today">Hôm nay</option>
-                        <option value="yesterday">Hôm qua</option>
-                        <option value="this_week">Tuần này</option>
-                        <option value="last_week">Tuần trước</option>
-                        <option value="last_7_days">7 ngày</option>
-                        <option value="last_28_days">28 ngày</option>
-                        <option value="last_30_days">30 ngày</option>
-                        <option value="this_month">Tháng này</option>
-                        <option value="last_month">Tháng trước</option>
-                    </select>
-                    <input type="date" id="quick_from" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                    <span class="text-gray-500">→</span>
-                    <input type="date" id="quick_to" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                    <button id="quick_apply" type="button" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700">Lọc</button>
-                </div>
-            </div>
-        </div>
     </form>
 
     @if($data['selected_page'])
@@ -387,7 +331,7 @@
                                             </a>
                                         @else
                                             <span class="text-gray-400 text-sm">Không có link bài viết</span>
-                                        @endif
+                                @endif
                                         @if($post->page_id)
                                             <a href="https://facebook.com/{{ $post->page_id }}" target="_blank" class="text-green-600 hover:text-green-800 font-medium">
                                                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,7 +339,7 @@
                                                 </svg>
                                                 Xem trang →
                                             </a>
-                                        @endif
+                                                    @endif
                                         <a href="{{ route('facebook.data-management.post-detail', ['postId' => $post->id, 'pageId' => $post->page_id]) }}" 
                                            class="text-sm text-blue-600 hover:text-blue-800 font-medium">
                                             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,7 +348,7 @@
                                             Xem chi tiết →
                                         </a>
 
-                                    </div>
+                                                    </div>
                                     
                                     <!-- Post Stats Charts -->
                                     <div class="mb-4">
@@ -972,9 +916,304 @@ function initializeDataManagement() {
         
         let html = '';
         
+        // Fanpage Info Card (nếu có)
+        if (data.fanpage_info) {
+            const fp = data.fanpage_info;
+            html += `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <div class="flex items-start gap-6 mb-6">
+                        <div class="flex-shrink-0">
+                            ${fp.profile_picture_url ? 
+                                `<img src="${fp.profile_picture_url}" alt="avatar" class="w-20 h-20 rounded-full object-cover border-2 border-gray-200"/>` :
+                                `<div class="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
+                                    <span class="text-gray-500 text-2xl">📄</span>
+                                </div>`
+                            }
+                        </div>
+                        
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <h2 class="text-2xl font-bold text-gray-900">${fp.name || 'Unknown Page'}</h2>
+                                <a href="https://facebook.com/${fp.page_id}" target="_blank" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"></path>
+                                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"></path>
+                                    </svg>
+                                    Xem trên Facebook
+                                </a>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span class="font-medium text-gray-700">Danh mục:</span>
+                                    <span class="text-gray-900">${fp.category || 'Unknown'}</span>
+                                </div>
+                                ${fp.phone ? `
+                                    <div>
+                                        <span class="font-medium text-gray-700">Điện thoại:</span>
+                                        <span class="text-gray-900">${fp.phone}</span>
+                                    </div>
+                                ` : ''}
+                                ${fp.email ? `
+                                    <div>
+                                        <span class="font-medium text-gray-700">Email:</span>
+                                        <span class="text-gray-900">${fp.email}</span>
+                                    </div>
+                                ` : ''}
+                                ${fp.location ? `
+                                    <div>
+                                        <span class="font-medium text-gray-700">Địa chỉ:</span>
+                                        <span class="text-gray-900">${fp.location}</span>
+                                    </div>
+                                ` : ''}
+                                <div>
+                                    <span class="font-medium text-gray-700">Trạng thái:</span>
+                                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${fp.is_published ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                        ${fp.is_published ? 'Đã xuất bản' : 'Chưa xuất bản'}
+                                    </span>
+                                    ${fp.is_verified ? `
+                                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full ml-2">
+                                            ✓ Đã xác minh
+                                        </span>
+                                    ` : ''}
+                                </div>
+                                ${fp.last_synced_at ? `
+                                    <div>
+                                        <span class="font-medium text-gray-700">Lần đồng bộ cuối:</span>
+                                        <span class="text-gray-900">${new Date(fp.last_synced_at).toLocaleString('vi-VN')}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            ${fp.about ? `
+                                <div class="mt-4">
+                                    <span class="font-medium text-gray-700">Giới thiệu:</span>
+                                    <p class="text-gray-900 mt-1">${fp.about}</p>
+                                </div>
+                            ` : ''}
+                            
+                            ${fp.website ? `
+                                <div class="mt-2">
+                                    <span class="font-medium text-gray-700">Website:</span>
+                                    <a href="${fp.website}" target="_blank" class="text-blue-600 hover:text-blue-800 ml-2">${fp.website}</a>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <!-- Cover photo nếu có -->
+                    ${fp.cover_photo_url ? `
+                        <div class="mb-6">
+                            <img src="${fp.cover_photo_url}" alt="Cover photo" class="w-full h-32 object-cover rounded-lg"/>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Các chỉ số tổng quan của page -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Thống kê tổng quan</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-blue-600">${numberFormat(fp.fan_count || 0)}</div>
+                                <div class="text-sm text-gray-600">Fans</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-green-600">${numberFormat(fp.followers_count || 0)}</div>
+                                <div class="text-sm text-gray-600">Followers</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-purple-600">${numberFormat(data.posts ? data.posts.length : 0)}</div>
+                                <div class="text-sm text-gray-600">Posts</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-orange-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (post.has_ads ? (post.total_impressions || 0) : (post.likes_count || 0)), 0) : 0)}</div>
+                                <div class="text-sm text-gray-600">Reach</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-red-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (post.has_ads ? 0 : (post.reactions_count || 0)), 0) : 0)}</div>
+                                <div class="text-sm text-gray-600">Reactions</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-indigo-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (post.has_ads ? (post.total_clicks || 0) : (post.engaged_users || 0)), 0) : 0)}</div>
+                                <div class="text-sm text-gray-600">Engagements</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Thông tin thời gian dữ liệu -->
+                        <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                            <div class="text-center">
+                                <div class="text-sm font-semibold text-blue-800 mb-2">Thời gian dữ liệu</div>
+                                  <div class="text-xs text-blue-600">
+                                      ${data.posts && data.posts.length > 0 ? 
+                                         (() => {
+                                             const dates = data.posts.map(p => new Date(p.created_time)).filter(d => !isNaN(d.getTime()));
+                                             if (dates.length === 0) return 'Không có dữ liệu hợp lệ';
+                                             
+                                             const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+                                             const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                                             
+                                             return `Từ ${formatDate(minDate.toISOString())} đến ${formatDate(maxDate.toISOString())}`;
+                                         })()
+                                          : 'Không có dữ liệu'
+                                      }
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Chỉ số bổ sung -->
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-gray-800">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (post.has_ads ? (post.total_impressions || 0) : (post.impressions_unique || 0)), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600">Reach Unique</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-gray-800">${numberFormat(data.posts ? data.posts.filter(post => !post.has_ads).reduce((sum, post) => sum + (post.impressions_organic || 0), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600">Reach Organic</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-gray-800">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (post.has_ads ? (post.total_clicks || 0) : (post.clicks || 0)), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600">Clicks</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-gray-800">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (post.has_ads ? (post.total_video_views || 0) : (post.video_views || 0)), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600">Video Views</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-gray-800">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (post.total_messages || 0), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600">Tin nhắn</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Phân tích Reactions -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Phân tích Reactions</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-blue-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.likes_count || 0) : 0), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                                    </svg>
+                                    Like
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-green-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.comments_count || 0) : 0), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Comment
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-purple-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.shares_count || 0) : 0), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path>
+                                    </svg>
+                                    Share
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-red-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.love_count || 0) : 0), 0) : 0)}</div>
+                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Love
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // View Mode Selector with Filters (moved below page info)
+        html += `
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-700">Chế độ xem:</span>
+                        <div class="flex bg-gray-100 rounded-lg p-1">
+                            <button onclick="setViewMode('grid')" class="view-mode-btn px-3 py-1 text-sm font-medium rounded-md bg-blue-100 text-blue-700" data-mode="grid">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                </svg>
+                                Lưới
+                            </button>
+                            <button onclick="setViewMode('list')" class="view-mode-btn px-3 py-1 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-200" data-mode="list">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                                </svg>
+                                Danh sách
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-700">Loại bài viết:</span>
+                        <div class="flex bg-gray-100 rounded-lg p-1">
+                            <button onclick="setPostFilter('all')" class="post-filter-btn px-3 py-1 text-sm font-medium rounded-md bg-blue-100 text-blue-700" data-filter="all">
+                                Tổng hợp
+                            </button>
+                            <button onclick="setPostFilter('organic')" class="post-filter-btn px-3 py-1 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-200" data-filter="organic">
+                                Posts
+                            </button>
+                            <button onclick="setPostFilter('ads')" class="post-filter-btn px-3 py-1 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-200" data-filter="ads">
+                                Ads
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-700">Sắp xếp:</span>
+                        <select id="sort-select" onchange="applySorting()" class="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="created_time_desc">Thời gian ↓</option>
+                            <option value="created_time_asc">Thời gian ↑</option>
+                            <option value="spend_desc">Chi phí ↓</option>
+                            <option value="spend_asc">Chi phí ↑</option>
+                            <option value="impressions_desc">Hiển thị ↓</option>
+                            <option value="impressions_asc">Hiển thị ↑</option>
+                            <option value="clicks_desc">Click ↓</option>
+                            <option value="clicks_asc">Click ↑</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-700">Tìm kiếm:</span>
+                        <input type="text" id="search-input" placeholder="Tìm kiếm nội dung..." 
+                               class="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+                    </div>
+                    
+                    
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-700">Khoảng thời gian:</span>
+                        <input type="date" id="date-from" class="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <span class="text-gray-500">→</span>
+                        <input type="date" id="date-to" class="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <button onclick="applyFilters()" class="px-4 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Lọc
+                    </button>
+                    
+                    <button onclick="resetFilters()" class="px-4 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        `;
+        
         // Posts List
-        if (data.posts && data.posts.length > 0) {
+        if (data.posts && Array.isArray(data.posts) && data.posts.length > 0) {
             // Hiển thị thông báo thành công
+            const adsCount = data.posts.filter(p => p.has_ads).length;
+            const organicCount = data.posts.filter(p => !p.has_ads).length;
+            
             html += `
                 <div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-6">
                     <div class="flex">
@@ -985,7 +1224,7 @@ function initializeDataManagement() {
                         </div>
                         <div class="ml-3">
                             <p class="text-sm font-medium text-green-800">
-                                Đã tải thành công ${data.posts.length} bài viết
+                                Đã tải thành công ${data.posts.length} bài viết (${adsCount} có ads, ${organicCount} organic)
                             </p>
                         </div>
                     </div>
@@ -995,7 +1234,23 @@ function initializeDataManagement() {
             // Charts section at top of content (follows selected page)
             html += `
                 <div id="dynamic-charts" class="bg-white rounded-xl shadow border border-gray-200 p-5 mb-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Biểu đồ tổng hợp của Page</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Biểu đồ tổng hợp của Page</h3>
+                          <div class="text-sm text-gray-600">
+                              ${data.posts && data.posts.length > 0 ? 
+                                 (() => {
+                                     const dates = data.posts.map(p => new Date(p.created_time)).filter(d => !isNaN(d.getTime()));
+                                     if (dates.length === 0) return 'Không có dữ liệu hợp lệ';
+                                     
+                                     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+                                     const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                                     
+                                     return `Từ ${formatDate(minDate.toISOString())} đến ${formatDate(maxDate.toISOString())}`;
+                                 })()
+                                  : 'Không có dữ liệu'
+                              }
+                        </div>
+                    </div>
                     <div class="max-w-4xl mx-auto"><canvas id="overview-chart" class="w-full" style="height:160px" height="160"></canvas></div>
                 </div>`;
 
@@ -1010,50 +1265,295 @@ function initializeDataManagement() {
             // Commit content
             contentArea.innerHTML = html;
 
+            // Store current posts for filtering
+            currentPosts = data.posts;
+            window.currentPosts = data.posts;
+            
+            // Store fanpage info globally
+            window.currentFanpageInfo = data.fanpage_info;
+
             // Client-side pagination
             const pageSize = 10;
-            const totalPosts = data.posts.length;
+            const totalPosts = currentPosts.length;
             const totalPages = Math.max(1, Math.ceil(totalPosts / pageSize));
             let current = 1;
 
             function renderPostsSlice(page) {
                 const start = (page - 1) * pageSize;
-                const slice = data.posts.slice(start, start + pageSize);
+                const slice = currentPosts.slice(start, start + pageSize);
                 let postsHtml = '';
                 slice.forEach(post => {
-                    postsHtml += `
-                    <div class=\"border border-gray-200 rounded-lg p-4 hover:bg-gray-50 mb-4\">
-                        <div class=\"flex items-start justify-between\"> 
-                            <div class=\"flex-1\">
-                                <div class=\"flex items-center space-x-2 mb-2\"> 
-                                    <span class=\"px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full\">${post.type || 'post'}</span>
-                                    <span class=\"text-sm text-gray-500\">${post.created_time ? new Date(post.created_time).toLocaleDateString('vi-VN') : 'N/A'}</span>
-                                    </div>
-                                <p class=\"text-gray-900 mb-3 line-clamp-3\">${post.message || 'Không có nội dung'}</p>
-                                <div class=\"flex items-center space-x-4 mb-3 text-sm\">
-                                    ${post.permalink_url ? `<a href=\"${post.permalink_url}\" target=\"_blank\" class=\"text-blue-600 hover:text-blue-800 font-medium\">Xem bài viết →</a>` : ''}
-                                    ${post.page_id ? `<a href=\"https://facebook.com/${post.page_id}\" target=\"_blank\" class=\"text-green-600 hover:text-green-800 font-medium\">Xem trang →</a>` : ''}
-                                    <a href=\"/facebook/data-management/post/${post.id}/page/${post.page_id}\" class=\"text-sm text-purple-600 hover:text-purple-800 font-medium\">Xem chi tiết →</a>
-                                    </div>
-                                <div class=\"grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3\">
-                                    <div class=\"text-center\"><div class=\"text-lg font-extrabold text-blue-700\">${numberFormat(post.total_spend || 0)}</div><div class=\"text-sm font-medium text-gray-700\">Chi phí (VND)</div></div>
-                                    <div class=\"text-center\"><div class=\"text-lg font-extrabold text-green-700\">${numberFormat(post.total_impressions || 0)}</div><div class=\"text-sm font-medium text-gray-700\">Hiển thị</div></div>
-                                    <div class=\"text-center\"><div class=\"text-lg font-extrabold text-purple-700\">${numberFormat(post.total_clicks || 0)}</div><div class=\"text-sm font-medium text-gray-700\">Click</div></div>
-                                    <div class=\"text-center\"><div class=\"text-lg font-extrabold text-orange-700\">${((post.avg_ctr || 0) * 100).toFixed(2)}%</div><div class=\"text-sm font-medium text-gray-700\">CTR</div></div>
-                                    </div>
-                                <div class=\"p-3 bg-gray-50 rounded-lg\">
-                                    <div class=\"flex items-center justify-between mb-2\"><div class=\"text-sm font-medium text-gray-700\">Chiến dịch quảng cáo:</div><button onclick=\"showAdCampaigns('${post.id}', '${post.page_id}')\" class=\"text-sm text-blue-600 hover:text-blue-800 font-medium\">Xem chi tiết →</button></div>
-                                    <div class=\"grid grid-cols-2 md:grid-cols-4 gap-3 text-sm\">
-                                        <div><span class=\"text-gray-600\">Số lần chạy:</span><span class=\"font-semibold text-purple-600 ml-1\">${numberFormat(post.ad_count || 0)}</span></div>
-                                        <div><span class=\"text-gray-600\">Chi phí:</span><span class=\"font-semibold text-red-600 ml-1\">${numberFormat(post.total_spend || 0)} VND</span></div>
-                                        <div><span class=\"text-gray-600\">Hiển thị:</span><span class=\"font-semibold text-blue-600 ml-1\">${numberFormat(post.total_impressions || 0)}</span></div>
-                                        <div><span class=\"text-gray-600\">Click:</span><span class=\"font-semibold text-green-600 ml-1\">${numberFormat(post.total_clicks || 0)}</span></div>
-                                    </div>
-                                    ${(post.total_video_views || 0) > 0 ? `<div class=\"mt-3 pt-3 border-t border-gray-200\"><div class=\"text-sm font-medium text-gray-700 mb-2\">Thống kê video:</div><div class=\"grid grid-cols-2 md:grid-cols-4 gap-3 text-sm\"><div><span class=\"text-gray-600\">Lượt xem:</span><span class=\"font-semibold text-blue-600 ml-1\">${numberFormat(post.total_video_views || 0)}</span></div>${(post.total_video_plays || 0) > 0 ? `<div><span class=\"text-gray-600\">Lượt phát:</span><span class=\"font-semibold text-green-600 ml-1\">${numberFormat(post.total_video_plays || 0)}</span></div>` : ''}${(post.total_video_p75_watched_actions || 0) > 0 ? `<div><span class=\"text-gray-600\">Xem 75%:</span><span class=\"font-semibold text-orange-600 ml-1\">${numberFormat(post.total_video_p75_watched_actions || 0)}</span></div>` : ''}${(post.total_video_p100_watched_actions || 0) > 0 ? `<div><span class=\"text-gray-600\">Xem 100%:</span><span class=\"font-semibold text-purple-600 ml-1\">${numberFormat(post.total_video_p100_watched_actions || 0)}</span></div>` : ''}</div></div>` : ''}
-                                    <div class=\"mt-3 pt-3 border-t border-gray-200\"><div class=\"text-sm font-medium text-gray-700 mb-2\">Hiệu suất:</div><div class=\"grid grid-cols-2 md:grid-cols-4 gap-3 text-sm\"><div><span class=\"text-gray-600\">CTR:</span><span class=\"font-semibold text-blue-600 ml-1\">${((post.avg_ctr || 0) * 100).toFixed(2)}%</span></div><div><span class=\"text-gray-600\">CPC:</span><span class=\"font-semibold text-red-600 ml-1\">${numberFormat(post.avg_cpc || 0)} VND</span></div><div><span class=\"text-gray-600\">CPM:</span><span class=\"font-semibold text-orange-600 ml-1\">${numberFormat(post.avg_cpm || 0)} VND</span></div><div><span class=\"text-gray-600\">Conversions:</span><span class=\"font-semibold text-green-600 ml-1\">${numberFormat(post.total_conversions || 0)}</span></div></div></div>
-                                </div>
-                                    </div>
+                    const postType = post.type || 'post';
+                    const postSource = post.post_source || 'unknown';
+                    const hasAds = post.has_ads || false;
+                    const createdTime = post.created_time ? new Date(post.created_time).toLocaleString('vi-VN') : 'N/A';
+                    const message = post.message || 'Không có nội dung';
+                    
+                    // Xử lý attachments cho cả ads và organic posts
+                    let attachmentsHtml = '';
+                    
+                    // Xử lý attachments từ JSON string hoặc object (organic posts)
+                    if (post.attachments) {
+                        console.log('Processing attachments for post:', post.id, 'Type:', typeof post.attachments, 'Data:', post.attachments);
+                        try {
+                            let attachments;
+                            if (typeof post.attachments === 'string') {
+                                attachments = JSON.parse(post.attachments);
+                            } else {
+                                attachments = post.attachments;
+                            }
+                            
+                            if (attachments && attachments.data && Array.isArray(attachments.data)) {
+                                attachments.data.forEach((attachment, index) => {
+                                    if (index < 3) {
+                                        if (attachment.media_type === 'photo' && attachment.media?.image?.src) {
+                                            attachmentsHtml += `
+                                                <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                    <div class="flex justify-center">
+                                                        <img src="${attachment.media.image.src}" 
+                                                             class="attachment-image max-w-full object-contain rounded-lg"
+                                                             onload="this.style.display='block'"
+                                                             onerror="this.style.display='none'"/>
+                                                    </div>
+                                                    ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                                </div>
+                                            `;
+                                        } else if (attachment.media_type === 'video' && attachment.media?.source) {
+                                            attachmentsHtml += `
+                                                <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                    <div class="flex justify-center">
+                                                        <video controls 
+                                                               class="attachment-video max-w-full object-contain rounded-lg"
+                                                               src="${attachment.media.source}">
+                                                            Your browser does not support the video tag.
+                                                        </video>
+                                                    </div>
+                                                    ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                                </div>
+                                            `;
+                                        } else if (attachment.media_type === 'album' && attachment.media?.image?.src) {
+                                            // Xử lý album (nhiều ảnh)
+                                            attachmentsHtml += `
+                                                <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                    <div class="flex justify-center">
+                                                        <img src="${attachment.media.image.src}" 
+                                                             class="attachment-image max-w-full object-contain rounded-lg"
+                                                             onload="this.style.display='block'"
+                                                             onerror="this.style.display='none'"/>
+                                                    </div>
+                                                    ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                                </div>
+                                            `;
+                                        } else if (attachment.media_type === 'link' && attachment.media?.image?.src) {
+                                            // Xử lý link với ảnh
+                                            attachmentsHtml += `
+                                                <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                    <div class="flex justify-center">
+                                                        <img src="${attachment.media.image.src}" 
+                                                             class="attachment-image max-w-full object-contain rounded-lg"
+                                                             onload="this.style.display='block'"
+                                                             onerror="this.style.display='none'"/>
+                                                    </div>
+                                                    ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                                </div>
+                                            `;
+                                        }
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing attachments JSON:', e);
+                        }
+                    }
+                    
+                    // Xử lý attachment_image cho ads posts (từ FacebookPostAd)
+                    if (!attachmentsHtml && post.attachment_image) {
+                        try {
+                            const imageUrl = post.attachment_image;
+                            if (imageUrl) {
+                                attachmentsHtml += `
+                                        <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                            <div class="flex justify-center">
+                                                <img src="${imageUrl}" 
+                                                     class="attachment-image max-w-full object-contain rounded-lg"
+                                                     onload="this.style.display='block'"
+                                                     onerror="this.style.display='none'"/>
+                                            </div>
                                         </div>
+                                    `;
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing attachment_image:', e);
+                        }
+                    }
+                    
+                    // Xử lý attachment_source cho ads posts (từ FacebookPostAd)
+                    if (!attachmentsHtml && post.attachment_source) {
+                        try {
+                            const videoUrl = post.attachment_source;
+                            if (videoUrl) {
+                                attachmentsHtml += `
+                                    <div class="relative mb-3">
+                                        <video controls class="w-full rounded-lg border max-h-64 object-cover" src="${videoUrl}"></video>
+                                    </div>
+                                `;
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing attachment_source:', e);
+                        }
+                    }
+                    
+                    // Xử lý attachments_image (array of URLs) cho organic posts
+                    if (!attachmentsHtml && post.attachments_image) {
+                        console.log('Processing attachments_image for post:', post.id, 'Data:', post.attachments_image);
+                        try {
+                            const images = Array.isArray(post.attachments_image) ? post.attachments_image : JSON.parse(post.attachments_image);
+                            if (Array.isArray(images)) {
+                                images.slice(0, 3).forEach(imageUrl => {
+                                    if (imageUrl) {
+                                        attachmentsHtml += `
+                                            <div class="relative mb-3">
+                                                <img src="${imageUrl}" class="w-full rounded-lg border max-h-64 object-cover"/>
+                                            </div>
+                                        `;
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing attachments_image:', e);
+                        }
+                    }
+                    
+                    // Xử lý attachments_source (array of video URLs) cho organic posts
+                    if (!attachmentsHtml && post.attachments_source) {
+                        try {
+                            const videos = Array.isArray(post.attachments_source) ? post.attachments_source : JSON.parse(post.attachments_source);
+                            if (Array.isArray(videos)) {
+                                videos.slice(0, 2).forEach(videoUrl => {
+                                    if (videoUrl) {
+                                        attachmentsHtml += `
+                                            <div class="relative mb-3">
+                                                <video controls class="w-full rounded-lg border max-h-64 object-cover" src="${videoUrl}"></video>
+                                            </div>
+                                        `;
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing attachments_source:', e);
+                        }
+                    }
+                    
+                    // Fallback cho ảnh từ các trường khác
+                    if (!attachmentsHtml && (post.full_picture || post.picture)) {
+                        const imageUrl = post.full_picture || post.picture;
+                        console.log('Using fallback image for post:', post.id, 'URL:', imageUrl);
+                        attachmentsHtml = `
+                            <div class="mb-3 bg-gray-100 rounded-lg p-2">
+                                <div class="flex justify-center">
+                                    <img src="${imageUrl}" 
+                                         class="attachment-image max-w-full object-contain rounded-lg"
+                                         onload="this.style.display='block'"
+                                         onerror="this.style.display='none'"/>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Fallback cho video từ các trường khác
+                    if (!attachmentsHtml && post.video_url) {
+                        attachmentsHtml = `
+                            <div class="mb-3">
+                                <video controls class="w-full rounded-lg border max-h-64 object-cover" src="${post.video_url}"></video>
+                            </div>
+                        `;
+                    }
+                    
+                    postsHtml += `
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-2 overflow-hidden">
+                        <div class="p-2 flex items-start gap-2 min-w-0">
+                            <div class="w-6 h-6 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                                ${data.fanpage_info && data.fanpage_info.profile_picture_url ? 
+                                    `<img src="${data.fanpage_info.profile_picture_url}" class="w-6 h-6 object-cover"/>` : ''
+                                }
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1 text-xs text-gray-600 mb-1 flex-wrap">
+                                    <span class="font-semibold text-gray-900 truncate">${data.fanpage_info ? data.fanpage_info.name : 'Unknown Page'}</span>
+                                    <span>·</span>
+                                    <span class="whitespace-nowrap">${createdTime}</span>
+                                    <span class="px-1 py-0.5 text-xs bg-blue-100 text-blue-700 rounded whitespace-nowrap">${postType.toUpperCase()}</span>
+                                    ${hasAds ? 
+                                        '<span class="px-1 py-0.5 text-xs bg-green-100 text-green-700 rounded whitespace-nowrap">💰 ADS</span>' : 
+                                        '<span class="px-1 py-0.5 text-xs bg-gray-100 text-gray-700 rounded whitespace-nowrap">📝 ORGANIC</span>'
+                                    }
+                                </div>
+                                
+                                <!-- Nội dung bài viết -->
+                                <div class="text-gray-900 mb-1 text-xs break-words">
+                                    ${message.replace(/\n/g, '<br>')}
+                                </div>
+
+                                <div class="attachment-container">
+                                    ${attachmentsHtml}
+                                </div>
+                                
+                                <!-- Chỉ số compact -->
+                                <div class="flex items-center gap-3 text-xs text-gray-600 mt-1">
+                                    ${hasAds ? `
+                                        <span>💰 ${numberFormat(post.total_spend || 0)}</span>
+                                        <span>👁️ ${numberFormat(post.total_impressions || 0)}</span>
+                                        <span>👆 ${numberFormat(post.total_clicks || 0)}</span>
+                                        <span>📊 ${((post.avg_ctr || 0) * 100).toFixed(2)}%</span>
+                                    ` : `
+                                        <span>👍 ${numberFormat(post.likes_count || 0)}</span>
+                                        <span>💬 ${numberFormat(post.comments_count || 0)}</span>
+                                        <span>↗️ ${numberFormat(post.shares_count || 0)}</span>
+                                        <span>❤️ ${numberFormat(post.love_count || 0)}</span>
+                                        <span>👁️ ${numberFormat(post.impressions || 0)}</span>
+                                        <span>👆 ${numberFormat(post.clicks || 0)}</span>
+                                    `}
+                                    ${post.total_messages > 0 ? `<span>💬 ${post.total_messages}</span>` : ''}
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs mt-1">
+                                    <div class="flex items-center gap-2">
+                                        ${hasAds ? `
+                                            <div class="flex gap-2">
+                                                <button onclick="showAdDetails('${post.id}', '${post.page_id}')"
+                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                                                    📊 Chi tiết
+                                                </button>
+                                                <a href="/facebook/data-management/post/${post.id}/page/${post.page_id}" 
+                                                   class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                                                    Xem chi tiết →
+                                                </a>
+                                                ${post.permalink_url ? `
+                                                    <a href="${post.permalink_url}" target="_blank"
+                                                       class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
+                                                        📘 Facebook
+                                                    </a>
+                                                ` : ''}
+                                            </div>
+                                        ` : `
+                                            <div class="flex gap-2">
+                                                <button onclick="showOrganicPostDetails('${post.id}', '${post.page_id}')"
+                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                                                    📊 Chi tiết
+                                                </button>
+                                                <a href="https://facebook.com/${post.id}" target="_blank"
+                                                   class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
+                                                    📘 Facebook
+                                                </a>
+                                            </div>
+                                        `}
+                                    </div>
+                                    <div class="text-gray-500">
+                                        ID: ${post.id}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>`;
                 });
                 return postsHtml;
@@ -1107,6 +1607,569 @@ function initializeDataManagement() {
                 if (pageId) loadPageData(pageId);
             });
         });
+    }
+
+    // View mode functions - Make them global
+    window.setViewMode = function(mode) {
+        // Update button states
+        const buttons = document.querySelectorAll('.view-mode-btn');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('data-mode') === mode) {
+                btn.classList.add('bg-blue-100', 'text-blue-700');
+                btn.classList.remove('text-gray-700', 'hover:bg-gray-200');
+            } else {
+                btn.classList.remove('bg-blue-100', 'text-blue-700');
+                btn.classList.add('text-gray-700', 'hover:bg-gray-200');
+            }
+        });
+        
+        // Store view mode preference
+        localStorage.setItem('viewMode', mode);
+        
+        // Apply view mode to posts container
+        const postsContainer = document.getElementById('posts-paginated');
+        if (postsContainer) {
+            // Remove existing view classes
+            postsContainer.classList.remove('grid-view', 'list-view');
+            
+            if (mode === 'grid') {
+                postsContainer.classList.remove('space-y-4');
+                postsContainer.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3', 'gap-4', 'grid-view');
+            } else {
+                postsContainer.classList.remove('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3', 'gap-4');
+                postsContainer.classList.add('space-y-4', 'list-view');
+            }
+        }
+    }
+
+    // Load saved view mode - default to list view
+    const savedViewMode = localStorage.getItem('viewMode') || 'list';
+    setTimeout(() => setViewMode(savedViewMode), 100);
+
+    // Add event listeners for search input
+    setTimeout(() => {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', debounce(applyFilters, 300));
+        }
+    }, 100);
+
+    // Debounce function for search
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Global variables for filtering and sorting
+    let currentPosts = [];
+    let currentPostFilter = 'all';
+    let currentSort = 'created_time_desc';
+    let currentBreakdown = 'content';
+
+    // Post filter functions - Make them global
+    window.setPostFilter = function(filter) {
+        currentPostFilter = filter;
+        
+        // Update button states
+        const buttons = document.querySelectorAll('.post-filter-btn');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('data-filter') === filter) {
+                btn.classList.add('bg-blue-100', 'text-blue-700');
+                btn.classList.remove('text-gray-700', 'hover:bg-gray-200');
+            } else {
+                btn.classList.remove('bg-blue-100', 'text-blue-700');
+                btn.classList.add('text-gray-700', 'hover:bg-gray-200');
+            }
+        });
+        
+        applyFilters();
+    }
+
+    // Sorting function - Make it global
+    window.applySorting = function() {
+        const sortSelect = document.getElementById('sort-select');
+        if (sortSelect) {
+            currentSort = sortSelect.value;
+            applyFilters();
+        }
+    }
+
+    // Main filter function - Make it global
+    window.applyFilters = function() {
+        if (!currentPosts || currentPosts.length === 0) return;
+        
+        let filteredPosts = [...currentPosts];
+        
+        // Filter by post type
+        if (currentPostFilter === 'ads') {
+            filteredPosts = filteredPosts.filter(post => post.has_ads);
+        } else if (currentPostFilter === 'organic') {
+            filteredPosts = filteredPosts.filter(post => !post.has_ads);
+        }
+        
+        // Filter by search
+        const searchInput = document.getElementById('search-input');
+        if (searchInput && searchInput.value.trim()) {
+            const searchTerm = searchInput.value.toLowerCase();
+            filteredPosts = filteredPosts.filter(post => 
+                (post.message && post.message.toLowerCase().includes(searchTerm)) ||
+                (post.id && post.id.toString().includes(searchTerm))
+            );
+        }
+        
+        // Filter by content type
+        const contentTypeFilter = document.getElementById('content-type-filter');
+        if (contentTypeFilter && contentTypeFilter.value) {
+            const contentType = contentTypeFilter.value;
+            filteredPosts = filteredPosts.filter(post => {
+                if (contentType === 'photo') {
+                    return post.attachments_image || post.picture || 
+                           (post.attachments && post.attachments.includes('photo'));
+                } else if (contentType === 'video') {
+                    return post.attachments_source || post.video_url || 
+                           (post.attachments && post.attachments.includes('video'));
+                } else if (contentType === 'link') {
+                    return post.link || (post.attachments && post.attachments.includes('link'));
+                } else if (contentType === 'status') {
+                    return post.message && !post.attachments_image && !post.attachments_source && !post.picture;
+                }
+                return true;
+            });
+        }
+        
+        // Filter by date range
+        const dateFrom = document.getElementById('date-from');
+        const dateTo = document.getElementById('date-to');
+        if (dateFrom && dateFrom.value) {
+            const fromDate = new Date(dateFrom.value);
+            filteredPosts = filteredPosts.filter(post => {
+                if (!post.created_time) return false;
+                return new Date(post.created_time) >= fromDate;
+            });
+        }
+        if (dateTo && dateTo.value) {
+            const toDate = new Date(dateTo.value);
+            toDate.setHours(23, 59, 59, 999); // End of day
+            filteredPosts = filteredPosts.filter(post => {
+                if (!post.created_time) return false;
+                return new Date(post.created_time) <= toDate;
+            });
+        }
+        
+        // Sort posts
+        filteredPosts.sort((a, b) => {
+            switch (currentSort) {
+                case 'created_time_desc':
+                    return new Date(b.created_time || 0) - new Date(a.created_time || 0);
+                case 'created_time_asc':
+                    return new Date(a.created_time || 0) - new Date(b.created_time || 0);
+                case 'spend_desc':
+                    return (b.total_spend || 0) - (a.total_spend || 0);
+                case 'spend_asc':
+                    return (a.total_spend || 0) - (b.total_spend || 0);
+                case 'impressions_desc':
+                    return (b.total_impressions || 0) - (a.total_impressions || 0);
+                case 'impressions_asc':
+                    return (a.total_impressions || 0) - (b.total_impressions || 0);
+                case 'clicks_desc':
+                    return (b.total_clicks || 0) - (a.total_clicks || 0);
+                case 'clicks_asc':
+                    return (a.total_clicks || 0) - (b.total_clicks || 0);
+                default:
+                    return 0;
+            }
+        });
+        
+        // Update posts display
+        updatePostsDisplay(filteredPosts);
+    }
+
+    // Breakdown function - Make it global
+    window.setBreakdown = function(breakdown) {
+        currentBreakdown = breakdown;
+        
+        // Update button states
+        const buttons = document.querySelectorAll('.breakdown-btn');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('data-breakdown') === breakdown) {
+                btn.classList.add('bg-blue-100', 'text-blue-700');
+                btn.classList.remove('text-gray-700', 'hover:bg-gray-200');
+            } else {
+                btn.classList.remove('bg-blue-100', 'text-blue-700');
+                btn.classList.add('text-gray-700', 'hover:bg-gray-200');
+            }
+        });
+        
+        applyFilters();
+    }
+
+    // Reset filters function - Make it global
+    window.resetFilters = function() {
+        currentPostFilter = 'all';
+        currentSort = 'created_time_desc';
+        currentBreakdown = 'content';
+        
+        // Reset UI elements
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.value = '';
+        
+        const dateFrom = document.getElementById('date-from');
+        if (dateFrom) dateFrom.value = '';
+        
+        const dateTo = document.getElementById('date-to');
+        if (dateTo) dateTo.value = '';
+        
+        const sortSelect = document.getElementById('sort-select');
+        if (sortSelect) sortSelect.value = 'created_time_desc';
+        
+        // Reset button states
+        setPostFilter('all');
+        setBreakdown('content');
+        
+        // Apply filters
+        applyFilters();
+    }
+
+    // Update posts display function
+    function updatePostsDisplay(posts) {
+        const postsContainer = document.getElementById('posts-paginated');
+        if (!postsContainer) return;
+        
+        // Update pagination
+        const pageSize = 10;
+        const totalPages = Math.max(1, Math.ceil(posts.length / pageSize));
+        let current = 1;
+        
+        function renderPostsSlice(page, fanpageInfo = null) {
+            const start = (page - 1) * pageSize;
+            const slice = posts.slice(start, start + pageSize);
+            let postsHtml = '';
+            
+            slice.forEach(post => {
+                const postType = post.type || 'post';
+                const postSource = post.post_source || 'unknown';
+                const hasAds = post.has_ads || false;
+                const createdTime = post.created_time ? new Date(post.created_time).toLocaleString('vi-VN') : 'N/A';
+                const message = post.message || 'Không có nội dung';
+                
+                // Xử lý attachments cho cả ads và organic posts
+                let attachmentsHtml = '';
+                
+                // Xử lý attachments từ JSON string hoặc object (organic posts) - theo logic pages.blade.php
+                if (post.attachments) {
+                    try {
+                        let attachments;
+                        if (typeof post.attachments === 'string') {
+                            attachments = JSON.parse(post.attachments);
+                        } else {
+                            attachments = post.attachments;
+                        }
+                        
+                        if (attachments && attachments.data && Array.isArray(attachments.data)) {
+                            attachments.data.forEach((attachment, index) => {
+                                if (index < 3) {
+                                    if (attachment.media_type === 'photo' && attachment.media?.image?.src) {
+                                        attachmentsHtml += `
+                                            <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                <div class="flex justify-center">
+                                                    <img src="${attachment.media.image.src}" 
+                                                         class="attachment-image max-w-full object-contain rounded-lg"
+                                                         onload="this.style.display='block'"
+                                                         onerror="this.style.display='none'"/>
+                                                </div>
+                                                ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                            </div>
+                                        `;
+                                    } else if (attachment.media_type === 'video' && attachment.media?.source) {
+                                        attachmentsHtml += `
+                                            <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                <div class="flex justify-center">
+                                                    <video controls 
+                                                           class="attachment-video max-w-full object-contain rounded-lg"
+                                                           src="${attachment.media.source}">
+                                                        Your browser does not support the video tag.
+                                                    </video>
+                                                </div>
+                                                ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                            </div>
+                                        `;
+                                    } else if (attachment.media_type === 'album' && attachment.media?.image?.src) {
+                                        // Xử lý album (nhiều ảnh)
+                                        attachmentsHtml += `
+                                            <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                <div class="flex justify-center">
+                                                    <img src="${attachment.media.image.src}" 
+                                                         class="attachment-image max-w-full object-contain rounded-lg"
+                                                         onload="this.style.display='block'"
+                                                         onerror="this.style.display='none'"/>
+                                                </div>
+                                                ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                            </div>
+                                        `;
+                                    } else if (attachment.media_type === 'link' && attachment.media?.image?.src) {
+                                        // Xử lý link với ảnh
+                                        attachmentsHtml += `
+                                            <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                                <div class="flex justify-center">
+                                                    <img src="${attachment.media.image.src}" 
+                                                         class="attachment-image max-w-full object-contain rounded-lg"
+                                                         onload="this.style.display='block'"
+                                                         onerror="this.style.display='none'"/>
+                                                </div>
+                                                ${attachment.title ? `<div class="mt-1 text-xs text-gray-600 text-center break-words">${attachment.title}</div>` : ''}
+                                            </div>
+                                        `;
+                                    }
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing attachments JSON:', e);
+                    }
+                }
+                
+                // Xử lý attachment_image cho ads posts (từ FacebookPostAd)
+                if (!attachmentsHtml && post.attachment_image) {
+                    try {
+                        const imageUrl = post.attachment_image;
+                        if (imageUrl) {
+                            attachmentsHtml += `
+                                <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                    <div class="flex justify-center">
+                                        <img src="${imageUrl}" 
+                                             class="attachment-image max-w-full object-contain rounded-lg"
+                                             onload="this.style.display='block'"
+                                             onerror="this.style.display='none'"/>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing attachment_image:', e);
+                    }
+                }
+                
+                // Xử lý attachment_source cho ads posts (từ FacebookPostAd)
+                if (!attachmentsHtml && post.attachment_source) {
+                    try {
+                        const videoUrl = post.attachment_source;
+                        if (videoUrl) {
+                            attachmentsHtml += `
+                                <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                    <div class="flex justify-center">
+                                        <video controls 
+                                               class="attachment-video max-w-full object-contain rounded-lg"
+                                               src="${videoUrl}">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing attachment_source:', e);
+                    }
+                }
+                
+                // Xử lý attachments_image (array of URLs) cho organic posts
+                if (!attachmentsHtml && post.attachments_image) {
+                    try {
+                        const images = Array.isArray(post.attachments_image) ? post.attachments_image : JSON.parse(post.attachments_image);
+                        if (Array.isArray(images)) {
+                            images.slice(0, 3).forEach(imageUrl => {
+                                if (imageUrl) {
+                                    attachmentsHtml += `
+                                        <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                            <div class="flex justify-center">
+                                                <img src="${imageUrl}" 
+                                                     class="attachment-image max-w-full object-contain rounded-lg"
+                                                     onload="this.style.display='block'"
+                                                     onerror="this.style.display='none'"/>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing attachments_image:', e);
+                    }
+                }
+                
+                // Xử lý attachments_source (array of video URLs) cho organic posts
+                if (!attachmentsHtml && post.attachments_source) {
+                    try {
+                        const videos = Array.isArray(post.attachments_source) ? post.attachments_source : JSON.parse(post.attachments_source);
+                        if (Array.isArray(videos)) {
+                            videos.slice(0, 2).forEach(videoUrl => {
+                                if (videoUrl) {
+                                    attachmentsHtml += `
+                                        <div class="relative mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                                            <div class="flex justify-center">
+                                                <video controls 
+                                                       class="attachment-video max-w-full object-contain rounded-lg"
+                                                       src="${videoUrl}">
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing attachments_source:', e);
+                    }
+                }
+                
+                // Fallback cho ảnh từ các trường khác
+                if (!attachmentsHtml && (post.full_picture || post.picture)) {
+                    const imageUrl = post.full_picture || post.picture;
+                    attachmentsHtml = `
+                        <div class="mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                            <div class="flex justify-center">
+                                <img src="${imageUrl}" 
+                                     class="attachment-image max-w-full object-contain rounded-lg"
+                                     onload="this.style.display='block'"
+                                     onerror="this.style.display='none'"/>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Fallback cho video từ các trường khác
+                if (!attachmentsHtml && post.video_url) {
+                    attachmentsHtml = `
+                        <div class="mb-2 bg-gray-100 rounded-lg p-2 max-w-full overflow-hidden">
+                            <div class="flex justify-center">
+                                <video controls 
+                                       class="attachment-video max-w-full object-contain rounded-lg"
+                                       src="${post.video_url}">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                postsHtml += `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-2 overflow-hidden">
+                    <div class="p-2 flex items-start gap-2 min-w-0">
+                        <div class="w-6 h-6 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                            ${fanpageInfo && fanpageInfo.profile_picture_url ? 
+                                `<img src="${fanpageInfo.profile_picture_url}" class="w-6 h-6 object-cover"/>` : ''
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1 text-xs text-gray-600 mb-1 flex-wrap">
+                                <span class="font-semibold text-gray-900 truncate">${fanpageInfo ? fanpageInfo.name : 'Unknown Page'}</span>
+                                <span>·</span>
+                                <span class="whitespace-nowrap">${createdTime}</span>
+                                <span class="px-1 py-0.5 text-xs bg-blue-100 text-blue-700 rounded whitespace-nowrap">${postType.toUpperCase()}</span>
+                                ${hasAds ? 
+                                    '<span class="px-1 py-0.5 text-xs bg-green-100 text-green-700 rounded whitespace-nowrap">💰 ADS</span>' : 
+                                    '<span class="px-1 py-0.5 text-xs bg-gray-100 text-gray-700 rounded whitespace-nowrap">📝 ORGANIC</span>'
+                                }
+                            </div>
+                            
+                            <!-- Nội dung bài viết -->
+                            <div class="text-gray-900 mb-1 text-xs break-words">
+                                ${message.replace(/\n/g, '<br>')}
+                            </div>
+
+                            <div class="attachment-container">
+                                ${attachmentsHtml}
+                            </div>
+                            
+                            <!-- Chỉ số compact -->
+                            <div class="flex items-center gap-3 text-xs text-gray-600 mt-1">
+                                ${hasAds ? `
+                                    <span>💰 ${numberFormat(post.total_spend || 0)}</span>
+                                    <span>👁️ ${numberFormat(post.total_impressions || 0)}</span>
+                                    <span>👆 ${numberFormat(post.total_clicks || 0)}</span>
+                                    <span>📊 ${numberFormat(post.avg_ctr || 0)}%</span>
+                                ` : `
+                                    <span>👍 ${numberFormat(post.likes_count || 0)}</span>
+                                    <span>💬 ${numberFormat(post.comments_count || 0)}</span>
+                                    <span>↗️ ${numberFormat(post.shares_count || 0)}</span>
+                                    <span>❤️ ${numberFormat(post.love_count || 0)}</span>
+                                    <span>👁️ ${numberFormat(post.impressions || 0)}</span>
+                                    <span>👆 ${numberFormat(post.clicks || 0)}</span>
+                                `}
+                                ${post.total_messages > 0 ? `<span>💬 ${post.total_messages}</span>` : ''}
+                            </div>
+                            
+                            <div class="flex items-center justify-between text-xs mt-1">
+                                <div class="flex items-center gap-2">
+                                        ${hasAds ? `
+                                            <div class="flex gap-2">
+                                                <button onclick="showAdDetails('${post.id}', '${post.page_id}')"
+                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                                                    📊 Chi tiết
+                                                </button>
+                                                <a href="/facebook/data-management/post/${post.id}/page/${post.page_id}" 
+                                                   class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                                                    Xem chi tiết →
+                                                </a>
+                                                ${post.permalink_url ? `
+                                                    <a href="${post.permalink_url}" target="_blank"
+                                                       class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
+                                                        📘 Facebook
+                                                    </a>
+                                                ` : ''}
+                                            </div>
+                                        ` : `
+                                            <div class="flex gap-2">
+                                                <button onclick="showOrganicPostDetails('${post.id}', '${post.page_id}')"
+                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                                                    📊 Chi tiết
+                                                </button>
+                                                <a href="https://facebook.com/${post.id}" target="_blank"
+                                                   class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
+                                                    📘 Facebook
+                                                </a>
+                                            </div>
+                                        `}
+                                </div>
+                                <div class="text-gray-500">
+                                    ID: ${post.id}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            return postsHtml;
+        }
+
+        function updatePager() {
+            const info = document.getElementById('page-info');
+            const prev = document.getElementById('btn-prev');
+            const next = document.getElementById('btn-next');
+            if (info) info.textContent = `Trang ${current}/${totalPages}`;
+            if (prev) prev.disabled = current <= 1;
+            if (next) next.disabled = current >= totalPages;
+        }
+        
+        function renderCurrent() {
+            const container = document.getElementById('posts-paginated');
+            if (container) container.innerHTML = renderPostsSlice(current, window.currentFanpageInfo);
+            updatePager();
+        }
+        
+        renderCurrent();
+
+        const prevBtn = document.getElementById('btn-prev');
+        const nextBtn = document.getElementById('btn-next');
+        if (prevBtn) prevBtn.addEventListener('click', function(){ if (current > 1) { current--; renderCurrent(); }});
+        if (nextBtn) nextBtn.addEventListener('click', function(){ if (current < totalPages) { current++; renderCurrent(); }});
     }
 
     // Date preset quick apply
@@ -1435,6 +2498,17 @@ function initializeDataManagement() {
     }
     
     function renderCharts(data) {
+        // Update date range
+        const chartsDateRange = document.getElementById('charts-date-range');
+        if (chartsDateRange && data.posts && data.posts.length > 0) {
+            const dates = data.posts.map(p => new Date(p.created_time)).filter(d => !isNaN(d.getTime()));
+            if (dates.length > 0) {
+                const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                chartsDateRange.textContent = `Từ ${formatDate(minDate.toISOString())} đến ${formatDate(maxDate.toISOString())}`;
+            }
+        }
+
         // Performance Chart
         const performanceCtx = document.getElementById('performance-chart').getContext('2d');
         if (window.performanceChart) {
@@ -1498,6 +2572,201 @@ function initializeDataManagement() {
                     plugins: {
                         legend: {
                             position: 'bottom',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Engagement Chart
+        const engagementCtx = document.getElementById('engagement-chart').getContext('2d');
+        if (window.engagementChart) {
+            window.engagementChart.destroy();
+        }
+        
+        if (data.engagement_data) {
+            window.engagementChart = new Chart(engagementCtx, {
+                type: 'line',
+                data: {
+                    labels: data.engagement_data.labels || [],
+                    datasets: [{
+                        label: 'Likes',
+                        data: data.engagement_data.likes || [],
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.1
+                    }, {
+                        label: 'Comments',
+                        data: data.engagement_data.comments || [],
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.1
+                    }, {
+                        label: 'Shares',
+                        data: data.engagement_data.shares || [],
+                        borderColor: 'rgb(168, 85, 247)',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Reach Chart
+        const reachCtx = document.getElementById('reach-chart').getContext('2d');
+        if (window.reachChart) {
+            window.reachChart.destroy();
+        }
+        
+        if (data.reach_data) {
+            window.reachChart = new Chart(reachCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.reach_data.labels || [],
+                    datasets: [{
+                        label: 'Reach',
+                        data: data.reach_data.values || [],
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Video Views Chart
+        const videoCtx = document.getElementById('video-chart').getContext('2d');
+        if (window.videoChart) {
+            window.videoChart.destroy();
+        }
+        
+        if (data.video_data) {
+            window.videoChart = new Chart(videoCtx, {
+                type: 'line',
+                data: {
+                    labels: data.video_data.labels || [],
+                    datasets: [{
+                        label: 'Video Views',
+                        data: data.video_data.values || [],
+                        borderColor: 'rgb(251, 146, 60)',
+                        backgroundColor: 'rgba(251, 146, 60, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Clicks Chart
+        const clicksCtx = document.getElementById('clicks-chart').getContext('2d');
+        if (window.clicksChart) {
+            window.clicksChart.destroy();
+        }
+        
+        if (data.clicks_data) {
+            window.clicksChart = new Chart(clicksCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.clicks_data.labels || [],
+                    datasets: [{
+                        label: 'Clicks',
+                        data: data.clicks_data.values || [],
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgb(34, 197, 94)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Post Types Chart
+        const postTypesCtx = document.getElementById('post-types-chart').getContext('2d');
+        if (window.postTypesChart) {
+            window.postTypesChart.destroy();
+        }
+        
+        if (data.post_types_data) {
+            window.postTypesChart = new Chart(postTypesCtx, {
+                type: 'pie',
+                data: {
+                    labels: data.post_types_data.labels || [],
+                    datasets: [{
+                        data: data.post_types_data.values || [],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(251, 146, 60, 0.8)',
+                            'rgba(168, 85, 247, 0.8)',
+                            'rgba(236, 72, 153, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Messages Chart
+        const messagesCtx = document.getElementById('messages-chart').getContext('2d');
+        if (window.messagesChart) {
+            window.messagesChart.destroy();
+        }
+        
+        if (data.messages_data) {
+            window.messagesChart = new Chart(messagesCtx, {
+                type: 'line',
+                data: {
+                    labels: data.messages_data.labels || [],
+                    datasets: [{
+                        label: 'Messages',
+                        data: data.messages_data.values || [],
+                        borderColor: 'rgb(236, 72, 153)',
+                        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
                         }
                     }
                 }
@@ -1699,23 +2968,739 @@ window.addEventListener('pageshow', function(){
         }
     }, 100);
 });
+
+// Function to format date
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    
+    // Kiểm tra nếu date không hợp lệ
+    if (isNaN(date.getTime())) {
+        console.warn('Invalid date:', dateString);
+        return 'N/A';
+    }
+    
+    return date.toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+// Function to format numbers
+function numberFormat(num) {
+    if (num === null || num === undefined || isNaN(num)) return '0';
+    return new Intl.NumberFormat('vi-VN').format(num);
+}
+
+// Function to show ad details modal
+function showAdDetails(postId, pageId) {
+    // Tìm post data từ currentPosts hoặc window.currentPosts
+    const posts = window.currentPosts || currentPosts;
+    if (!posts) {
+        console.error('currentPosts not found');
+        return;
+    }
+    const post = posts.find(p => p.id === postId);
+    if (!post) {
+        console.error('Post not found:', postId);
+        return;
+    }
+    
+    // Tạo modal content
+    const modalContent = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeAdDetails()">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Chi tiết bài quảng cáo</h3>
+                        <button onclick="closeAdDetails()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Post Content -->
+                    <div class="mb-6">
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                                ${post.from_picture ? `<img src="${post.from_picture}" class="w-8 h-8 object-cover"/>` : ''}
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm text-gray-600 mb-1">
+                                    <span class="font-semibold text-gray-900">${post.from_name || 'Unknown'}</span>
+                                    <span>·</span>
+                                    <span>${formatDate(post.created_time)}</span>
+                                    <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded ml-2">ADS</span>
+                                </div>
+                                <div class="text-sm text-gray-900">${post.message || 'Không có nội dung'}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Attachments -->
+                        ${post.attachment_image ? `
+                            <div class="mb-3 bg-gray-100 rounded-lg p-2">
+                                <div class="flex justify-center">
+                                    <img src="${post.attachment_image}" 
+                                         class="attachment-image max-w-full object-contain rounded-lg"
+                                         onload="this.style.display='block'"
+                                         onerror="this.style.display='none'"/>
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${post.attachment_source ? `
+                            <div class="mb-3 bg-gray-100 rounded-lg p-2">
+                                <div class="flex justify-center">
+                                    <video controls 
+                                           class="attachment-video max-w-full object-contain rounded-lg"
+                                           src="${post.attachment_source}">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="text-center p-3 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600">${numberFormat(post.total_spend || 0)}</div>
+                            <div class="text-sm text-gray-600">Chi phí (VND)</div>
+                        </div>
+                        <div class="text-center p-3 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600">${numberFormat(post.total_impressions || 0)}</div>
+                            <div class="text-sm text-gray-600">Lượt hiển thị</div>
+                        </div>
+                        <div class="text-center p-3 bg-purple-50 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600">${numberFormat(post.total_clicks || 0)}</div>
+                            <div class="text-sm text-gray-600">Lượt nhấp</div>
+                        </div>
+                        <div class="text-center p-3 bg-orange-50 rounded-lg">
+                            <div class="text-2xl font-bold text-orange-600">${((post.avg_ctr || 0) * 100).toFixed(2)}%</div>
+                            <div class="text-sm text-gray-600">CTR</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detailed Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-900 mb-3">Chỉ số hiệu suất</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>CPC trung bình:</span>
+                                    <span class="font-medium">${numberFormat(post.avg_cpc || 0)} VND</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>CPM trung bình:</span>
+                                    <span class="font-medium">${numberFormat(post.avg_cpm || 0)} VND</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Chuyển đổi:</span>
+                                    <span class="font-medium">${numberFormat(post.total_conversions || 0)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Số quảng cáo:</span>
+                                    <span class="font-medium">${post.ad_count || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-900 mb-3">Video & Tương tác</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>Lượt xem video:</span>
+                                    <span class="font-medium">${numberFormat(post.total_video_views || 0)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Lượt phát video:</span>
+                                    <span class="font-medium">${numberFormat(post.total_video_plays || 0)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Xem 75% video:</span>
+                                    <span class="font-medium">${numberFormat(post.total_video_p75_watched_actions || 0)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Xem 100% video:</span>
+                                    <span class="font-medium">${numberFormat(post.total_video_p100_watched_actions || 0)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post Engagement -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-900 mb-3">Tương tác bài viết</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-green-600">${numberFormat(post.comments_count || 0)}</div>
+                                <div class="text-gray-600">💬 Comment</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-purple-600">${numberFormat(post.shares_count || 0)}</div>
+                                <div class="text-gray-600">↗️ Share</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-red-600">${numberFormat(post.total_impressions || post.impressions || 0)}</div>
+                                <div class="text-gray-600">👁️ Tổng Reach</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages Statistics -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-900 mb-3">Tin nhắn & Tương tác</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-indigo-600">${numberFormat(post.total_messages || 0)}</div>
+                                <div class="text-gray-600">📨 Tin nhắn</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-pink-600">${numberFormat(post.total_message_conversations || 0)}</div>
+                                <div class="text-gray-600">💬 Hội thoại</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-teal-600">${numberFormat(post.ad_count || 0)}</div>
+                                <div class="text-gray-600">📊 Số quảng cáo</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-orange-600">${numberFormat(post.total_runs || 0)}</div>
+                                <div class="text-gray-600">🔄 Số lần chạy</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ad Campaign Breakdown -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-900 mb-3">Chi tiết quảng cáo</h4>
+                        <div class="space-y-3">
+                            <!-- Campaign Level -->
+                            <div class="border border-gray-200 rounded-lg p-3">
+                                <div class="flex items-center justify-between cursor-pointer" onclick="toggleBreakdown('campaign-${post.id}')">
+                                    <div class="flex items-center">
+                                        <span class="text-lg mr-2">📊</span>
+                                        <span class="font-medium">Campaign Level</span>
+                                    </div>
+                                    <span class="text-gray-500" id="campaign-${post.id}-arrow">▼</span>
+                                </div>
+                                <div id="campaign-${post.id}-content" class="mt-3 space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Số quảng cáo:</span>
+                                        <span class="font-semibold">${numberFormat(post.ad_count || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Số lần chạy:</span>
+                                        <span class="font-semibold">${numberFormat(post.total_runs || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Ngày bắt đầu:</span>
+                                        <span class="font-semibold">${formatDate(post.start_date || post.created_time)}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Ngày kết thúc:</span>
+                                        <span class="font-semibold">${formatDate(post.end_date || post.updated_time)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Daily Breakdown -->
+                            <div class="border border-gray-200 rounded-lg p-3">
+                                <div class="flex items-center justify-between cursor-pointer" onclick="toggleBreakdown('daily-${post.id}')">
+                                    <div class="flex items-center">
+                                        <span class="text-lg mr-2">📅</span>
+                                        <span class="font-medium">Breakdown theo ngày</span>
+                                    </div>
+                                    <span class="text-gray-500" id="daily-${post.id}-arrow">▼</span>
+                                </div>
+                                <div id="daily-${post.id}-content" class="mt-3 space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Trung bình/ngày:</span>
+                                        <span class="font-semibold">${numberFormat(Math.round((post.total_impressions || 0) / Math.max(1, post.total_runs || 1)))}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Chi phí/ngày:</span>
+                                        <span class="font-semibold">${numberFormat(Math.round((post.total_spend || 0) / Math.max(1, post.total_runs || 1)))} VND</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">CTR trung bình:</span>
+                                        <span class="font-semibold">${((post.avg_ctr || 0) * 100).toFixed(2)}%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">CPC trung bình:</span>
+                                        <span class="font-semibold">${numberFormat(post.avg_cpc || 0)} VND</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Performance Breakdown -->
+                            <div class="border border-gray-200 rounded-lg p-3">
+                                <div class="flex items-center justify-between cursor-pointer" onclick="toggleBreakdown('performance-${post.id}')">
+                                    <div class="flex items-center">
+                                        <span class="text-lg mr-2">📈</span>
+                                        <span class="font-medium">Breakdown hiệu suất</span>
+                                    </div>
+                                    <span class="text-gray-500" id="performance-${post.id}-arrow">▼</span>
+                                </div>
+                                <div id="performance-${post.id}-content" class="mt-3 space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">CPM trung bình:</span>
+                                        <span class="font-semibold">${numberFormat(post.avg_cpm || 0)} VND</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Tổng chuyển đổi:</span>
+                                        <span class="font-semibold">${numberFormat(post.total_conversions || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Video views:</span>
+                                        <span class="font-semibold">${numberFormat(post.total_video_plays || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Video 75%:</span>
+                                        <span class="font-semibold">${numberFormat(post.total_video_p75_watched_actions || 0)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex justify-end gap-3">
+                        <button onclick="closeAdDetails()" class="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
+                            Đóng
+                        </button>
+                        <a href="/facebook/data-management/post/${postId}/page/${pageId}" 
+                           class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Xem trang chi tiết →
+                        </a>
+                        ${post.permalink_url ? `
+                            <a href="${post.permalink_url}" target="_blank"
+                               class="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+                                📘 Xem trên Facebook
+                            </a>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Thêm modal vào body
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+}
+
+function closeAdDetails() {
+    const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Function to toggle breakdown sections
+function toggleBreakdown(sectionId) {
+    const content = document.getElementById(sectionId + '-content');
+    const arrow = document.getElementById(sectionId + '-arrow');
+    
+    if (content && arrow) {
+        if (content.style.display === 'none' || content.style.display === '') {
+            content.style.display = 'block';
+            arrow.textContent = '▲';
+        } else {
+            content.style.display = 'none';
+            arrow.textContent = '▼';
+        }
+    }
+}
+
+// Function to show organic post details modal
+function showOrganicPostDetails(postId, pageId) {
+    const posts = window.currentPosts || currentPosts;
+    const post = posts.find(p => p.id === postId);
+    
+    if (!post) {
+        console.error('Post not found:', postId);
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900">Chi tiết bài viết</h3>
+                    <button onclick="closeOrganicPostDetails()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Post Info -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div class="flex items-center mb-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold mr-3 overflow-hidden">
+                            ${post.page_profile_picture_url ? 
+                                `<img src="${post.page_profile_picture_url}" class="w-10 h-10 object-cover"/>` :
+                                `<div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                    ${post.page_name ? post.page_name.charAt(0).toUpperCase() : 'P'}
+                                </div>`
+                            }
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900">${post.page_name || 'Unknown Page'}</div>
+                            <div class="text-sm text-gray-500">${formatDate(post.created_time)}</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-900 whitespace-pre-wrap">${post.message || 'Không có nội dung'}</div>
+                </div>
+                
+                <!-- Attachments -->
+                ${post.attachment_image || post.attachment_source || post.full_picture || post.picture ? `
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-900 mb-3">Hình ảnh & Video</h4>
+                        <div class="space-y-3">
+                            ${post.attachment_image ? `
+                                <div class="bg-gray-100 rounded-lg p-2">
+                                    <div class="flex justify-center">
+                                        <img src="${post.attachment_image}" 
+                                             class="attachment-image max-w-full object-contain rounded-lg"
+                                             onload="this.style.display='block'"
+                                             onerror="this.style.display='none'"/>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${post.attachment_source ? `
+                                <div class="bg-gray-100 rounded-lg p-2">
+                                    <div class="flex justify-center">
+                                        <video controls 
+                                               class="attachment-video max-w-full object-contain rounded-lg"
+                                               src="${post.attachment_source}">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${!post.attachment_image && !post.attachment_source && (post.full_picture || post.picture) ? `
+                                <div class="bg-gray-100 rounded-lg p-2">
+                                    <div class="flex justify-center">
+                                        <img src="${post.full_picture || post.picture}" 
+                                             class="attachment-image max-w-full object-contain rounded-lg"
+                                             onload="this.style.display='block'"
+                                             onerror="this.style.display='none'"/>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Organic Post Metrics -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-gray-900 mb-3">Chỉ số hiệu suất</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-blue-600">${numberFormat(post.impressions || 0)}</div>
+                            <div class="text-gray-600">👁️ Hiển thị</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-green-600">${numberFormat(post.clicks || 0)}</div>
+                            <div class="text-gray-600">👆 Clicks</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-purple-600">${numberFormat(post.video_views || 0)}</div>
+                            <div class="text-gray-600">🎥 Video Views</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-orange-600">${numberFormat(post.engaged_users || 0)}</div>
+                            <div class="text-gray-600">👥 Engaged Users</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Post Engagement -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-gray-900 mb-3">Tương tác bài viết</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-green-600">${numberFormat(post.comments_count || 0)}</div>
+                            <div class="text-gray-600">💬 Comment</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-purple-600">${numberFormat(post.shares_count || 0)}</div>
+                            <div class="text-gray-600">↗️ Share</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-red-600">${numberFormat(post.reactions_count || 0)}</div>
+                            <div class="text-gray-600">❤️ Reactions</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Reactions -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-gray-900 mb-3">Phân tích Reactions</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-blue-600">${numberFormat(post.likes_count || 0)}</div>
+                            <div class="text-gray-600">👍 Like</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-red-600">${numberFormat(post.love_count || 0)}</div>
+                            <div class="text-gray-600">❤️ Love</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-yellow-600">${numberFormat(post.wow_count || 0)}</div>
+                            <div class="text-gray-600">😮 Wow</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-green-600">${numberFormat(post.haha_count || 0)}</div>
+                            <div class="text-gray-600">😂 Haha</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeOrganicPostDetails()" class="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
+                        Đóng
+                    </button>
+                    ${post.permalink_url ? `
+                        <a href="${post.permalink_url}" target="_blank"
+                           class="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+                            📘 Xem trên Facebook
+                        </a>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Function to close organic post details modal
+function closeOrganicPostDetails() {
+    const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Make functions global
+window.showAdDetails = showAdDetails;
+window.closeAdDetails = closeAdDetails;
+window.showOrganicPostDetails = showOrganicPostDetails;
+window.closeOrganicPostDetails = closeOrganicPostDetails;
+window.toggleBreakdown = toggleBreakdown;
+window.formatDate = formatDate;
+window.numberFormat = numberFormat;
 </script>
+
+<style>
+/* Responsive image/video styling - Fixed layout issues */
+.attachment-image, .attachment-video {
+    border-radius: 0.5rem;
+    display: block;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Container styling for images - Prevent overflow */
+.image-container, .relative.mb-2.bg-gray-100.rounded-lg.p-2 {
+    background-color: #f3f4f6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100px;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+    .attachment-image, .attachment-video {
+        max-height: 200px;
+        width: 100%;
+        object-fit: contain;
+    }
+    
+    .relative.mb-2.bg-gray-100.rounded-lg.p-2 {
+        max-width: 100%;
+        margin: 0.5rem 0;
+    }
+}
+
+@media (min-width: 769px) {
+    .attachment-image, .attachment-video {
+        max-height: 250px;
+        width: 100%;
+        object-fit: contain;
+    }
+}
+
+/* Grid view specific styling */
+.grid-view .attachment-image, .grid-view .attachment-video {
+    max-height: 200px;
+    width: 100%;
+    object-fit: contain;
+}
+
+/* List view specific styling */
+.list-view .attachment-image, .list-view .attachment-video {
+    max-height: 150px;
+    max-width: 200px;
+    object-fit: contain;
+}
+
+/* Fix for post containers to prevent layout breaking */
+.bg-white.rounded-lg.shadow-sm.border.border-gray-200.mb-2 {
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Ensure flex containers don't break */
+.flex.items-start.gap-2 {
+    min-width: 0;
+    flex: 1;
+}
+
+.flex-1 {
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Fix for text content that might be too long */
+.text-gray-900.mb-1.text-xs {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Attachment container styling */
+.attachment-container {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Additional fixes for layout stability */
+.min-w-0 {
+    min-width: 0;
+}
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.break-words {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Ensure consistent post container height when switching views */
+.bg-white.rounded-lg.shadow-sm.border.border-gray-200.mb-2 {
+    min-height: 120px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Maintain consistent attachment heights across all views */
+.attachment-container {
+    min-height: 60px;
+    max-height: 300px;
+    overflow: hidden;
+}
+
+/* Ensure post content doesn't cause layout shifts */
+.flex-1.min-w-0 {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Consistent spacing for post metrics */
+.flex.items-center.gap-3.text-xs.text-gray-600.mt-1 {
+    margin-top: 0.5rem;
+    min-height: 1.5rem;
+}
+</style>
 
 <!-- Charts Section -->
 <div id="charts-section" class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-    <h3 class="text-lg font-medium text-gray-900 mb-4">Biểu đồ tổng hợp của Page</h3>
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-medium text-gray-900">Biểu đồ tổng hợp của Page</h3>
+        <div class="text-sm text-gray-500" id="charts-date-range">
+            <!-- Date range will be populated by JavaScript -->
+        </div>
+    </div>
     
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- First Row: Performance and Spend -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <!-- Performance Chart -->
         <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="text-md font-medium text-gray-700 mb-3">Hiệu suất theo thời gian</h4>
+            <h4 class="text-md font-medium text-gray-700 mb-3">📈 Hiệu suất theo thời gian</h4>
             <canvas id="performance-chart" width="400" height="200"></canvas>
         </div>
         
         <!-- Spend Chart -->
         <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="text-md font-medium text-gray-700 mb-3">Phân bổ chi phí</h4>
+            <h4 class="text-md font-medium text-gray-700 mb-3">💰 Phân bổ chi phí</h4>
             <canvas id="spend-chart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    
+    <!-- Second Row: Engagement and Reach -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Engagement Chart -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-md font-medium text-gray-700 mb-3">❤️ Tương tác theo thời gian</h4>
+            <canvas id="engagement-chart" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- Reach Chart -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-md font-medium text-gray-700 mb-3">👁️ Reach theo thời gian</h4>
+            <canvas id="reach-chart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    
+    <!-- Third Row: Video and Clicks -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Video Views Chart -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-md font-medium text-gray-700 mb-3">🎥 Video Views theo thời gian</h4>
+            <canvas id="video-chart" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- Clicks Chart -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-md font-medium text-gray-700 mb-3">🖱️ Clicks theo thời gian</h4>
+            <canvas id="clicks-chart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    
+    <!-- Fourth Row: Post Types and Messages -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Post Types Chart -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-md font-medium text-gray-700 mb-3">📊 Phân loại bài viết</h4>
+            <canvas id="post-types-chart" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- Messages Chart -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-md font-medium text-gray-700 mb-3">💬 Tin nhắn theo thời gian</h4>
+            <canvas id="messages-chart" width="400" height="200"></canvas>
         </div>
     </div>
 </div>
