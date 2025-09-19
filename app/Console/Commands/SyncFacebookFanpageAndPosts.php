@@ -564,11 +564,27 @@ class SyncFacebookFanpageAndPosts extends Command
                 'updated_at' => now(),
             ];
             
-            // Only set created_time and created_at for new posts
+        // Parse created_time from Facebook API (ISO 8601 format with timezone)
+        // Always update created_time from Facebook API to ensure accuracy
+        try {
+            $createdTime = Carbon::parse($post['created_time']);
+            // Convert to Vietnam timezone for consistent storage
+            $postData['created_time'] = $createdTime->setTimezone('Asia/Ho_Chi_Minh');
+
             if (!$existingPost) {
-                $postData['created_time'] = Carbon::parse($post['created_time']);
+                // New post: also set created_at
                 $postData['created_at'] = now();
             }
+            // For existing posts, don't update created_at
+
+        } catch (\Exception $e) {
+            // Fallback: use current time if parsing fails
+            $this->warn("⚠️ Failed to parse created_time for post {$post['id']}: " . $e->getMessage());
+            $postData['created_time'] = now();
+            if (!$existingPost) {
+                $postData['created_at'] = now();
+            }
+        }
             
             DB::table('post_facebook_fanpage_not_ads')->updateOrInsert(
                 ['post_id' => $post['id']],

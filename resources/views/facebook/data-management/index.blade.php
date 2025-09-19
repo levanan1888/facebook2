@@ -1,4 +1,29 @@
 <x-layouts.app :title="'Quản lý dữ liệu Facebook'">
+@push('head')
+    <meta name="description" content="Quản lý và phân tích dữ liệu Facebook với AI - Tối ưu hóa hiệu suất quảng cáo và nội dung">
+    <meta name="keywords" content="Facebook, quảng cáo, AI, phân tích, marketing, y khoa">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/css/app.css" as="style">
+    <link rel="preload" href="/js/app.js" as="script">
+    
+    <!-- Performance hints -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Quản lý dữ liệu Facebook AI">
+    <meta property="og:description" content="Phân tích và tối ưu hóa dữ liệu Facebook với AI">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+@endpush
 @php
     $currentUser = auth()->user();
     $__canViewDm = $currentUser && (
@@ -31,7 +56,7 @@
                                 data-category="{{ $page->category }}"
                                 data-name="{{ Str::lower($page->name) }}"
                                 data-ads="{{ (int) $page->ads_count }}"
-                                data-created="{{ isset($page->created_time) ? \Carbon\Carbon::parse($page->created_time)->timestamp : (isset($page->created_at) ? \Carbon\Carbon::parse($page->created_at)->timestamp : 0) }}">
+                                data-created="{{ isset($page->created_time) ? \Carbon\Carbon::parse($page->created_time)->timestamp : 0 }}">
                             {{ $page->name }} 
                             ({{ number_format($page->fan_count) }} fan{{ $page->ads_count > 0 ? ', ' . $page->ads_count . ' quảng cáo' : '' }})
                         </option>
@@ -301,6 +326,40 @@
         <div id="posts-list-container" class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Danh sách bài viết</h3>
             
+            <!-- Loading Skeleton -->
+            <div id="loading-skeleton" class="hidden">
+                <div class="animate-pulse space-y-4">
+                    <div class="border border-gray-200 rounded-xl p-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                                <div class="flex gap-4">
+                                    <div class="h-3 bg-gray-200 rounded w-16"></div>
+                                    <div class="h-3 bg-gray-200 rounded w-16"></div>
+                                    <div class="h-3 bg-gray-200 rounded w-16"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                                <div class="flex gap-4">
+                                    <div class="h-3 bg-gray-200 rounded w-16"></div>
+                                    <div class="h-3 bg-gray-200 rounded w-16"></div>
+                                    <div class="h-3 bg-gray-200 rounded w-16"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             @if($data['posts']->count() > 0)
                 <div class="space-y-4">
                     @foreach($data['posts'] as $post)
@@ -320,35 +379,55 @@
                                         {{ Str::limit($post->message, 200) ?: 'Không có nội dung' }}
                                     </p>
                                     
-                                    <!-- Post Links -->
-                                    <div class="flex items-center space-x-4 mb-3 text-sm">
-                                        @if($post->permalink_url)
-                                            <a href="{{ $post->permalink_url }}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">
+                                    <!-- Post Actions -->
+                                    <div class="flex items-center justify-between mb-3">
+                                        <!-- Post Links -->
+                                        <div class="flex items-center space-x-4 text-sm">
+                                            @if($post->permalink_url)
+                                                <a href="{{ $post->permalink_url }}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">
+                                                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                    </svg>
+                                                    Xem bài viết →
+                                                </a>
+                                            @else
+                                                <span class="text-gray-400 text-sm">Không có link bài viết</span>
+                                            @endif
+                                            @if($post->page_id)
+                                                <a href="https://facebook.com/{{ $post->page_id }}" target="_blank" class="text-green-600 hover:text-green-800 font-medium">
+                                                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                                    </svg>
+                                                    Xem trang →
+                                                </a>
+                                            @endif
+                                            <a href="{{ route('facebook.data-management.post-detail', ['postId' => $post->id, 'pageId' => $post->page_id]) }}" 
+                                               class="text-sm text-blue-600 hover:text-blue-800 font-medium">
                                                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                                 </svg>
-                                                Xem bài viết →
+                                                Xem chi tiết →
                                             </a>
-                                        @else
-                                            <span class="text-gray-400 text-sm">Không có link bài viết</span>
-                                @endif
-                                        @if($post->page_id)
-                                            <a href="https://facebook.com/{{ $post->page_id }}" target="_blank" class="text-green-600 hover:text-green-800 font-medium">
+                                        </div>
+                                        
+                                        <!-- Manual Analysis and Sync Buttons -->
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="triggerAnalysis('{{ $post->id }}', '{{ $post->page_id }}')" 
+                                                    class="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition-colors">
                                                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                                 </svg>
-                                                Xem trang →
-                                            </a>
-                                                    @endif
-                                        <a href="{{ route('facebook.data-management.post-detail', ['postId' => $post->id, 'pageId' => $post->page_id]) }}" 
-                                           class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                            </svg>
-                                            Xem chi tiết →
-                                        </a>
-
-                                                    </div>
+                                                Phân tích
+                                            </button>
+                                            <button onclick="showSyncModal('{{ $post->id }}', '{{ $post->page_id }}')" 
+                                                    class="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors">
+                                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                </svg>
+                                                Đồng bộ
+                                            </button>
+                                        </div>
+                                    </div>
                                     
                                     <!-- Post Stats Charts -->
                                     <div class="mb-4">
@@ -2367,6 +2446,8 @@ function initializeDataManagement() {
         refreshDataBtn.addEventListener('click', function() {
             const pageId = pageSelect ? pageSelect.value : null;
             if (pageId) {
+                // Clear in-memory cache before refreshing
+                try { if (window.__dmCache && window.__dmCache.clear) window.__dmCache.clear(); } catch(_) {}
                 this.disabled = true;
                 this.innerHTML = `
                     <svg class="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2934,7 +3015,19 @@ function initDataManagement() {
 
 // Delay initialization để Livewire hoàn thành navigation
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(initDataManagement, 200);
+    // Delay heavy init until a page is selected to reduce initial load time
+    const pageSelectEl = document.getElementById('page-select');
+    if (pageSelectEl && !pageSelectEl.value) {
+        // Attach a lightweight listener; bootstrap only after user chooses a page
+        pageSelectEl.addEventListener('change', function onSelect() {
+            if (this.value) {
+                pageSelectEl.removeEventListener('change', onSelect);
+                setTimeout(initDataManagement, 50);
+            }
+        });
+    } else {
+        setTimeout(initDataManagement, 200);
+    }
 });
 
 // Livewire SPA: ensure re-init when navigating back to this view
@@ -2996,19 +3089,81 @@ function numberFormat(num) {
     return new Intl.NumberFormat('vi-VN').format(num);
 }
 
+// Format seconds to H:M:S (for video view time)
+function formatSeconds(totalSeconds) {
+    const s = Number(totalSeconds || 0);
+    if (!s || isNaN(s)) return '0s';
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = Math.floor(s % 60);
+    if (h > 0) return `${h}h ${m}m ${sec}s`;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+}
+
+// Helper: pick first existing numeric field from list of keys
+function getMetric(obj, keys, fallback = 0) {
+    if (!obj) return fallback;
+    for (const k of keys) {
+        if (Object.prototype.hasOwnProperty.call(obj, k)) {
+            const v = obj[k];
+            const n = Number(v);
+            if (!isNaN(n)) return n;
+        }
+    }
+    return fallback;
+}
+
 // Function to show ad details modal
 function showAdDetails(postId, pageId) {
-    // Tìm post data từ currentPosts hoặc window.currentPosts
-    const posts = window.currentPosts || currentPosts;
-    if (!posts) {
-        console.error('currentPosts not found');
-        return;
-    }
-    const post = posts.find(p => p.id === postId);
-    if (!post) {
-        console.error('Post not found:', postId);
-        return;
-    }
+    // Show loading state
+    showLoadingSkeleton();
+    
+    // Fetch detailed ad insights data
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    const token = csrfToken ? csrfToken.getAttribute('content') : '';
+    
+    // Cache-busting query to avoid stale cached responses
+    fetch(`/api/facebook/ad-insights/${postId}?page_id=${pageId}&cb=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': token
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoadingSkeleton();
+        if (data.success) {
+            displayAdDetailsModal(data.post, postId, pageId);
+        } else {
+            console.error('Failed to fetch ad insights:', data.message);
+            // Fallback to current posts data
+            const posts = window.currentPosts || currentPosts;
+            if (posts) {
+                const post = posts.find(p => p.id === postId);
+                if (post) {
+                    displayAdDetailsModal(post, postId, pageId);
+                }
+            }
+        }
+    })
+    .catch(error => {
+        hideLoadingSkeleton();
+        console.error('Error fetching ad insights:', error);
+        // Fallback to current posts data
+        const posts = window.currentPosts || currentPosts;
+        if (posts) {
+            const post = posts.find(p => p.id === postId);
+            if (post) {
+                displayAdDetailsModal(post, postId, pageId);
+            }
+        }
+    });
+}
+
+// Function to display ad details modal with full data
+function displayAdDetailsModal(post, postId, pageId) {
     
     // Tạo modal content
     const modalContent = `
@@ -3022,6 +3177,9 @@ function showAdDetails(postId, pageId) {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
+                    </div>
+                    <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                        Đây là màn xem nhanh cho post. Muốn xem đầy đủ chi tiết, vui lòng mở trang chi tiết bài viết.
                     </div>
                     
                     <!-- Post Content -->
@@ -3085,48 +3243,169 @@ function showAdDetails(postId, pageId) {
                         </div>
                     </div>
                     
+                    <!-- Date Range Info -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-600">📅 Thời gian dữ liệu:</span>
+                                <span class="font-medium text-gray-900">${getDateRangeText(post)}</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-600">📊 Loại bài:</span>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">${getPostTypeText(post)}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Detailed Metrics -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h4 class="font-semibold text-gray-900 mb-3">Chỉ số hiệu suất</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="ad-metrics-container">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-900 mb-3">💰 Tài chính</h4>
                             <div class="space-y-2 text-sm">
                                 <div class="flex justify-between">
-                                    <span>CPC trung bình:</span>
-                                    <span class="font-medium">${numberFormat(post.avg_cpc || 0)} VND</span>
+                                    <span class="text-blue-700">Tổng chi phí:</span>
+                                    <span class="font-medium text-blue-900">${numberFormat(post.total_spend || post.spend || 0)} VND</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span>CPM trung bình:</span>
-                                    <span class="font-medium">${numberFormat(post.avg_cpm || 0)} VND</span>
+                                    <span class="text-blue-700">CPC:</span>
+                                    <span class="font-medium text-blue-900">${numberFormat(post.avg_cpc || post.cpc || 0)} VND</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span>Chuyển đổi:</span>
-                                    <span class="font-medium">${numberFormat(post.total_conversions || 0)}</span>
+                                    <span class="text-blue-700">CPM:</span>
+                                    <span class="font-medium text-blue-900">${numberFormat(post.avg_cpm || post.cpm || 0)} VND</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span>Số quảng cáo:</span>
-                                    <span class="font-medium">${post.ad_count || 0}</span>
+                                    <span class="text-blue-700">ROAS:</span>
+                                    <span class="font-medium text-blue-900">${(Number(post.avg_purchase_roas || post.purchase_roas || 0) || 0).toFixed(2)}x</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-blue-700">Cost/Conversion:</span>
+                                    <span class="font-medium text-blue-900">${numberFormat(post.cost_per_conversion || 0)} VND</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h4 class="font-semibold text-gray-900 mb-3">Video & Tương tác</h4>
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-green-900 mb-3">📊 Hiệu suất</h4>
                             <div class="space-y-2 text-sm">
                                 <div class="flex justify-between">
-                                    <span>Lượt xem video:</span>
-                                    <span class="font-medium">${numberFormat(post.total_video_views || 0)}</span>
+                                    <span class="text-green-700">Impressions:</span>
+                                    <span class="font-medium text-green-900">${numberFormat(post.total_impressions || post.impressions || 0)}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span>Lượt phát video:</span>
-                                    <span class="font-medium">${numberFormat(post.total_video_plays || 0)}</span>
+                                    <span class="text-green-700">Reach:</span>
+                                    <span class="font-medium text-green-900">${numberFormat(post.total_reach || post.reach || 0)}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span>Xem 75% video:</span>
-                                    <span class="font-medium">${numberFormat(post.total_video_p75_watched_actions || 0)}</span>
+                                    <span class="text-green-700">Clicks:</span>
+                                    <span class="font-medium text-green-900">${numberFormat(post.total_clicks || post.clicks || 0)}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span>Xem 100% video:</span>
-                                    <span class="font-medium">${numberFormat(post.total_video_p100_watched_actions || 0)}</span>
+                                    <span class="text-green-700">CTR:</span>
+                                    <span class="font-medium text-green-900">${((post.avg_ctr || post.ctr || 0) * 100).toFixed(2)}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-green-700">Frequency:</span>
+                                    <span class="font-medium text-green-900">${Number(post.avg_frequency || post.frequency || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${isVideoPost(post) ? `
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-purple-900 mb-3">🎥 Video Metrics</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">Video Views:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_views','video_views']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">Video Plays:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_plays','video_plays']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">25% Watched:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_p25_watched','video_p25_watched_actions']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">50% Watched:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_p50_watched','video_p50_watched_actions']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">75% Watched:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_p75_watched','video_p75_watched_actions']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">100% Watched:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_p100_watched','video_p100_watched_actions']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">95% Watched:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_p95_watched','video_p95_watched_actions']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">30s Watched:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_video_30_sec_watched','video_30_sec_watched']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">View Time:</span>
+                                    <span class="font-medium text-purple-900">${formatSeconds(getMetric(post, ['total_video_view_time']))}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">Avg Time Watched:</span>
+                                    <span class="font-medium text-purple-900">${(getMetric(post, ['avg_video_time_watched']) ? Number(getMetric(post, ['avg_video_time_watched'])).toFixed(2) : '0.00')}s</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-purple-700">ThruPlays:</span>
+                                    <span class="font-medium text-purple-900">${numberFormat(getMetric(post, ['total_thruplays','thruplays']))}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="bg-orange-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-orange-900 mb-3">💬 Tương tác</h4>
+                            <div class="space-y-2 text-sm">
+                                <!-- Lifetime Data from facebook_post_ads -->
+                                <div class="border-b border-orange-200 pb-2 mb-2">
+                                    <div class="text-xs font-semibold text-orange-800 mb-1">📊 Tổng từ trước đến nay:</div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Tổng Comments:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(post.total_comments_count || post.comments_count || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Tổng Shares:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(post.total_shares_count || post.shares_count || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Tổng Reactions:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(post.total_reactions_count || post.reactions_count || 0)}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Daily Data from facebook_ad_insights -->
+                                <div>
+                                    <div class="text-xs font-semibold text-orange-800 mb-1">📈 Theo ngày (từ ads):</div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Post Reactions:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(getMetric(post, ['total_post_reaction','post_reaction']))}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Post Engagement:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(getMetric(post, ['total_post_engagement','post_engagement']))}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Page Engagement:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(getMetric(post, ['total_page_engagement','page_engagement']))}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Link Clicks:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(getMetric(post, ['total_link_click','link_click']))}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-700">Conversions:</span>
+                                        <span class="font-medium text-orange-900">${numberFormat(getMetric(post, ['total_conversions','conversions']))}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3153,7 +3432,10 @@ function showAdDetails(postId, pageId) {
                     
                     <!-- Messages Statistics -->
                     <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                        <h4 class="font-semibold text-gray-900 mb-3">Tin nhắn & Tương tác</h4>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-gray-900">Tin nhắn & Tương tác</h4>
+                            ${(post.data_start_date || post.data_end_date) ? `<div class=\"text-xs text-gray-600\">Khoảng thời gian: ${post.data_start_date ? new Date(post.data_start_date).toLocaleDateString('vi-VN') : '?'} - ${post.data_end_date ? new Date(post.data_end_date).toLocaleDateString('vi-VN') : '?'}</div>` : ''}
+                        </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div class="text-center">
                                 <div class="text-lg font-semibold text-indigo-600">${numberFormat(post.total_messages || 0)}</div>
@@ -3174,108 +3456,19 @@ function showAdDetails(postId, pageId) {
                         </div>
                     </div>
                     
-                    <!-- Ad Campaign Breakdown -->
-                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                        <h4 class="font-semibold text-gray-900 mb-3">Chi tiết quảng cáo</h4>
-                        <div class="space-y-3">
-                            <!-- Campaign Level -->
-                            <div class="border border-gray-200 rounded-lg p-3">
-                                <div class="flex items-center justify-between cursor-pointer" onclick="toggleBreakdown('campaign-${post.id}')">
-                                    <div class="flex items-center">
-                                        <span class="text-lg mr-2">📊</span>
-                                        <span class="font-medium">Campaign Level</span>
-                                    </div>
-                                    <span class="text-gray-500" id="campaign-${post.id}-arrow">▼</span>
-                                </div>
-                                <div id="campaign-${post.id}-content" class="mt-3 space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Số quảng cáo:</span>
-                                        <span class="font-semibold">${numberFormat(post.ad_count || 0)}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Số lần chạy:</span>
-                                        <span class="font-semibold">${numberFormat(post.total_runs || 0)}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Ngày bắt đầu:</span>
-                                        <span class="font-semibold">${formatDate(post.start_date || post.created_time)}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Ngày kết thúc:</span>
-                                        <span class="font-semibold">${formatDate(post.end_date || post.updated_time)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Daily Breakdown -->
-                            <div class="border border-gray-200 rounded-lg p-3">
-                                <div class="flex items-center justify-between cursor-pointer" onclick="toggleBreakdown('daily-${post.id}')">
-                                    <div class="flex items-center">
-                                        <span class="text-lg mr-2">📅</span>
-                                        <span class="font-medium">Breakdown theo ngày</span>
-                                    </div>
-                                    <span class="text-gray-500" id="daily-${post.id}-arrow">▼</span>
-                                </div>
-                                <div id="daily-${post.id}-content" class="mt-3 space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Trung bình/ngày:</span>
-                                        <span class="font-semibold">${numberFormat(Math.round((post.total_impressions || 0) / Math.max(1, post.total_runs || 1)))}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Chi phí/ngày:</span>
-                                        <span class="font-semibold">${numberFormat(Math.round((post.total_spend || 0) / Math.max(1, post.total_runs || 1)))} VND</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">CTR trung bình:</span>
-                                        <span class="font-semibold">${((post.avg_ctr || 0) * 100).toFixed(2)}%</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">CPC trung bình:</span>
-                                        <span class="font-semibold">${numberFormat(post.avg_cpc || 0)} VND</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Performance Breakdown -->
-                            <div class="border border-gray-200 rounded-lg p-3">
-                                <div class="flex items-center justify-between cursor-pointer" onclick="toggleBreakdown('performance-${post.id}')">
-                                    <div class="flex items-center">
-                                        <span class="text-lg mr-2">📈</span>
-                                        <span class="font-medium">Breakdown hiệu suất</span>
-                                    </div>
-                                    <span class="text-gray-500" id="performance-${post.id}-arrow">▼</span>
-                                </div>
-                                <div id="performance-${post.id}-content" class="mt-3 space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">CPM trung bình:</span>
-                                        <span class="font-semibold">${numberFormat(post.avg_cpm || 0)} VND</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Tổng chuyển đổi:</span>
-                                        <span class="font-semibold">${numberFormat(post.total_conversions || 0)}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Video views:</span>
-                                        <span class="font-semibold">${numberFormat(post.total_video_plays || 0)}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Video 75%:</span>
-                                        <span class="font-semibold">${numberFormat(post.total_video_p75_watched_actions || 0)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    
                     
                     <!-- Actions -->
-                    <div class="flex justify-end gap-3">
-                        <button onclick="closeAdDetails()" class="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
-                            Đóng
-                        </button>
-                        <a href="/facebook/data-management/post/${postId}/page/${pageId}" 
-                           class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Xem trang chi tiết →
-                        </a>
+                    <div class="flex justify-between items-center">
+                        <div class="flex gap-2"></div>
+                        <div class="flex gap-3">
+                            <button onclick="closeAdDetails()" class="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
+                                Đóng
+                            </button>
+                            <a href="/facebook/data-management/post/${postId}/page/${pageId}" 
+                               class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Xem trang chi tiết →
+                            </a>
                         ${post.permalink_url ? `
                             <a href="${post.permalink_url}" target="_blank"
                                class="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
@@ -3297,6 +3490,48 @@ function closeAdDetails() {
     if (modal) {
         modal.remove();
     }
+}
+
+// Helper function to check if post is video
+function isVideoPost(post) {
+    return post.type === 'video' || 
+           post.attachment_source || 
+           (post.attachments && post.attachments.some(att => att.type === 'video')) ||
+           (post.total_video_views > 0 || post.video_views > 0);
+}
+
+// Helper function to get post type text
+function getPostTypeText(post) {
+    if (isVideoPost(post)) return 'Video';
+    if (post.type === 'photo') return 'Hình ảnh';
+    if (post.type === 'link') return 'Link';
+    if (post.type === 'status') return 'Văn bản';
+    return post.type || 'Không xác định';
+}
+
+// Helper function to get date range text
+function getDateRangeText(post) {
+    const createdTime = post.created_time ? new Date(post.created_time) : null;
+    const lastSynced = post.last_synced_at ? new Date(post.last_synced_at) : null;
+    const dataStart = post.data_start_date ? new Date(post.data_start_date) : null;
+    const dataEnd = post.data_end_date ? new Date(post.data_end_date) : null;
+    
+    if (dataStart || dataEnd) {
+        const s = dataStart ? dataStart.toLocaleDateString('vi-VN') : '?';
+        const e = dataEnd ? dataEnd.toLocaleDateString('vi-VN') : '?';
+        return `${s} - ${e}`;
+    }
+
+    if (createdTime && lastSynced) {
+        const createdStr = createdTime.toLocaleDateString('vi-VN');
+        const syncedStr = lastSynced.toLocaleDateString('vi-VN');
+        return `${createdStr} - ${syncedStr}`;
+    } else if (createdTime) {
+        return `Từ ${createdTime.toLocaleDateString('vi-VN')}`;
+    } else if (lastSynced) {
+        return `Đến ${lastSynced.toLocaleDateString('vi-VN')}`;
+    }
+    return 'Không xác định';
 }
 
 // Function to toggle breakdown sections
@@ -3465,16 +3700,29 @@ function showOrganicPostDetails(postId, pageId) {
                 </div>
                 
                 <!-- Actions -->
-                <div class="flex justify-end gap-3">
-                    <button onclick="closeOrganicPostDetails()" class="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
-                        Đóng
-                    </button>
-                    ${post.permalink_url ? `
-                        <a href="${post.permalink_url}" target="_blank"
-                           class="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
-                            📘 Xem trên Facebook
-                        </a>
-                    ` : ''}
+                <div class="flex justify-between items-center">
+                    <div class="flex gap-2">
+                        ${(post.video_views > 0) ? `
+                            <button onclick="analyzeVideoWithAI('${postId}', '${pageId}')" 
+                                    class="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                                🤖 Phân tích AI
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="closeOrganicPostDetails()" class="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
+                            Đóng
+                        </button>
+                        ${post.permalink_url ? `
+                            <a href="${post.permalink_url}" target="_blank"
+                               class="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+                                📘 Xem trên Facebook
+                            </a>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         </div>
@@ -3491,6 +3739,180 @@ function closeOrganicPostDetails() {
     }
 }
 
+// Manual Analysis Function
+function triggerAnalysis(postId, pageId) {
+    if (!postId || !pageId) {
+        alert('Thiếu thông tin bài viết hoặc trang');
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang phân tích...';
+    button.disabled = true;
+    
+    // Make API call to trigger analysis
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    const token = csrfToken ? csrfToken.getAttribute('content') : '';
+    
+    fetch(`/api/facebook/analyze-post`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({
+            post_id: postId,
+            page_id: pageId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Phân tích thành công! Kết quả đã được lưu.');
+            // Optionally refresh the page or update UI
+            location.reload();
+        } else {
+            alert('Lỗi phân tích: ' + (data.message || 'Không xác định'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Lỗi kết nối: ' + error.message);
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// Sync Modal Function
+function showSyncModal(postId, pageId) {
+    if (!postId || !pageId) {
+        alert('Thiếu thông tin bài viết hoặc trang');
+        return;
+    }
+    
+    // Create modal HTML
+    const modalHtml = `
+        <div id="sync-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Đồng bộ dữ liệu bài viết</h3>
+                        <button onclick="closeSyncModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn khoảng thời gian đồng bộ:</label>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Từ ngày:</label>
+                                <input type="date" id="sync-from-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Đến ngày:</label>
+                                <input type="date" id="sync-to-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button onclick="closeSyncModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">
+                            Hủy
+                        </button>
+                        <button onclick="executeSync('${postId}', '${pageId}')" class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700">
+                            Đồng bộ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Set default dates (last 30 days)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    document.getElementById('sync-from-date').value = thirtyDaysAgo.toISOString().split('T')[0];
+    document.getElementById('sync-to-date').value = today.toISOString().split('T')[0];
+}
+
+function closeSyncModal() {
+    const modal = document.getElementById('sync-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function executeSync(postId, pageId) {
+    const fromDate = document.getElementById('sync-from-date').value;
+    const toDate = document.getElementById('sync-to-date').value;
+    
+    if (!fromDate || !toDate) {
+        alert('Vui lòng chọn khoảng thời gian');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        alert('Ngày bắt đầu không được lớn hơn ngày kết thúc');
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang đồng bộ...';
+    button.disabled = true;
+    
+    // Make API call to sync data
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    const token = csrfToken ? csrfToken.getAttribute('content') : '';
+    
+    fetch(`/api/facebook/sync-post`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({
+            post_id: postId,
+            page_id: pageId,
+            from_date: fromDate,
+            to_date: toDate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Đồng bộ thành công! Dữ liệu đã được cập nhật.');
+            closeSyncModal();
+            // Optionally refresh the page or update UI
+            location.reload();
+        } else {
+            alert('Lỗi đồng bộ: ' + (data.message || 'Không xác định'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Lỗi kết nối: ' + error.message);
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
 // Make functions global
 window.showAdDetails = showAdDetails;
 window.closeAdDetails = closeAdDetails;
@@ -3499,12 +3921,413 @@ window.closeOrganicPostDetails = closeOrganicPostDetails;
 window.toggleBreakdown = toggleBreakdown;
 window.formatDate = formatDate;
 window.numberFormat = numberFormat;
+window.triggerAnalysis = triggerAnalysis;
+window.showSyncModal = showSyncModal;
+window.closeSyncModal = closeSyncModal;
+window.executeSync = executeSync;
+
+// AI analysis removed in quick-view modal per request
+
+// Show AI Analysis Results Modal (kept for future but currently unused)
+function showAIAnalysisModal(analysis, postId, pageId) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        🤖 Phân tích AI - Video Marketing
+                    </h3>
+                    <button onclick="closeAIAnalysisModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-6">
+                    ${analysis.medical_analysis ? `
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-900 mb-3">🏥 Phân tích Y khoa</h4>
+                            <div class="text-sm text-blue-800 whitespace-pre-line">${analysis.medical_analysis}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${analysis.marketing_analysis ? `
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-green-900 mb-3">📈 Phân tích Marketing</h4>
+                            <div class="text-sm text-green-800 whitespace-pre-line">${analysis.marketing_analysis}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${analysis.strengths ? `
+                        <div class="bg-yellow-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-yellow-900 mb-3">✅ Điểm mạnh</h4>
+                            <div class="text-sm text-yellow-800 whitespace-pre-line">${analysis.strengths}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${analysis.weaknesses ? `
+                        <div class="bg-red-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-red-900 mb-3">⚠️ Điểm cần cải thiện</h4>
+                            <div class="text-sm text-red-800 whitespace-pre-line">${analysis.weaknesses}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${analysis.suggestions ? `
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-purple-900 mb-3">💡 Gợi ý cải thiện</h4>
+                            <div class="text-sm text-purple-800 whitespace-pre-line">${analysis.suggestions}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="flex justify-end gap-3 mt-6">
+                    <button onclick="closeAIAnalysisModal()" class="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
+                        Đóng
+                    </button>
+                    <button onclick="saveAIAnalysis('${postId}', '${pageId}')" class="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">
+                        💾 Lưu phân tích
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Close AI Analysis Modal
+window.closeAIAnalysisModal = function() {
+    const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+    if (modal) {
+        modal.remove();
+    }
+};
+
+// Save AI Analysis
+window.saveAIAnalysis = function(postId, pageId) {
+    // Implementation for saving analysis results
+    alert('Chức năng lưu phân tích sẽ được triển khai');
+};
+
+// Image error handling and optimization
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle Facebook image loading errors
+    const images = document.querySelectorAll('.attachment-image');
+    images.forEach(img => {
+        img.addEventListener('error', function() {
+            this.classList.add('error');
+            this.alt = 'Không thể tải ảnh từ Facebook';
+            console.warn('Facebook image failed to load:', this.src);
+        });
+        
+        img.addEventListener('load', function() {
+            this.classList.remove('error');
+        });
+    });
+    
+    // Lazy loading for images
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                        observer.unobserve(img);
+                    }
+                }
+            });
+        });
+        
+        images.forEach(img => {
+            if (img.dataset.src) {
+                imageObserver.observe(img);
+            }
+        });
+    }
+});
+
+// Performance optimization: Debounce search
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Optimize search functionality
+const optimizedSearch = debounce(function(query) {
+    if (!currentPosts || currentPosts.length === 0) return;
+    
+    const filtered = currentPosts.filter(post => {
+        const searchTerm = query.toLowerCase();
+        return (
+            post.message?.toLowerCase().includes(searchTerm) ||
+            post.id?.toLowerCase().includes(searchTerm) ||
+            post.type?.toLowerCase().includes(searchTerm)
+        );
+    });
+    
+    displayPosts(filtered);
+}, 300);
+
+// Replace existing search with optimized version
+window.optimizedSearch = optimizedSearch;
+
+// Performance optimization: Cache DOM elements
+const domCache = {
+    pageSelect: null,
+    postSearch: null,
+    sortSelect: null,
+    postsContainer: null,
+    loadingSpinner: null
+};
+
+// Initialize DOM cache
+function initDOMCache() {
+    domCache.pageSelect = document.getElementById('page-select');
+    domCache.postSearch = document.getElementById('post-search');
+    domCache.sortSelect = document.getElementById('sort-select');
+    domCache.postsContainer = document.getElementById('posts-container');
+    domCache.loadingSpinner = document.querySelector('.loading-spinner');
+}
+
+// Optimize post rendering with virtual scrolling
+function optimizePostRendering(posts) {
+    const container = domCache.postsContainer;
+    if (!container) return;
+    
+    // Clear existing posts
+    container.innerHTML = '';
+    
+    // Batch DOM updates
+    const fragment = document.createDocumentFragment();
+    
+    posts.forEach((post, index) => {
+        const postElement = createPostElement(post);
+        fragment.appendChild(postElement);
+    });
+    
+    // Single DOM update
+    container.appendChild(fragment);
+}
+
+// Create optimized post element
+function createPostElement(post) {
+    const div = document.createElement('div');
+    div.className = 'post-item bg-white rounded-lg shadow border border-gray-200 p-4 mb-4';
+    div.innerHTML = `
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                ${post.attachments && post.attachments.length > 0 ? 
+                    `<img src="${post.attachments[0].media?.image?.src || '/placeholder.jpg'}" 
+                          class="w-16 h-16 object-cover rounded-lg attachment-image"
+                          alt="Post attachment"
+                          onerror="this.classList.add('error')">` : 
+                    '<div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">📄</div>'
+                }
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium text-gray-900 truncate">${post.message || 'Không có nội dung'}</h3>
+                    <span class="text-xs text-gray-500">${formatDate(post.created_time)}</span>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-gray-600">
+                    <span>👁️ ${formatNumber(post.impressions || 0)}</span>
+                    <span>❤️ ${formatNumber(post.reactions || 0)}</span>
+                    <span>💬 ${formatNumber(post.comments || 0)}</span>
+                    <span>📤 ${formatNumber(post.shares || 0)}</span>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="showAdDetails('${post.id}', '${post.page_id}')" 
+                            class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                        📊 Chi tiết
+                    </button>
+                    ${(post.video_views > 0) ? `
+                        <button onclick="analyzeVideoWithAI('${post.id}', '${post.page_id}')" 
+                                class="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200">
+                            🤖 AI
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+// Optimize API calls with caching
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function getCachedData(key) {
+    const cached = apiCache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+    return null;
+}
+
+function setCachedData(key, data) {
+    apiCache.set(key, {
+        data: data,
+        timestamp: Date.now()
+    });
+}
+
+// Optimize fetch requests
+async function optimizedFetch(url, options = {}) {
+    const cacheKey = `${url}_${JSON.stringify(options)}`;
+    const cached = getCachedData(cacheKey);
+    
+    if (cached) {
+        return cached;
+    }
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                ...options.headers
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setCachedData(cacheKey, data);
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
+}
+
+// Initialize optimizations on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initDOMCache();
+    
+    // Preload critical resources
+    const criticalImages = document.querySelectorAll('.attachment-image[src]');
+    criticalImages.forEach(img => {
+        if (img.src && !img.complete) {
+            img.loading = 'lazy';
+        }
+    });
+    
+    // Optimize scroll performance
+    let ticking = false;
+    function updateScrollPosition() {
+        // Handle scroll-based optimizations
+        ticking = false;
+    }
+    
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            requestAnimationFrame(updateScrollPosition);
+            ticking = true;
+        }
+    });
+});
+
+// Loading skeleton management
+function showLoadingSkeleton() {
+    const skeleton = document.getElementById('loading-skeleton');
+    const postsContainer = document.querySelector('.space-y-4');
+    
+    if (skeleton) {
+        skeleton.classList.remove('hidden');
+    }
+    if (postsContainer) {
+        postsContainer.style.display = 'none';
+    }
+}
+
+function hideLoadingSkeleton() {
+    const skeleton = document.getElementById('loading-skeleton');
+    const postsContainer = document.querySelector('.space-y-4');
+    
+    if (skeleton) {
+        skeleton.classList.add('hidden');
+    }
+    if (postsContainer) {
+        postsContainer.style.display = 'block';
+    }
+}
+
+// Optimize page load performance
+function optimizePageLoad() {
+    // Show loading skeleton immediately
+    showLoadingSkeleton();
+    
+    // Hide skeleton after a short delay to ensure smooth transition
+    setTimeout(() => {
+        hideLoadingSkeleton();
+    }, 500);
+}
+
+// Error handling for Facebook images
+function handleImageError(img) {
+    img.classList.add('error');
+    img.alt = 'Không thể tải ảnh từ Facebook';
+    
+    // Try to load a placeholder image
+    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMiAxNkMzNi40MTgzIDE2IDQwIDE5LjU4MTcgNDAgMjRDMzYgMjguNDE4MyAzMi40MTgzIDMyIDI4IDMyQzIzLjU4MTcgMzIgMjAgMjguNDE4MyAyMCAyNEMyMCAxOS41ODE3IDIzLjU4MTcgMTYgMjggMTZaIiBmaWxsPSIjOUI5QjlCIi8+CjxwYXRoIGQ9Ik0zMiA0MEMzNi40MTgzIDQwIDQwIDQzLjU4MTcgNDAgNDhDNDAgNTIuNDE4MyAzNi40MTgzIDU2IDMyIDU2QzI3LjU4MTcgNTYgMjQgNTIuNDE4MyAyNCA0OEMyNCA0My41ODE3IDI3LjU4MTcgNDAgMzIgNDBaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo=';
+}
+
+// Initialize image error handling
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('.attachment-image');
+    images.forEach(img => {
+        img.addEventListener('error', () => handleImageError(img));
+    });
+});
+
+// Export optimized functions
+window.optimizePostRendering = optimizePostRendering;
+window.optimizedFetch = optimizedFetch;
+window.showLoadingSkeleton = showLoadingSkeleton;
+window.hideLoadingSkeleton = hideLoadingSkeleton;
+window.optimizePageLoad = optimizePageLoad;
 </script>
 
 <style>
 /* Responsive image/video styling - Fixed layout issues */
 .attachment-image, .attachment-video {
     border-radius: 0.5rem;
+}
+
+/* Facebook image error handling */
+.attachment-image {
+    background-color: #f3f4f6;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxMkMyMy4zMTM3IDEyIDI2IDE0LjY4NjMgMjYgMThDMjYgMjEuMzEzNyAyMy4zMTM3IDI0IDIwIDI0QzE2LjY4NjMgMjQgMTQgMjEuMzEzNyAxNCAxOEMxNCAxNC42ODYzIDE2LjY4NjMgMTIgMjAgMTJaIiBmaWxsPSIjOUI5QjlCIi8+CjxwYXRoIGQ9Ik0yMCAyNkMyMy4zMTM3IDI2IDI2IDI4LjY4NjMgMjYgMzJDMjYgMzUuMzEzNyAyMy4zMTM3IDM4IDIwIDM4QzE2LjY4NjMgMzggMTQgMzUuMzEzNyAxNCAzMkMxNCAyOC42ODYzIDE2LjY4NjMgMjYgMjAgMjZaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo=');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 40px 40px;
+}
+
+.attachment-image[src*="scontent"] {
+    background-image: none;
+}
+
+.attachment-image.error {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRkY1RTVFIi8+CjxwYXRoIGQ9Ik0yMCAxMkMyMy4zMTM3IDEyIDI2IDE0LjY4NjMgMjYgMThDMjYgMjEuMzEzNyAyMy4zMTM3IDI0IDIwIDI0QzE2LjY4NjMgMjQgMTQgMjEuMzEzNyAxNCAxOEMxNCAxNC42ODYzIDE2LjY4NjMgMTIgMjAgMTJaIiBmaWxsPSIjRkY0NDQ0Ii8+CjxwYXRoIGQ9Ik0yMCAyNkMyMy4zMTM3IDI2IDI2IDI4LjY4NjMgMjYgMzJDMjYgMzUuMzEzNyAyMy4zMTM3IDM4IDIwIDM4QzE2LjY4NjMgMzggMTQgMzUuMzEzNyAxNCAzMkMxNCAyOC42ODYzIDE2LjY4NjMgMjYgMjAgMjZaIiBmaWxsPSIjRkY0NDQ0Ii8+Cjwvc3ZnPgo=');
+}
     display: block;
     max-width: 100%;
     height: auto;

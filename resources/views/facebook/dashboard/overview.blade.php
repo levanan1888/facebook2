@@ -235,8 +235,8 @@
                     </div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-purple-100 rounded-lg"><svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A2 2 0 0021 6.894V5a2 2 0 00-2-2h-5M9 14l-4.553 2.276A2 2 0 013 17.106V19a2 2 0 002 2h5"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Lượt phát video</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['video_plays'] ?? 0) }}</p></div></div></div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-rose-100 rounded-lg"><svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Bắt đầu trò chuyện (7 ngày)</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['msg_started'] ?? 0) }}</p></div></div></div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-emerald-100 rounded-lg"><svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Trả lời tin nhắn (7 ngày)</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['msg_replied'] ?? 0) }}</p></div></div></div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-rose-100 rounded-lg"><svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600" title="Messenger conversations started in the last 7 days (onsite_conversion.messaging_conversation_started_7d)">Conversations started (last 7 days)</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['msg_started'] ?? 0) }}</p></div></div></div>
+                
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"><div class="flex items-center"><div class="p-2 bg-sky-100 rounded-lg"><svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Nhấp liên kết</p><p class="text-2xl font-bold text-gray-900">{{ number_format($agg['link_click'] ?? 0) }}</p></div></div></div>
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <div class="flex items-center">
@@ -386,7 +386,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <div class="bg-white rounded-lg shadow">
-                    <div class="p-6 border-b border-gray-200"><h3 class="text-lg font-semibold text-gray-900">Top 5 Quảng cáo (Theo thời gian đồng bộ)</h3></div>
+                    <div class="p-6 border-b border-gray-200"><h3 class="text-lg font-semibold text-gray-900">Top 5 Quảng cáo (theo hiệu suất)</h3></div>
                     <div class="p-6">
                         <div class="space-y-4">
                             @forelse($data['topAds'] ?? [] as $ad)
@@ -397,8 +397,9 @@
                                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $ad->status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ($ad->status === 'PAUSED' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">{{ $ad->status }}</span>
                                     </div>
                                     <div class="text-right">
-                                        <p class="font-semibold text-gray-900">{{ $ad->last_insights_sync ? $ad->last_insights_sync->format('d/m/Y') : 'N/A' }}</p>
-                                        <p class="text-xs text-gray-500">Đồng bộ lúc</p>
+                                        <p class="font-semibold text-gray-900">{{ number_format((($ad->perf_ctr ?? 0) * 100), 2) }}%</p>
+                                        <p class="text-xs text-gray-500">CTR</p>
+                                        <p class="text-xs text-gray-500 mt-1">{{ number_format($ad->total_clicks ?? 0) }} clicks</p>
                                     </div>
                                 </div>
                             @empty
@@ -1064,14 +1065,14 @@
                 window.__fbCharts.msg = new Chart(mctx, {
                     type: 'bar',
                     data: {
-                        labels: ['Bắt đầu','Đã trả lời','Chào mừng','Tổng'],
+                        labels: ['Conversations started (7 days)','Message replies (7 days)','Welcome message views','Total messaging connections'],
                         datasets: [{
                             label: 'Tin nhắn',
                             data: [Number(agg.msg_started||0), Number(agg.msg_replied||0), Number(agg.msg_welcome||0), Number(agg.msg_total||0)],
                             backgroundColor: ['#06B6D4','#10B981','#60A5FA','#F59E0B']
                         }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx)=> `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}` } } } }
                 });
             }
 

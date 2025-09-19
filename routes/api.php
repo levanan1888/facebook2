@@ -40,3 +40,9 @@ Route::middleware(['auth', 'verified'])->prefix('api/filter')->name('api.filter.
     Route::get('campaigns/{campaignId}/ads', [App\Http\Controllers\Api\HierarchicalFilterController::class, 'getAdsByCampaign'])->name('ads');
     Route::get('businesses/{businessId}/pages', [App\Http\Controllers\Api\HierarchicalFilterController::class, 'getPagesByBusiness'])->name('pages');
 });
+
+// API for Facebook data management
+Route::prefix('api/facebook')->name('api.facebook.')->group(function () {
+    Route::post('analyze-video', [App\Http\Controllers\Api\FacebookAnalysisController::class, 'analyzeVideo'])->name('analyze-video');
+    Route::get('ad-insights/{postId}', [App\Http\Controllers\Api\FacebookAnalysisController::class, 'getAdInsights'])->name('ad-insights');
+});

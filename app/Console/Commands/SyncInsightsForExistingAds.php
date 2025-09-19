@@ -123,6 +123,27 @@ class SyncInsightsForExistingAds extends Command
                 $details = $api->getPostDetails($postId);
                 if (!is_array($details) || isset($details['error'])) { continue; }
 
+                // Parse created_time from Facebook API (ISO 8601 format with timezone)
+                // Always convert to UTC to ensure consistency
+                $createdTime = null;
+                $updatedTime = null;
+                
+                if (isset($details['created_time'])) {
+                    try {
+                        $createdTime = \Carbon\Carbon::parse($details['created_time'])->setTimezone('Asia/Ho_Chi_Minh');
+                    } catch (\Exception $e) {
+                        $this->warn("⚠️ Failed to parse created_time for post {$postId}: " . $e->getMessage());
+                    }
+                }
+                
+                if (isset($details['updated_time'])) {
+                    try {
+                        $updatedTime = \Carbon\Carbon::parse($details['updated_time'])->setTimezone('Asia/Ho_Chi_Minh');
+                    } catch (\Exception $e) {
+                        $this->warn("⚠️ Failed to parse updated_time for post {$postId}: " . $e->getMessage());
+                    }
+                }
+
                 \Illuminate\Support\Facades\DB::table('facebook_post_ads')->insert([
                     'page_id' => $pageId,
                     'post_id' => $postId,
@@ -130,8 +151,8 @@ class SyncInsightsForExistingAds extends Command
                     'message' => $details['message'] ?? null,
                     'type' => $details['type'] ?? null,
                     'permalink_url' => $details['permalink_url'] ?? null,
-                    'created_time' => isset($details['created_time']) ? \Carbon\Carbon::parse($details['created_time']) : null,
-                    'updated_time' => isset($details['updated_time']) ? \Carbon\Carbon::parse($details['updated_time']) : null,
+                    'created_time' => $createdTime,
+                    'updated_time' => $updatedTime,
                     'raw' => json_encode($details),
                     'created_at' => now(),
                     'updated_at' => now(),

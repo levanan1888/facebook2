@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class SyncAllFacebookData extends Command
 {
@@ -15,7 +16,11 @@ class SyncAllFacebookData extends Command
     protected $signature = 'facebook:sync-all-data 
                             {--days=30 : Number of days to sync}
                             {--limit=100 : Limit number of posts to sync}
-                            {--force : Force sync even if data exists}';
+                            {--force : Force sync even if data exists}
+                            {--user-id= : Facebook user ID (optional)}
+                            {--access-token= : Facebook access token (optional)}
+                            {--pages-only : Only sync pages, skip posts}
+                            {--posts-only : Only sync posts, skip pages}';
 
     /**
      * The console command description.
@@ -34,46 +39,71 @@ class SyncAllFacebookData extends Command
         $days = $this->option('days');
         $limit = $this->option('limit');
         $force = $this->option('force');
+        $userId = $this->option('user-id');
+        $accessToken = $this->option('access-token');
+        $pagesOnly = $this->option('pages-only');
+        $postsOnly = $this->option('posts-only');
         
         $this->info("📅 Date range: {$days} days");
         $this->info("📊 Limit: {$limit} posts per page");
         $this->info("🔄 Force mode: " . ($force ? 'Yes' : 'No'));
+        if ($userId) $this->info("👤 User ID: {$userId}");
+        if ($accessToken) $this->info("🔑 Access Token: " . substr($accessToken, 0, 20) . "...");
+        if ($pagesOnly) $this->info("📄 Pages only mode");
+        if ($postsOnly) $this->info("📝 Posts only mode");
         
         $startTime = now();
         $totalSteps = 4;
         $currentStep = 0;
         
         try {
-            // Step 1: Sync Facebook Fanpages
-            $currentStep++;
-            $this->info("\n📋 Step {$currentStep}/{$totalSteps}: Syncing Facebook Fanpages...");
-            $this->call('facebook:sync-fanpage-posts', [
-                '--days' => $days,
-                '--limit' => $limit
-            ]);
-            $this->info("✅ Fanpages sync completed");
+            // Step 0: Validate access tokens
+            $this->info("\n🔍 Validating access tokens...");
+            $this->validateAccessTokens();
             
-            // Step 2: Sync Enhanced Post Insights (for video posts)
-            $currentStep++;
-            $this->info("\n📊 Step {$currentStep}/{$totalSteps}: Syncing Enhanced Post Insights...");
-            $this->call('facebook:sync-enhanced-post-insights', [
-                '--since' => now()->subDays($days)->format('Y-m-d'),
-                '--until' => now()->format('Y-m-d'),
-                '--limit' => $limit
-            ]);
-            $this->info("✅ Enhanced post insights sync completed");
-            
-            // Step 3: Sync Facebook Ads (if needed)
-            $currentStep++;
-            $this->info("\n💰 Step {$currentStep}/{$totalSteps}: Syncing Facebook Ads...");
-            try {
-                $this->call('facebook:sync-ads-with-video-metrics', [
+            // Step 1: Sync Facebook Fanpages and Posts
+            if (!$postsOnly) {
+                $currentStep++;
+                $this->info("\n📋 Step {$currentStep}/{$totalSteps}: Syncing Facebook Fanpages and Posts...");
+                
+                $fanpageParams = [
                     '--days' => $days,
                     '--limit' => $limit
+                ];
+                
+                if ($userId) $fanpageParams['--user-id'] = $userId;
+                if ($accessToken) $fanpageParams['--access-token'] = $accessToken;
+                if ($pagesOnly) $fanpageParams['--pages-only'] = true;
+                
+                $this->call('facebook:sync-fanpage-posts', $fanpageParams);
+                $this->info("✅ Fanpages and posts sync completed");
+            }
+            
+            // Step 2: Sync Enhanced Post Insights (for video posts)
+            if (!$pagesOnly) {
+                $currentStep++;
+                $this->info("\n📊 Step {$currentStep}/{$totalSteps}: Syncing Enhanced Post Insights...");
+                $this->call('facebook:sync-enhanced-post-insights', [
+                    '--since' => now()->subDays($days)->format('Y-m-d'),
+                    '--until' => now()->format('Y-m-d'),
+                    '--limit' => $limit
                 ]);
-                $this->info("✅ Facebook ads sync completed");
-            } catch (\Exception $e) {
-                $this->warn("⚠️ Facebook ads sync failed: " . $e->getMessage());
+                $this->info("✅ Enhanced post insights sync completed");
+            }
+            
+            // Step 3: Sync Facebook Ads (if needed)
+            if (!$pagesOnly) {
+                $currentStep++;
+                $this->info("\n💰 Step {$currentStep}/{$totalSteps}: Syncing Facebook Ads...");
+                try {
+                    $this->call('facebook:sync-ads-with-video-metrics', [
+                        '--days' => $days,
+                        '--limit' => $limit
+                    ]);
+                    $this->info("✅ Facebook ads sync completed");
+                } catch (\Exception $e) {
+                    $this->warn("⚠️ Facebook ads sync failed: " . $e->getMessage());
+                }
             }
             
             // Step 4: Generate Summary Report
@@ -92,6 +122,7 @@ class SyncAllFacebookData extends Command
             
         } catch (\Exception $e) {
             $this->error("❌ Sync failed: " . $e->getMessage());
+            $this->error("💡 Try running with --force option or check your access tokens");
             return 1;
         }
     }
@@ -176,5 +207,67 @@ class SyncAllFacebookData extends Command
         }
         
         $this->info("\n✅ Summary report completed");
+    }
+    
+    /**
+     * Validate access tokens before starting sync
+     */
+    private function validateAccessTokens()
+    {
+        $validTokens = 0;
+        $totalTokens = 0;
+        
+        // Check config token
+        $configToken = config('services.facebook.ads_token');
+        if ($configToken) {
+            $totalTokens++;
+            if ($this->isTokenValid($configToken)) {
+                $validTokens++;
+                $this->info("✅ Config token is valid");
+            } else {
+                $this->warn("❌ Config token is invalid");
+            }
+        }
+        
+        // Check database tokens
+        $dbTokens = DB::table('facebook_fanpage')
+            ->whereNotNull('access_token')
+            ->where('access_token', '!=', '')
+            ->pluck('access_token')
+            ->unique();
+            
+        foreach ($dbTokens as $token) {
+            $totalTokens++;
+            if ($this->isTokenValid($token)) {
+                $validTokens++;
+            }
+        }
+        
+        $this->info("🔑 Token validation: {$validTokens}/{$totalTokens} tokens are valid");
+        
+        if ($validTokens === 0) {
+            $this->error("❌ No valid access tokens found!");
+            $this->error("💡 Please check your .env file and database configuration");
+            throw new \Exception("No valid access tokens available");
+        }
+        
+        if ($validTokens < $totalTokens) {
+            $this->warn("⚠️ Some tokens are invalid. Consider refreshing them.");
+        }
+    }
+    
+    /**
+     * Check if a token is valid
+     */
+    private function isTokenValid(string $token): bool
+    {
+        try {
+            $response = Http::timeout(10)->get('https://graph.facebook.com/v23.0/me', [
+                'access_token' => $token
+            ]);
+            return $response->successful();
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }

@@ -102,7 +102,31 @@ class FacebookDataService
     {
         $query = \App\Models\PostFacebookFanpageNotAds::query()
             ->leftJoin('facebook_fanpage', 'post_facebook_fanpage_not_ads.page_id', '=', 'facebook_fanpage.page_id')
-            ->select('post_facebook_fanpage_not_ads.*', 'facebook_fanpage.name as page_name', 'facebook_fanpage.profile_picture_url as page_profile_picture_url')
+            ->select([
+                'post_facebook_fanpage_not_ads.post_id',
+                'post_facebook_fanpage_not_ads.page_id',
+                'post_facebook_fanpage_not_ads.message',
+                'post_facebook_fanpage_not_ads.name',
+                'post_facebook_fanpage_not_ads.description',
+                'post_facebook_fanpage_not_ads.type',
+                'post_facebook_fanpage_not_ads.status_type',
+                'post_facebook_fanpage_not_ads.link',
+                'post_facebook_fanpage_not_ads.picture',
+                'post_facebook_fanpage_not_ads.full_picture',
+                'post_facebook_fanpage_not_ads.source',
+                'post_facebook_fanpage_not_ads.attachments',
+                'post_facebook_fanpage_not_ads.created_time',
+                'post_facebook_fanpage_not_ads.post_impressions',
+                'post_facebook_fanpage_not_ads.post_engaged_users',
+                'post_facebook_fanpage_not_ads.post_clicks',
+                'post_facebook_fanpage_not_ads.post_reactions',
+                'post_facebook_fanpage_not_ads.post_comments',
+                'post_facebook_fanpage_not_ads.post_shares',
+                'post_facebook_fanpage_not_ads.post_video_views',
+                'post_facebook_fanpage_not_ads.post_video_complete_views',
+                'facebook_fanpage.name as page_name',
+                'facebook_fanpage.profile_picture_url as page_profile_picture_url'
+            ])
             ->where('post_facebook_fanpage_not_ads.page_id', $pageId);
 
         if (!empty($filters['date_from'])) {
@@ -549,6 +573,7 @@ class FacebookDataService
                 // Lấy thông tin từ ad để có message và các thông tin khác
                 $adInfo = FacebookAd::where('post_id', $post->post_id)
                     ->where('page_id', $post->page_id)
+                    ->select(['post_id', 'page_id', 'name', 'type', 'permalink_url', 'created_time', 'status'])
                     ->first();
 
                 // Nếu thiếu nội dung post trong DB, thử lấy từ bảng facebook_posts hoặc gọi API lưu lại
@@ -556,6 +581,7 @@ class FacebookDataService
                 if (Schema::hasTable('facebook_posts')) {
                     $storedPost = \App\Models\FacebookPost::where('id', $post->post_id)
                         ->where('page_id', $post->page_id)
+                        ->select(['id', 'page_id', 'message', 'type', 'status_type', 'attachments', 'permalink_url', 'created_time'])
                         ->first();
                 }
                 if (!$storedPost && Schema::hasTable('facebook_posts')) {
@@ -572,7 +598,6 @@ class FacebookDataService
                                 'attachments' => $details['attachments']['data'] ?? null,
                                 'permalink_url' => $details['permalink_url'] ?? ($adInfo->permalink_url ?? null),
                                 'created_time' => $details['created_time'] ?? null,
-                                'updated_time' => $details['updated_time'] ?? null,
                             ]);
                         }
                     } catch (\Throwable $e) {

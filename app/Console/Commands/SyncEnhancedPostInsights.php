@@ -404,36 +404,49 @@ class SyncEnhancedPostInsights extends Command
                          ($metrics['post_reactions_sorry_total'] ?? 0) + 
                          ($metrics['post_reactions_anger_total'] ?? 0);
 
+        // Get current created_time to preserve it
+        $currentPost = DB::table('post_facebook_fanpage_not_ads')
+            ->where('id', $postId)
+            ->select('created_time')
+            ->first();
+            
+        $updateData = [
+            // Impressions metrics
+            'post_impressions' => $metrics['post_impressions'] ?? 0,
+            'post_impressions_unique' => $metrics['post_impressions_unique'] ?? 0,
+            'post_impressions_organic' => $metrics['post_impressions_organic'] ?? 0,
+            'post_impressions_viral' => $metrics['post_impressions_viral'] ?? 0,
+            
+            // Engagement metrics
+            'post_clicks' => $metrics['post_clicks'] ?? 0,
+            'post_engaged_users' => $metrics['post_engaged_users'] ?? 0,
+            'post_reactions' => $totalReactions,
+            
+            // Individual reactions
+            'post_reactions_like_total' => $metrics['post_reactions_like_total'] ?? 0,
+            'post_reactions_love_total' => $metrics['post_reactions_love_total'] ?? 0,
+            'post_reactions_wow_total' => $metrics['post_reactions_wow_total'] ?? 0,
+            'post_reactions_haha_total' => $metrics['post_reactions_haha_total'] ?? 0,
+            'post_reactions_sorry_total' => $metrics['post_reactions_sorry_total'] ?? 0,
+            'post_reactions_anger_total' => $metrics['post_reactions_anger_total'] ?? 0,
+            
+            // Video metrics (if available) - only basic ones
+            'post_video_views' => $metrics['post_video_views'] ?? 0,
+            
+            // Store all metrics in JSON for detailed analysis
+            'insights_data' => json_encode($metrics),
+            'insights_synced_at' => now(),
+            'updated_at' => now()
+        ];
+        
+        // Preserve created_time if it exists
+        if ($currentPost && $currentPost->created_time) {
+            $updateData['created_time'] = $currentPost->created_time;
+        }
+        
         DB::table('post_facebook_fanpage_not_ads')
             ->where('id', $postId)
-            ->update([
-                // Impressions metrics
-                'post_impressions' => $metrics['post_impressions'] ?? 0,
-                'post_impressions_unique' => $metrics['post_impressions_unique'] ?? 0,
-                'post_impressions_organic' => $metrics['post_impressions_organic'] ?? 0,
-                'post_impressions_viral' => $metrics['post_impressions_viral'] ?? 0,
-                
-                // Engagement metrics
-                'post_clicks' => $metrics['post_clicks'] ?? 0,
-                'post_engaged_users' => $metrics['post_engaged_users'] ?? 0,
-                'post_reactions' => $totalReactions,
-                
-                // Individual reactions
-                'post_reactions_like_total' => $metrics['post_reactions_like_total'] ?? 0,
-                'post_reactions_love_total' => $metrics['post_reactions_love_total'] ?? 0,
-                'post_reactions_wow_total' => $metrics['post_reactions_wow_total'] ?? 0,
-                'post_reactions_haha_total' => $metrics['post_reactions_haha_total'] ?? 0,
-                'post_reactions_sorry_total' => $metrics['post_reactions_sorry_total'] ?? 0,
-                'post_reactions_anger_total' => $metrics['post_reactions_anger_total'] ?? 0,
-                
-                // Video metrics (if available) - only basic ones
-                'post_video_views' => $metrics['post_video_views'] ?? 0,
-                
-                // Store all metrics in JSON for detailed analysis
-                'insights_data' => json_encode($metrics),
-                'insights_synced_at' => now(),
-                'updated_at' => now()
-            ]);
+            ->update($updateData);
     }
 
     /**

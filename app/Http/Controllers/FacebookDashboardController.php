@@ -744,9 +744,30 @@ class FacebookDashboardController extends Controller
             ->withSum('insights as total_clicks', 'clicks');
         }
         
-        return $adsQuery->orderByDesc('total_spend')
-            ->limit(5)
-            ->get();
+        // Lấy dữ liệu, sau đó sắp xếp theo hiệu suất (CTR) rồi theo clicks và spend
+        $ads = $adsQuery->get();
+        if ($ads->isEmpty()) {
+            return $ads;
+        }
+        $ads = $ads->map(function ($ad) {
+            $impr = (int) ($ad->total_impressions ?? 0);
+            $clicks = (int) ($ad->total_clicks ?? 0);
+            $spend = (float) ($ad->total_spend ?? 0);
+            // CTR làm thước đo hiệu suất chính; thêm backups
+            $ad->perf_ctr = $impr > 0 ? ($clicks / $impr) : 0.0;
+            $ad->perf_cpc = $clicks > 0 ? ($spend / $clicks) : INF; // thấp hơn là tốt
+            return $ad;
+        });
+        // Sắp xếp: CTR desc, rồi clicks desc, rồi spend desc
+        $ads = $ads->sort(function ($a, $b) {
+            $cmp = ($b->perf_ctr <=> $a->perf_ctr);
+            if ($cmp !== 0) return $cmp;
+            $cmp2 = ((int)($b->total_clicks ?? 0) <=> (int)($a->total_clicks ?? 0));
+            if ($cmp2 !== 0) return $cmp2;
+            return ((float)($b->total_spend ?? 0) <=> (float)($a->total_spend ?? 0));
+        })->values();
+
+        return $ads->take(5);
     }
 
     /**

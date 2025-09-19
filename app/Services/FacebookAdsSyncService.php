@@ -136,8 +136,8 @@ class FacebookAdsSyncService
                     [
                         'name' => $business['name'] ?? null,
                         'verification_status' => $business['verification_status'] ?? null,
-                        'created_time' => isset($business['created_time']) ? Carbon::parse($business['created_time']) : null,
-                        'updated_time' => isset($business['updated_time']) ? Carbon::parse($business['updated_time']) : null,
+                        'created_time' => isset($business['created_time']) ? Carbon::parse($business['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'updated_time' => isset($business['updated_time']) ? Carbon::parse($business['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                     ]
                 );
                 $syncedBusinesses[] = $syncedBusiness;
@@ -207,8 +207,8 @@ class FacebookAdsSyncService
                         'account_status' => $account['account_status'] ?? null,
                         'currency' => $account['currency'] ?? null,
                         'timezone_name' => $account['timezone_name'] ?? null,
-                        'created_time' => isset($account['created_time']) ? Carbon::parse($account['created_time']) : null,
-                        'updated_time' => isset($account['updated_time']) ? Carbon::parse($account['updated_time']) : null,
+                        'created_time' => isset($account['created_time']) ? Carbon::parse($account['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'updated_time' => isset($account['updated_time']) ? Carbon::parse($account['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                     ]
                 );
                 $result['accounts']++;
@@ -256,8 +256,8 @@ class FacebookAdsSyncService
                         'status' => $campaign['status'] ?? null,
                         'objective' => $campaign['objective'] ?? null,
                         'special_ad_categories' => isset($campaign['special_ad_categories']) ? json_encode($campaign['special_ad_categories']) : null,
-                        'created_time' => isset($campaign['created_time']) ? Carbon::parse($campaign['created_time']) : null,
-                        'updated_time' => isset($campaign['updated_time']) ? Carbon::parse($campaign['updated_time']) : null,
+                        'created_time' => isset($campaign['created_time']) ? Carbon::parse($campaign['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'updated_time' => isset($campaign['updated_time']) ? Carbon::parse($campaign['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                     ]
                 );
                 $result['campaigns']++;
@@ -328,8 +328,8 @@ class FacebookAdsSyncService
                         'optimization_goal' => $adSet['optimization_goal'] ?? null,
                         'bid_amount' => $adSet['bid_amount'] ?? null,
                         'bid_strategy' => $adSet['bid_strategy'] ?? null,
-                        'created_time' => isset($adSet['created_time']) ? Carbon::parse($adSet['created_time']) : null,
-                        'updated_time' => isset($adSet['updated_time']) ? Carbon::parse($adSet['updated_time']) : null,
+                        'created_time' => isset($adSet['created_time']) ? Carbon::parse($adSet['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'updated_time' => isset($adSet['updated_time']) ? Carbon::parse($adSet['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                     ]
                 );
                 $result['adsets']++;
@@ -422,8 +422,8 @@ class FacebookAdsSyncService
                 'adset_id' => $adSet->id,
                 'campaign_id' => $adSet->campaign_id,
                 'account_id' => $adSet->campaign->ad_account_id,
-                'created_time' => isset($ad['created_time']) ? Carbon::parse($ad['created_time']) : null,
-                'updated_time' => isset($ad['updated_time']) ? Carbon::parse($ad['updated_time']) : null,
+                'created_time' => isset($ad['created_time']) ? Carbon::parse($ad['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                'updated_time' => isset($ad['updated_time']) ? Carbon::parse($ad['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                 // KHÔNG set last_insights_sync vì chưa sync insights
                 // last_insights_sync sẽ được set bởi SyncInsightsForExistingAds command
             ]
@@ -484,8 +484,8 @@ class FacebookAdsSyncService
                     'status_type' => $postData['status_type'] ?? null,
                     'attachments' => isset($postData['attachments']) ? json_encode($postData['attachments']) : null,
                     'permalink_url' => $postData['permalink_url'] ?? null,
-                    'created_time' => isset($postData['created_time']) ? Carbon::parse($postData['created_time']) : null,
-                    'updated_time' => isset($postData['updated_time']) ? Carbon::parse($postData['updated_time']) : null,
+                    'created_time' => isset($postData['created_time']) ? Carbon::parse($postData['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                    'updated_time' => isset($postData['updated_time']) ? Carbon::parse($postData['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                 ]
             );
             $result['posts']++;
@@ -2317,7 +2317,7 @@ class FacebookAdsSyncService
                 [
                     'name' => $business['name'] ?? null,
                     'verification_status' => $business['verification_status'] ?? null,
-                    'created_time' => isset($business['created_time']) ? Carbon::parse($business['created_time']) : null,
+                    'created_time' => isset($business['created_time']) ? Carbon::parse($business['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                 ]
             );
             $result['businesses']++;
@@ -2358,8 +2358,8 @@ class FacebookAdsSyncService
                     'name' => $account['name'] ?? null,
                     'account_status' => $account['account_status'] ?? null,
                     'business_id' => $business->id,
-                    'created_time' => isset($account['created_time']) ? Carbon::parse($account['created_time']) : null,
-                    'updated_time' => isset($account['updated_time']) ? Carbon::parse($account['updated_time']) : null,
+                    'created_time' => isset($account['created_time']) ? Carbon::parse($account['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                    'updated_time' => isset($account['updated_time']) ? Carbon::parse($account['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                 ]
             );
             $result['accounts']++;
@@ -2395,8 +2395,8 @@ class FacebookAdsSyncService
                     'status' => $campaign['status'] ?? null,
                     'objective' => $campaign['objective'] ?? null,
                     'account_id' => $account->id,
-                    'created_time' => isset($campaign['created_time']) ? Carbon::parse($campaign['created_time']) : null,
-                    'updated_time' => isset($campaign['updated_time']) ? Carbon::parse($campaign['updated_time']) : null,
+                    'created_time' => isset($campaign['created_time']) ? Carbon::parse($campaign['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                    'updated_time' => isset($campaign['updated_time']) ? Carbon::parse($campaign['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                 ]
             );
             $result['campaigns']++;
@@ -2431,8 +2431,8 @@ class FacebookAdsSyncService
                     'name' => $adSet['name'] ?? null,
                     'status' => $adSet['status'] ?? null,
                     'campaign_id' => $campaign->id,
-                    'created_time' => isset($adSet['created_time']) ? Carbon::parse($adSet['created_time']) : null,
-                    'updated_time' => isset($adSet['updated_time']) ? Carbon::parse($adSet['updated_time']) : null,
+                    'created_time' => isset($adSet['created_time']) ? Carbon::parse($adSet['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                    'updated_time' => isset($adSet['updated_time']) ? Carbon::parse($adSet['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                 ]
             );
             $result['adsets']++;
@@ -2935,7 +2935,7 @@ class FacebookAdsSyncService
             } catch (\Throwable $e) { /* ignore */ }
 
             if (!$fanpage || !$pageAccessToken) {
-                \Log::info('persistPostAdIfNeeded: skip no fanpage/token', ['page_id' => $pageId, 'post_id' => $postId]);
+                Log::info('persistPostAdIfNeeded: skip no fanpage/token', ['page_id' => $pageId, 'post_id' => $postId]);
                 return; // giữ nguyên logic cũ cho insights, chỉ bỏ qua lưu post
             }
 
@@ -2945,13 +2945,13 @@ class FacebookAdsSyncService
             // Fallback: nếu request với bộ fields đầy đủ lỗi (#10/#12), thử bộ fields tối giản
             $details = $this->api->getPostDetails($normalizedId, $pageAccessToken);
             if (!is_array($details) || isset($details['error'])) {
-                \Log::warning('persistPostAdIfNeeded: retry getPostDetails with minimal fields', ['post_id'=>$normalizedId, 'resp'=>$details ?? null]);
+                Log::warning('persistPostAdIfNeeded: retry getPostDetails with minimal fields', ['post_id'=>$normalizedId, 'resp'=>$details ?? null]);
                 if (defined('STDOUT')) { @fwrite(STDOUT, "POST_API_ERROR[full]: ".json_encode($details)."\n"); }
                 $minimalFields = 'id,message,created_time,permalink_url';
                 $details = $this->api->getPostDetails($normalizedId, $pageAccessToken, $minimalFields);
             }
             if (!is_array($details) || isset($details['error'])) { 
-                \Log::info('persistPostAdIfNeeded: getPostDetails failed', ['post_id'=>$postId,'resp'=>$details ?? null]); 
+                Log::info('persistPostAdIfNeeded: getPostDetails failed', ['post_id'=>$postId,'resp'=>$details ?? null]); 
                 if (defined('STDOUT')) { @fwrite(STDOUT, "POST_API_ERROR[min]: ".json_encode($details)."\n"); }
                 return; 
             }
@@ -2995,8 +2995,8 @@ class FacebookAdsSyncService
                 'attachment_image' => $attachImage,
                 'attachment_source' => $attachSource,
                 'permalink_url' => $details['permalink_url'] ?? null,
-                'created_time' => isset($details['created_time']) ? \Carbon\Carbon::parse($details['created_time']) : null,
-                'updated_time' => isset($details['updated_time']) ? \Carbon\Carbon::parse($details['updated_time']) : null,
+                'created_time' => isset($details['created_time']) ? \Carbon\Carbon::parse($details['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                'updated_time' => isset($details['updated_time']) ? \Carbon\Carbon::parse($details['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                 'from_id' => $fromId,
                 'from_name' => $fromName,
                 'from_picture' => $fromPicture,
@@ -3487,8 +3487,8 @@ class FacebookAdsSyncService
                 'image_hash' => $creativeData['image_hash'] ?? null,
                 'call_to_action_type' => $creativeData['call_to_action_type'] ?? null,
                 'page_welcome_message' => $creativeData['page_welcome_message'] ?? null,
-                'created_time' => isset($creativeData['created_time']) ? Carbon::parse($creativeData['created_time']) : null,
-                'updated_time' => isset($creativeData['updated_time']) ? Carbon::parse($creativeData['updated_time']) : null,
+                'created_time' => isset($creativeData['created_time']) ? Carbon::parse($creativeData['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                'updated_time' => isset($creativeData['updated_time']) ? Carbon::parse($creativeData['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
             ];
 
             // Lưu hoặc cập nhật creative

@@ -1,4 +1,5 @@
 <x-layouts.app :title="'Chi tiết bài viết - ' . $post->id">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <style>
@@ -63,70 +64,155 @@
             </div>
         </div>
         
-        <!-- Post Attachments (for organic posts) -->
-        @if(!isset($post->has_ads) || !$post->has_ads)
-            @if($post->attachment_image || $post->attachment_source || $post->full_picture || $post->picture)
-                <div class="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 class="font-semibold text-gray-900 mb-3">Hình ảnh & Video</h4>
-                    <div class="space-y-3">
-                        @if($post->attachment_image)
-                            <div class="bg-white rounded-lg p-2">
-                                <div class="flex justify-center">
-                                    <img src="{{ $post->attachment_image }}" 
-                                         class="max-w-full max-h-96 object-contain rounded-lg"
-                                         style="max-height: 400px;"
-                                         alt="Post attachment"/>
+        <!-- Post Attachments (show all possible images/videos) -->
+        @php
+            $__attachments = [];
+            // 1) attachments JSON from Graph API
+            if (!empty($post->attachments)) {
+                $raw = is_string($post->attachments) ? json_decode($post->attachments, true) : $post->attachments;
+                if (is_array($raw) && isset($raw['data']) && is_array($raw['data'])) {
+                    foreach ($raw['data'] as $att) {
+                        if (!empty($att['media_type']) && $att['media_type'] === 'video' && !empty($att['media']['source'])) {
+                            $__attachments[] = ['type' => 'video', 'src' => $att['media']['source'], 'title' => $att['title'] ?? null];
+                        } elseif (!empty($att['media']['image']['src'])) {
+                            $__attachments[] = ['type' => 'image', 'src' => $att['media']['image']['src'], 'title' => $att['title'] ?? null];
+                        }
+                    }
+                }
+            }
+            // 2) arrays of urls
+            if (!empty($post->attachments_image)) {
+                $imgs = is_string($post->attachments_image) ? json_decode($post->attachments_image, true) : $post->attachments_image;
+                if (is_array($imgs)) { foreach ($imgs as $u) { if ($u) $__attachments[] = ['type' => 'image', 'src' => $u]; } }
+            }
+            if (!empty($post->attachments_source)) {
+                $vids = is_string($post->attachments_source) ? json_decode($post->attachments_source, true) : $post->attachments_source;
+                if (is_array($vids)) { foreach ($vids as $u) { if ($u) $__attachments[] = ['type' => 'video', 'src' => $u]; } }
+            }
+            // 3) single fields (ads)
+            if (!empty($post->attachment_image)) $__attachments[] = ['type' => 'image', 'src' => $post->attachment_image];
+            if (!empty($post->attachment_source)) $__attachments[] = ['type' => 'video', 'src' => $post->attachment_source];
+            // 4) fallbacks
+            if (empty($__attachments)) {
+                if (!empty($post->full_picture)) $__attachments[] = ['type' => 'image', 'src' => $post->full_picture];
+                elseif (!empty($post->picture)) $__attachments[] = ['type' => 'image', 'src' => $post->picture];
+            }
+        @endphp
+        @if(count($__attachments) > 0)
+            <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 class="font-semibold text-gray-900 mb-3">Hình ảnh & Video</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    @foreach($__attachments as $att)
+                        @if($att['type'] === 'image')
+                            <div class="bg-white rounded-lg overflow-hidden">
+                                <div class="w-full aspect-[4/3] bg-gray-100 flex items-center justify-center">
+                                    <img src="{{ $att['src'] }}" class="w-full h-full object-contain" alt="Attachment"/>
                                 </div>
+                                @if(!empty($att['title']))
+                                    <div class="px-2 py-1 text-xs text-gray-600 text-center">{{ $att['title'] }}</div>
+                                @endif
                             </div>
-                        @endif
-                        @if($post->attachment_source)
-                            <div class="bg-white rounded-lg p-2">
-                                <div class="flex justify-center">
-                                    <video controls 
-                                           class="max-w-full max-h-96 object-contain rounded-lg"
-                                           style="max-height: 400px;">
-                                        <source src="{{ $post->attachment_source }}" type="video/mp4">
-                                        Your browser does not support the video tag.
+                        @else
+                            <div class="bg-white rounded-lg overflow-hidden">
+                                <div class="w-full aspect-[4/3] bg-gray-100 flex items-center justify-center">
+                                    <video controls class="w-full h-full object-contain">
+                                        <source src="{{ $att['src'] }}" type="video/mp4">
                                     </video>
                                 </div>
+                                @if(!empty($att['title']))
+                                    <div class="px-2 py-1 text-xs text-gray-600 text-center">{{ $att['title'] }}</div>
+                                @endif
                             </div>
                         @endif
-                        @if($post->full_picture && !$post->attachment_image)
-                            <div class="bg-white rounded-lg p-2">
-                                <div class="flex justify-center">
-                                    <img src="{{ $post->full_picture }}" 
-                                         class="max-w-full max-h-96 object-contain rounded-lg"
-                                         style="max-height: 400px;"
-                                         alt="Post image"/>
-                                </div>
-                            </div>
-                        @endif
-                        @if($post->picture && !$post->attachment_image && !$post->full_picture)
-                            <div class="bg-white rounded-lg p-2">
-                                <div class="flex justify-center">
-                                    <img src="{{ $post->picture }}" 
-                                         class="max-w-full max-h-96 object-contain rounded-lg"
-                                         style="max-height: 400px;"
-                                         alt="Post picture"/>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endif
-        @endif
-        
-        <!-- AI Marketing Summary -->
-        <div id="ai-summary-box" class="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-md">
-            <div class="flex items-start">
-                <svg class="w-5 h-5 text-indigo-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
-                </svg>
-                <div>
-                    <div class="text-sm font-semibold text-indigo-800 mb-1">Nhận định AI (Chuyên gia Marketing)</div>
-                    <div id="ai-summary-text" class="text-sm text-indigo-900 ai-dots" style="white-space: pre-line">Đang tạo nhận định</div>
+                    @endforeach
                 </div>
             </div>
+        @endif
+        
+        <!-- AI Marketing Summary (run on button click) -->
+        <div id="ai-summary-box" class="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-md">
+            <div class="flex items-start justify-between">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-indigo-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+                    </svg>
+                    <div>
+                        <div class="text-sm font-semibold text-indigo-800 mb-1">Nhận định AI (Chuyên gia Marketing)</div>
+                        <div id="ai-summary-text" class="text-sm text-indigo-900" style="white-space: pre-line">Nhấn "Tạo nhận định AI" để chạy.</div>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="btn-run-ai" onclick="runAiSummary()" class="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Tạo nhận định AI</button>
+                    <button onclick="analyzeVideoWithGemini('{{ $post->id }}', '{{ $post->page_id }}')" 
+                            class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        Phân tích Video (Gemini)
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gemini Video Analysis Results (Always visible) -->
+        <div id="gemini-analysis-results" class="hidden mb-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900">Phân tích Video bằng Gemini AI</h3>
+                        <p class="text-sm text-gray-600">Phân tích chuyên sâu về nội dung y khoa và quảng cáo</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Gemini 2.5 Flash</span>
+                    <button onclick="toggleGeminiAnalysis()" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Video Error Check -->
+            <div id="video-errors-section" class="hidden mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex items-start space-x-3">
+                    <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <div>
+                <h4 class="text-sm font-semibold text-yellow-800 mb-2">⚠️ Cảnh báo Video Metrics</h4>
+                        <div id="video-errors-list" class="text-sm text-yellow-700 space-y-1">
+                    <!-- Video errors will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Content -->
+            <div id="gemini-analysis-content" class="text-sm text-gray-700">
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    <p>Nhấn "Phân tích Video (Gemini)" để bắt đầu phân tích</p>
+                </div>
+            </div>
+            
+            <!-- Raw JSON (for debugging) -->
+            <details class="mt-6">
+                <summary class="cursor-pointer text-xs text-gray-500 hover:text-gray-700 flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                    <span>Xem JSON gốc (Debug)</span>
+                </summary>
+                <pre id="gemini-raw-json" class="text-xs bg-gray-100 p-4 rounded mt-3 overflow-auto max-h-60 border"></pre>
+            </details>
         </div>
         
         <!-- Post Summary Stats -->
@@ -171,16 +257,34 @@
         </div>
     </div>
 
-    <!-- Video Analytics Section -->
+    <!-- Video Analysis Section -->
     @if(isset($insights['summary']['video_views']) && $insights['summary']['video_views'] > 0)
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-semibold text-gray-900">Phân tích Video Chi tiết</h2>
-                <div class="text-sm text-gray-600">
-                    <span class="font-medium">Tổng lượt xem:</span> 
-                    {{ number_format($insights['summary']['video_views'] ?? 0) }}
+                <div class="flex items-center space-x-3">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium">Tổng lượt xem:</span> 
+                        {{ number_format($insights['summary']['video_views'] ?? 0) }}
+                    </div>
+                    <button onclick="analyzeVideoWithGemini('{{ $post->id }}', '{{ $post->page_id }}')" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg shadow hover:bg-purple-700 transition-colors">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        Phân tích AI (Gemini)
+                    </button>
                 </div>
             </div>
+            
+            <!-- AI Analysis Results -->
+            <div id="ai-analysis-results" class="hidden mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Kết quả phân tích AI</h3>
+                <div id="analysis-content" class="text-sm text-gray-700">
+                    <!-- Analysis content will be loaded here -->
+                </div>
+            </div>
+            
             
             <!-- Video Summary Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -907,71 +1011,109 @@
     @endif
 
 
+    <!-- Serialize metrics safely to JSON for JS consumption -->
+    @php
+        // Collect video URLs for AI
+        $__videoUrls = [];
+        // From attachments JSON
+        if (!empty($post->attachments)) {
+            $raw = is_string($post->attachments) ? json_decode($post->attachments, true) : $post->attachments;
+            if (is_array($raw) && isset($raw['data']) && is_array($raw['data'])) {
+                foreach ($raw['data'] as $att) {
+                    if (!empty($att['media_type']) && $att['media_type'] === 'video' && !empty($att['media']['source'])) {
+                        $__videoUrls[] = $att['media']['source'];
+                    }
+                }
+            }
+        }
+        // From attachments_source array
+        if (!empty($post->attachments_source)) {
+            $vids = is_string($post->attachments_source) ? json_decode($post->attachments_source, true) : $post->attachments_source;
+            if (is_array($vids)) foreach ($vids as $u) if ($u) $__videoUrls[] = $u;
+        }
+        // Single fields
+        if (!empty($post->attachment_source)) $__videoUrls[] = $post->attachment_source;
+        if (!empty($post->source)) $__videoUrls[] = $post->source;
+        // Permalink as last resort
+        if (!empty($post->permalink_url)) $__videoUrls[] = $post->permalink_url;
+        $__videoUrls = array_values(array_unique(array_filter($__videoUrls)));
+        $__primaryVideoUrl = $__videoUrls[0] ?? null;
+        $__metricsPayload = [
+            'summary' => $insights['summary'] ?? [],
+            'video' => [
+                'views' => $insights['summary']['video_views'] ?? ($insights['video']['views'] ?? null),
+                'view_time' => $insights['summary']['video_view_time'] ?? ($insights['video']['view_time'] ?? null),
+                'avg_time' => $insights['summary']['video_avg_time_watched'] ?? ($insights['video']['avg_time'] ?? null),
+                'plays' => $insights['summary']['video_plays'] ?? ($insights['video']['plays'] ?? null),
+                'p25' => $insights['summary']['video_p25_watched_actions'] ?? ($insights['video']['p25'] ?? null),
+                'p50' => $insights['summary']['video_p50_watched_actions'] ?? ($insights['video']['p50'] ?? null),
+                'p75' => $insights['summary']['video_p75_watched_actions'] ?? ($insights['video']['p75'] ?? null),
+                'p95' => $insights['summary']['video_p95_watched_actions'] ?? ($insights['video']['p95'] ?? null),
+                'p100' => $insights['summary']['video_p100_watched_actions'] ?? ($insights['video']['p100'] ?? null),
+                'thruplays' => $insights['summary']['thruplays'] ?? ($insights['video']['thruplays'] ?? null),
+                'video_30s' => $insights['summary']['video_30_sec_watched'] ?? ($insights['video']['video_30s'] ?? null),
+            ],
+            'video_urls' => $__videoUrls,
+            'primary_video_url' => $__primaryVideoUrl,
+            'breakdowns' => $breakdowns ?? [],
+            'detailedBreakdowns' => $detailedBreakdowns ?? [],
+            'insights' => $insights ?? [],
+            'actions' => $actions ?? [],
+            'page_id' => $post->page_id,
+            'post_id' => $post->id,
+        ];
+    @endphp
+    <script type="application/json" id="post-metrics-json">{!! json_encode($__metricsPayload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) !!}</script>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // AI summary for this post
-    try {
-        const pageId = "{{ $post->page_id }}";
-        const postId = "{{ $post->id }}";
-        // Gửi đầy đủ dữ liệu (bao gồm video metrics, actions, insights thô)
-        const metrics = {
-            summary: @json($insights['summary'] ?? []),
-            video: {
-                views: @json($insights['summary']['video_views'] ?? ($insights['video']['views'] ?? null)),
-                view_time: @json($insights['summary']['video_view_time'] ?? ($insights['video']['view_time'] ?? null)),
-                avg_time: @json($insights['summary']['video_avg_time_watched'] ?? ($insights['video']['avg_time'] ?? null)),
-                plays: @json($insights['summary']['video_plays'] ?? ($insights['video']['plays'] ?? null)),
-                p25: @json($insights['summary']['video_p25_watched_actions'] ?? ($insights['video']['p25'] ?? null)),
-                p50: @json($insights['summary']['video_p50_watched_actions'] ?? ($insights['video']['p50'] ?? null)),
-                p75: @json($insights['summary']['video_p75_watched_actions'] ?? ($insights['video']['p75'] ?? null)),
-                p95: @json($insights['summary']['video_p95_watched_actions'] ?? ($insights['video']['p95'] ?? null)),
-                p100: @json($insights['summary']['video_p100_watched_actions'] ?? ($insights['video']['p100'] ?? null)),
-                thruplays: @json($insights['summary']['thruplays'] ?? ($insights['video']['thruplays'] ?? null)),
-                video_30s: @json($insights['summary']['video_30_sec_watched'] ?? ($insights['video']['video_30s'] ?? null)),
-            },
-            breakdowns: @json($breakdowns ?? []),
-            detailedBreakdowns: @json($detailedBreakdowns ?? []),
-            insights: @json($insights ?? []),
-            actions: @json($actions ?? [])
-        };
-        // Hỗ trợ debug: đặt window._aiDebug = true hoặc thêm ?debug=1 vào URL
-        const isDebug = (window._aiDebug === true) || new URLSearchParams(location.search).has('debug');
-        const aiUrl = `{{ route('facebook.data-management.ai-summary') }}` + (isDebug ? '?debug=1' : '');
-        fetch(aiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-            body: JSON.stringify({ page_id: pageId, post_id: postId, metrics })
-        }).then(r => r.json()).then(res => {
-            const el = document.getElementById('ai-summary-text');
-            if (!el) return;
-            const txt = res.summary || 'Không có nhận định.';
-            let html = formatAiSummary(txt);
-            if (isDebug) {
-                const debugDump = {
-                    ok: res.ok ?? true,
-                    env_key_present: res.env_key_present ?? undefined,
-                    since: res.since ?? undefined,
-                    until: res.until ?? undefined,
-                    metrics_sent: res.metrics_sent ?? undefined,
-                };
-                html += '<br><details class="mt-2"><summary class="cursor-pointer text-xs text-gray-600">Xem debug (payload gửi AI)</summary>' +
-                        '<pre class="text-xs whitespace-pre-wrap bg-gray-50 p-2 border mt-2 rounded">' +
-                        (typeof debugDump === 'object' ? JSON.stringify(debugDump, null, 2) : String(debugDump)) +
-                        '</pre></details>';
-            }
-            el.classList.remove('ai-dots');
-            el.innerHTML = html;
-            el.classList.add('animate-fade-in');
-        }).catch(() => {
-            const el = document.getElementById('ai-summary-text');
-            if (el) {
-                const isDbg = (window._aiDebug === true) || new URLSearchParams(location.search).has('debug');
-                el.textContent = isDbg ? 'Không tạo được nhận định AI (check network/ENV). Bật debug để xem chi tiết.' : 'Không tạo được nhận định AI.';
-            }
-        });
-    } catch (e) {}
+    // Run AI only when user clicks
+    // expose globally for inline onclick
+    window.runAiSummary = function() {
+        const btn = document.getElementById('btn-run-ai');
+        if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo...'; }
+        try {
+            const mEl = document.getElementById('post-metrics-json');
+            const parsed = mEl ? JSON.parse(mEl.textContent) : {};
+            const pageId = parsed.page_id;
+            const postId = parsed.post_id;
+            const metrics = parsed;
+            const isDebug = (window._aiDebug === true) || new URLSearchParams(location.search).has('debug');
+            const aiUrl = `{{ route('facebook.data-management.ai-summary') }}` + (isDebug ? '?debug=1' : '');
+            fetch(aiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify({ page_id: pageId, post_id: postId, metrics })
+            }).then(r => r.json()).then(res => {
+                const el = document.getElementById('ai-summary-text');
+                if (!el) return;
+                const txt = res.summary || 'Không có nhận định.';
+                let html = formatAiSummary(txt);
+                if (isDebug) {
+                    const debugDump = {
+                        ok: res.ok ?? true,
+                        env_key_present: res.env_key_present ?? undefined,
+                        since: res.since ?? undefined,
+                        until: res.until ?? undefined,
+                        metrics_sent: res.metrics_sent ?? undefined,
+                    };
+                    html += '<br><details class="mt-2"><summary class="cursor-pointer text-xs text-gray-600">Xem debug (payload gửi AI)</summary>' +
+                            '<pre class="text-xs whitespace-pre-wrap bg-gray-50 p-2 border mt-2 rounded">' +
+                            (typeof debugDump === 'object' ? JSON.stringify(debugDump, null, 2) : String(debugDump)) +
+                            '</pre></details>';
+                }
+                el.innerHTML = html;
+                el.classList.add('animate-fade-in');
+            }).catch(() => {
+                const el = document.getElementById('ai-summary-text');
+                if (el) {
+                    const isDbg = (window._aiDebug === true) || new URLSearchParams(location.search).has('debug');
+                    el.textContent = isDbg ? 'Không tạo được nhận định AI (check network/ENV). Bật debug để xem chi tiết.' : 'Không tạo được nhận định AI.';
+                }
+            }).finally(()=>{ if (btn){ btn.disabled=false; btn.textContent='Tạo nhận định AI'; }});
+        } catch (_) { if (btn){ btn.disabled=false; btn.textContent='Tạo nhận định AI'; } }
+    };
     
     // Định dạng AI summary: hỗ trợ **bold** và bullet xuống dòng
     function formatAiSummary(text) {
@@ -982,6 +1124,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/\n/g, '<br>');
         return html;
     }
+    
     // Breakdown Charts - Tạo biểu đồ cho từng breakdown type riêng biệt
     @if(!empty($detailedBreakdowns))
         @foreach($detailedBreakdowns as $breakdownType => $breakdownData)
@@ -1310,6 +1453,340 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
         @endforeach
+    @endif
+
+    // Time Series Charts (if daily data available)
+    @if(!empty($insights['daily_data']))
+        // Process time data
+        const timeData = {!! json_encode($insights['daily_data']) !!};
+        const processedTimeData = processTimeData(timeData);
+        
+        // Performance Over Time Chart
+        const performanceCtx = document.getElementById('performance-chart');
+        if (performanceCtx) {
+            new Chart(performanceCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: processedTimeData.labels,
+                    datasets: [{
+                        label: 'Impressions',
+                        data: processedTimeData.impressions,
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }, {
+                        label: 'Clicks',
+                        data: processedTimeData.clicks,
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Spend Over Time Chart
+        const spendTimeCtx = document.getElementById('spend-time-chart');
+        if (spendTimeCtx) {
+            new Chart(spendTimeCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: processedTimeData.labels,
+                    datasets: [{
+                        label: 'Spend (VND)',
+                        data: processedTimeData.spend,
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Video Metrics Over Time Chart
+        const videoMetricsCtx = document.getElementById('video-metrics-chart');
+        if (videoMetricsCtx) {
+            new Chart(videoMetricsCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: processedTimeData.labels,
+                    datasets: [{
+                        label: 'Video Views',
+                        data: processedTimeData.videoViews,
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }, {
+                        label: 'Video Plays',
+                        data: processedTimeData.videoPlays,
+                        borderColor: 'rgba(245, 158, 11, 1)',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // CTR Over Time Chart
+        const ctrTimeCtx = document.getElementById('ctr-time-chart');
+        if (ctrTimeCtx) {
+            new Chart(ctrTimeCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: processedTimeData.labels,
+                    datasets: [{
+                        label: 'CTR (%)',
+                        data: processedTimeData.ctr,
+                        borderColor: 'rgba(236, 72, 153, 1)',
+                        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Function to process time data
+        function processTimeData(data) {
+            if (!data || data.length === 0) {
+                return { labels: [], impressions: [], clicks: [], spend: [], videoViews: [], videoPlays: [], ctr: [] };
+            }
+            
+            // Sort by date
+            const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Check if all data has same timestamp
+            const uniqueTimestamps = new Set(sortedData.map(item => item.date));
+            
+            if (uniqueTimestamps.size === 1) {
+                // Create stepped line for single timestamp
+                const baseDate = new Date(sortedData[0].date);
+                const realLabel = baseDate.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const beforeLabel = 'Trước';
+                const afterLabel = 'Sau';
+                
+                const baseImpressions = sortedData[0].impressions || 0;
+                const baseClicks = sortedData[0].clicks || 0;
+                const baseSpend = sortedData[0].spend || 0;
+                const baseVideoViews = sortedData[0].video_views || 0;
+                const baseVideoPlays = sortedData[0].video_plays || 0;
+                const baseCtr = sortedData[0].ctr || 0;
+                
+                return {
+                    labels: [beforeLabel, 'Tăng', realLabel, 'Giảm', afterLabel],
+                    impressions: [
+                        Math.round(baseImpressions * 0.8), 
+                        Math.round(baseImpressions * 1.2), 
+                        baseImpressions, 
+                        Math.round(baseImpressions * 0.9), 
+                        Math.round(baseImpressions * 0.7)
+                    ],
+                    clicks: [
+                        Math.round(baseClicks * 0.8), 
+                        Math.round(baseClicks * 1.2), 
+                        baseClicks, 
+                        Math.round(baseClicks * 0.9), 
+                        Math.round(baseClicks * 0.7)
+                    ],
+                    spend: [
+                        Math.round(baseSpend * 0.8), 
+                        Math.round(baseSpend * 1.2), 
+                        baseSpend, 
+                        Math.round(baseSpend * 0.9), 
+                        Math.round(baseSpend * 0.7)
+                    ],
+                    videoViews: [
+                        Math.round(baseVideoViews * 0.8), 
+                        Math.round(baseVideoViews * 1.2), 
+                        baseVideoViews, 
+                        Math.round(baseVideoViews * 0.9), 
+                        Math.round(baseVideoViews * 0.7)
+                    ],
+                    videoPlays: [
+                        Math.round(baseVideoPlays * 0.8), 
+                        Math.round(baseVideoPlays * 1.2), 
+                        baseVideoPlays, 
+                        Math.round(baseVideoPlays * 0.9), 
+                        Math.round(baseVideoPlays * 0.7)
+                    ],
+                    ctr: [
+                        Math.round(baseCtr * 0.8), 
+                        Math.round(baseCtr * 1.2), 
+                        baseCtr, 
+                        Math.round(baseCtr * 0.9), 
+                        Math.round(baseCtr * 0.7)
+                    ]
+                };
+            }
+            
+            // Group data by date for multiple timestamps
+            const groupedData = new Map();
+            
+            sortedData.forEach(item => {
+                const date = new Date(item.date);
+                const timeKey = date.toISOString().split('T')[0];
+                
+                if (!groupedData.has(timeKey)) {
+                    groupedData.set(timeKey, {
+                        date: timeKey,
+                        impressions: 0,
+                        clicks: 0,
+                        spend: 0,
+                        video_views: 0,
+                        video_plays: 0,
+                        ctr: 0,
+                        count: 0
+                    });
+                }
+                
+                const group = groupedData.get(timeKey);
+                group.impressions += (item.impressions || 0);
+                group.clicks += (item.clicks || 0);
+                group.spend += (item.spend || 0);
+                group.video_views += (item.video_views || 0);
+                group.video_plays += (item.video_plays || 0);
+                group.ctr += (item.ctr || 0);
+                group.count += 1;
+            });
+            
+            const processedData = Array.from(groupedData.values());
+            
+            const labels = processedData.map(item => {
+                const date = new Date(item.date);
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (date.toDateString() === today.toDateString()) {
+                    return 'Hôm nay';
+                } else if (date.toDateString() === yesterday.toDateString()) {
+                    return 'Hôm qua';
+                } else {
+                    return date.toLocaleDateString('vi-VN', { 
+                        day: '2-digit', 
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            });
+            
+            return {
+                labels: labels,
+                impressions: processedData.map(item => item.impressions),
+                clicks: processedData.map(item => item.clicks),
+                spend: processedData.map(item => item.spend),
+                videoViews: processedData.map(item => item.video_views),
+                videoPlays: processedData.map(item => item.video_plays),
+                ctr: processedData.map(item => item.ctr)
+            };
+        }
+    @endif
+
+    // Actions Chart
+    @if(!empty($actions['daily_actions']))
+        const actionsCtx = document.getElementById('actions-chart');
+        if (actionsCtx) {
+            const actionsData = {!! json_encode($actions['daily_actions']) !!};
+            const actionLabels = Object.keys(actionsData);
+            const actionValues = Object.values(actionsData);
+            
+            new Chart(actionsCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: actionLabels.map(label => label.replace(/_/g, ' ')),
+                    datasets: [{
+                        label: 'Actions',
+                        data: actionValues,
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
     @endif
 
     // Video Analytics Charts
@@ -1716,552 +2193,200 @@ document.addEventListener('DOMContentLoaded', function() {
         @endif
     @endif
 
-
-    // Insights Charts
-    @if(!empty($insights['daily_data']))
-        const dailyData = {!! json_encode($insights['daily_data']) !!};
+    // Expose functions globally for onclick handlers
+    window.analyzeVideoWithGemini = function(postId, pageId) {
+        console.log('Analyzing video with Gemini for post:', postId, 'page:', pageId);
         
-        // Xử lý dữ liệu thời gian để tránh trùng lặp và hiển thị rõ ràng
-        const processedData = processTimeData(dailyData);
-        const labels = processedData.labels;
-        const impressions = processedData.impressions;
-        const clicks = processedData.clicks;
-        const spend = processedData.spend;
-        const videoViews = processedData.videoViews;
-        const videoP75 = processedData.videoP75;
-        const videoP100 = processedData.videoP100;
-        const ctr = processedData.ctr;
+        // Hiển thị loading state
+        const geminiResults = document.getElementById('gemini-analysis-results');
+        const geminiContent = document.getElementById('gemini-analysis-content');
+        const videoErrorsSection = document.getElementById('video-errors-section');
+        const videoErrorsList = document.getElementById('video-errors-list');
+        const rawJson = document.getElementById('gemini-raw-json');
         
-        // Hàm xử lý dữ liệu thời gian
-        function processTimeData(data) {
-            if (!data || data.length === 0) return { labels: [], impressions: [], clicks: [], spend: [], videoViews: [], videoP75: [], videoP100: [], ctr: [] };
-            
-            // Sắp xếp theo thời gian
-            const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
-            
-            // Kiểm tra xem có phải tất cả dữ liệu đều có cùng timestamp không
-            const uniqueTimestamps = new Set(sortedData.map(item => item.date));
-            
-            if (uniqueTimestamps.size === 1) {
-                // Nếu tất cả cùng timestamp, tạo dạng gấp khúc để biểu đồ đẹp hơn
-                console.log('Tất cả dữ liệu có cùng timestamp, tạo dạng gấp khúc để biểu đồ đẹp hơn');
-                
-                // Hiển thị thông báo cho người dùng
-                const noticeElement = document.getElementById('time-data-notice');
-                if (noticeElement) {
-                    noticeElement.classList.remove('hidden');
-                }
-                
-                const baseDate = new Date(sortedData[0].date);
-                const realLabel = baseDate.toLocaleDateString('vi-VN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                // Tạo 5 điểm để vẽ dạng gấp khúc: thấp, tăng, cao, giảm, thấp
-                const beforeLabel = 'Trước';
-                const afterLabel = 'Sau';
-                
-                // Tạo dữ liệu gấp khúc với biến động nhỏ
-                const baseImpressions = sortedData[0].impressions || 0;
-                const baseClicks = sortedData[0].clicks || 0;
-                const baseSpend = sortedData[0].spend || 0;
-                const baseVideoViews = sortedData[0].video_views || 0;
-                const baseVideoP75 = sortedData[0].video_p75_watched_actions || 0;
-                const baseVideoP100 = sortedData[0].video_p100_watched_actions || 0;
-                const baseCtr = (sortedData[0].ctr || 0) * 100;
-                
-                return {
-                    labels: [beforeLabel, 'Tăng', realLabel, 'Giảm', afterLabel],
-                    impressions: [
-                        Math.round(baseImpressions * 0.8), 
-                        Math.round(baseImpressions * 1.2), 
-                        baseImpressions, 
-                        Math.round(baseImpressions * 0.9), 
-                        Math.round(baseImpressions * 0.7)
-                    ],
-                    clicks: [
-                        Math.round(baseClicks * 0.8), 
-                        Math.round(baseClicks * 1.3), 
-                        baseClicks, 
-                        Math.round(baseClicks * 0.9), 
-                        Math.round(baseClicks * 0.6)
-                    ],
-                    spend: [
-                        Math.round(baseSpend * 0.7), 
-                        Math.round(baseSpend * 1.1), 
-                        baseSpend, 
-                        Math.round(baseSpend * 0.95), 
-                        Math.round(baseSpend * 0.8)
-                    ],
-                    videoViews: [
-                        Math.round(baseVideoViews * 0.8), 
-                        Math.round(baseVideoViews * 1.2), 
-                        baseVideoViews, 
-                        Math.round(baseVideoViews * 0.9), 
-                        Math.round(baseVideoViews * 0.7)
-                    ],
-                    videoP75: [
-                        Math.round(baseVideoP75 * 0.8), 
-                        Math.round(baseVideoP75 * 1.3), 
-                        baseVideoP75, 
-                        Math.round(baseVideoP75 * 0.9), 
-                        Math.round(baseVideoP75 * 0.6)
-                    ],
-                    videoP100: [
-                        Math.round(baseVideoP100 * 0.8), 
-                        Math.round(baseVideoP100 * 1.2), 
-                        baseVideoP100, 
-                        Math.round(baseVideoP100 * 0.9), 
-                        Math.round(baseVideoP100 * 0.7)
-                    ],
-                    ctr: [
-                        Math.round(baseCtr * 0.8), 
-                        Math.round(baseCtr * 1.2), 
-                        baseCtr, 
-                        Math.round(baseCtr * 0.9), 
-                        Math.round(baseCtr * 0.7)
-                    ]
-                };
-            }
-            
-            // Nếu có nhiều timestamp khác nhau, xử lý bình thường
-            const groupedData = new Map();
-            
-            sortedData.forEach(item => {
-                const date = new Date(item.date);
-                const timeKey = date.toISOString().split('T')[0]; // Lấy ngày (YYYY-MM-DD)
-                
-                if (!groupedData.has(timeKey)) {
-                    groupedData.set(timeKey, {
-                        date: timeKey,
-                        impressions: 0,
-                        clicks: 0,
-                        spend: 0,
-                        video_views: 0,
-                        video_p75_watched_actions: 0,
-                        video_p100_watched_actions: 0,
-                        ctr: 0,
-                        count: 0
-                    });
-                }
-                
-                const group = groupedData.get(timeKey);
-                group.impressions += (item.impressions || 0);
-                group.clicks += (item.clicks || 0);
-                group.spend += (item.spend || 0);
-                group.video_views += (item.video_views || 0);
-                group.video_p75_watched_actions += (item.video_p75_watched_actions || 0);
-                group.video_p100_watched_actions += (item.video_p100_watched_actions || 0);
-                group.ctr += (item.ctr || 0);
-                group.count += 1;
-            });
-            
-            // Chuyển đổi Map thành Array và tính trung bình CTR
-            const processedData = Array.from(groupedData.values()).map(group => ({
-                ...group,
-                ctr: group.count > 0 ? group.ctr / group.count : 0
-            }));
-            
-            // Tạo labels hiển thị đẹp hơn
-            const labels = processedData.map(item => {
-                const date = new Date(item.date);
-                const today = new Date();
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-                
-                if (date.toDateString() === today.toDateString()) {
-                    return 'Hôm nay';
-                } else if (date.toDateString() === yesterday.toDateString()) {
-                    return 'Hôm qua';
-                } else {
-                    return date.toLocaleDateString('vi-VN', { 
-                        day: '2-digit', 
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                }
-            });
-            
-            return {
-                labels: labels,
-                impressions: processedData.map(item => item.impressions),
-                clicks: processedData.map(item => item.clicks),
-                spend: processedData.map(item => item.spend),
-                videoViews: processedData.map(item => item.video_views),
-                videoP75: processedData.map(item => item.video_p75_watched_actions),
-                videoP100: processedData.map(item => item.video_p100_watched_actions),
-                ctr: processedData.map(item => (item.ctr || 0) * 100)
-            };
+        if (geminiResults) {
+            geminiResults.classList.remove('hidden');
+            geminiContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-8 space-y-4">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <div class="text-center">
+                        <div class="text-gray-600 font-medium">Đang phân tích video với Gemini AI...</div>
+                        <div class="text-sm text-gray-500 mt-2" id="progress-message">Bước 1: Chuẩn bị video từ Facebook...</div>
+                    </div>
+                </div>
+            `;
         }
+        
+        // Lấy dữ liệu metrics từ JSON đã có
+        const mEl = document.getElementById('post-metrics-json');
+        const parsed = mEl ? JSON.parse(mEl.textContent) : {};
+        
+        // Chuẩn bị dữ liệu gửi lên API
+        const requestData = {
+            post_id: postId,
+            page_id: pageId,
+            post_data: {
+                message: parsed.insights?.summary?.message || '',
+                type: 'video',
+                created_time: new Date().toISOString(),
+                video_urls: parsed.video_urls || [],
+                primary_video_url: parsed.primary_video_url || null
+            }
+        };
+        
+        // Cập nhật tiến trình
+        const progressMessages = [
+            'Bước 1: Chuẩn bị video từ Facebook...',
+            'Bước 2.1: Đang tải video về storage... (có thể mất 5-10 phút)',
+            'Bước 2.2: Đang upload video lên Gemini... (có thể mất 5-10 phút)',
+            'Bước 2.3: Đang gửi request đến Gemini API... (có thể mất 10-30 phút)',
+            'Bước 3: Đang xử lý kết quả phân tích...'
+        ];
+        
+        let currentStep = 0;
+        const progressInterval = setInterval(() => {
+            if (currentStep < progressMessages.length - 1) {
+                currentStep++;
+                const progressMessage = document.getElementById('progress-message');
+                if (progressMessage) {
+                    progressMessage.textContent = progressMessages[currentStep];
+                }
+            }
+        }, 30000); // Cập nhật mỗi 30 giây
 
-        // Performance Chart (bar for clearer up/down)
-        const performanceCtx = document.getElementById('performance-chart').getContext('2d');
-        new Chart(performanceCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Impressions',
-                    data: impressions,
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 1
-                }, {
-                    label: 'Clicks',
-                    data: clicks,
-                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                    borderColor: 'rgba(34, 197, 94, 1)',
-                    borderWidth: 1
-                }]
+        // Gọi API phân tích video
+        fetch('{{ route("api.facebook.analyze-video") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: function(context) {
-                                return 'Thời gian: ' + context[0].label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 0
-                        }
-                    }
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(progressInterval); // Dừng cập nhật tiến trình
+            
+            if (data.success) {
+                // Hiển thị kết quả phân tích
+                displayGeminiAnalysis(data.analysis, data.video_errors || []);
+                
+                // Hiển thị raw JSON nếu có
+                if (rawJson && data.raw_analysis) {
+                    rawJson.textContent = JSON.stringify(data.raw_analysis, null, 2);
                 }
+            } else {
+                geminiContent.innerHTML = '<div class="text-red-600 p-4 bg-red-50 rounded-lg"><strong>Lỗi:</strong> ' + (data.message || 'Không thể phân tích video') + '</div>';
             }
+        })
+        .catch(error => {
+            clearInterval(progressInterval); // Dừng cập nhật tiến trình
+            console.error('Video analysis error:', error);
+            geminiContent.innerHTML = '<div class="text-red-600 p-4 bg-red-50 rounded-lg"><strong>Lỗi:</strong> Không thể kết nối đến server phân tích video</div>';
         });
-
-        // Spend Time Chart (bar)
-        const spendTimeElement = document.getElementById('spend-time-chart');
-        if (spendTimeElement) {
-            const spendTimeCtx = spendTimeElement.getContext('2d');
-            new Chart(spendTimeCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Chi phí (VND)',
-                        data: spend,
-                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                        borderColor: 'rgba(239, 68, 68, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return 'Thời gian: ' + context[0].label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 0
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Video Metrics Chart (bar)
-        const videoMetricsElement = document.getElementById('video-metrics-chart');
-        if (videoMetricsElement) {
-            const videoMetricsCtx = videoMetricsElement.getContext('2d');
-            new Chart(videoMetricsCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Video Views',
-                        data: videoViews,
-                        backgroundColor: 'rgba(251, 146, 60, 0.8)',
-                        borderColor: 'rgba(251, 146, 60, 1)',
-                        borderWidth: 1
-                    }, {
-                        label: 'P75 Watched',
-                        data: videoP75,
-                        backgroundColor: 'rgba(168, 85, 247, 0.8)',
-                        borderColor: 'rgba(168, 85, 247, 1)',
-                        borderWidth: 1
-                    }, {
-                        label: 'P100 Watched',
-                        data: videoP100,
-                        backgroundColor: 'rgba(236, 72, 153, 0.8)',
-                        borderColor: 'rgba(236, 72, 153, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return 'Thời gian: ' + context[0].label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 0
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // CTR Time Chart (bar)
-        const ctrTimeElement = document.getElementById('ctr-time-chart');
-        if (ctrTimeElement) {
-            const ctrTimeCtx = ctrTimeElement.getContext('2d');
-            new Chart(ctrTimeCtx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'CTR (%)',
-                        data: ctr,
-                        backgroundColor: 'rgba(168, 85, 247, 0.8)',
-                        borderColor: 'rgba(168, 85, 247, 1)',
-                        borderWidth: 1
-                }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return 'Thời gian: ' + context[0].label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 0
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Actions Chart
-        @if(!empty($actions['daily_actions']))
-            const actionsData = {!! json_encode($actions['daily_actions']) !!};
-            
-            // Xử lý dữ liệu Actions để tránh trùng lặp thời gian
-            const processedActionsData = processActionsTimeData(actionsData);
-            const actionLabels = processedActionsData.labels;
-            const actionTypes = processedActionsData.actionTypes;
-            const actionValues = processedActionsData.actionValues;
-            
-            // Hàm xử lý dữ liệu Actions theo thời gian
-            function processActionsTimeData(data) {
-                if (!data || Object.keys(data).length === 0) {
-                    return { labels: [], actionTypes: [], actionValues: {} };
-                }
-                
-                // Sắp xếp các mốc thời gian
-                const timeKeys = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
-                const actionTypes = [];
-                
-                // Lấy tất cả action types
-                timeKeys.forEach(date => {
-                    Object.keys(data[date]).forEach(actionType => {
-                        if (!actionTypes.includes(actionType)) {
-                            actionTypes.push(actionType);
-                        }
-                    });
-                });
-                
-                // Kiểm tra nếu tất cả cùng timestamp
-                if (timeKeys.length === 1) {
-                    const singleDate = new Date(timeKeys[0]);
-                    const realLabel = singleDate.toLocaleDateString('vi-VN', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    
-                    // Tạo 5 điểm để vẽ dạng gấp khúc: thấp, tăng, cao, giảm, thấp
-                    const beforeLabel = 'Trước';
-                    const afterLabel = 'Sau';
-                    
-                    const actionValues = {};
-                    actionTypes.forEach(actionType => {
-                        const baseValue = data[timeKeys[0]][actionType] || 0;
-                        actionValues[actionType] = [
-                            Math.round(baseValue * 0.8), 
-                            Math.round(baseValue * 1.2), 
-                            baseValue, 
-                            Math.round(baseValue * 0.9), 
-                            Math.round(baseValue * 0.7)
-                        ]; // 5 điểm tạo dạng gấp khúc
-                    });
-                    
-                    return {
-                        labels: [beforeLabel, 'Tăng', realLabel, 'Giảm', afterLabel],
-                        actionTypes: actionTypes,
-                        actionValues: actionValues
-                    };
-                }
-                
-                // Nhóm dữ liệu theo khoảng thời gian để tránh trùng lặp
-                const groupedData = new Map();
-                
-                timeKeys.forEach(dateKey => {
-                    const date = new Date(dateKey);
-                    const timeKey = date.toISOString().split('T')[0]; // Lấy ngày (YYYY-MM-DD)
-                    
-                    if (!groupedData.has(timeKey)) {
-                        groupedData.set(timeKey, {
-                            date: timeKey,
-                            actions: {},
-                            count: 0
-                        });
-                    }
-                    
-                    const group = groupedData.get(timeKey);
-                    group.count += 1;
-                    
-                    // Cộng dồn các action values
-                    Object.keys(data[dateKey]).forEach(actionType => {
-                        if (!group.actions[actionType]) {
-                            group.actions[actionType] = 0;
-                        }
-                        group.actions[actionType] += (data[dateKey][actionType] || 0);
-                    });
-                });
-                
-                // Chuyển đổi Map thành Array và tạo labels đẹp
-                const processedData = Array.from(groupedData.values()).map(group => ({
-                    ...group,
-                    date: group.date
-                }));
-                
-                // Tạo labels hiển thị đẹp hơn
-                const labels = processedData.map(item => {
-                    const date = new Date(item.date);
-                    const today = new Date();
-                    const yesterday = new Date(today);
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    
-                    if (date.toDateString() === today.toDateString()) {
-                        return 'Hôm nay';
-                    } else if (date.toDateString() === yesterday.toDateString()) {
-                        return 'Hôm qua';
-                    } else {
-                        return date.toLocaleDateString('vi-VN', { 
-                            day: '2-digit', 
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    }
-                });
-                
-                // Tạo datasets cho từng action type
-                const actionValues = {};
-                actionTypes.forEach(actionType => {
-                    actionValues[actionType] = processedData.map(item => item.actions[actionType] || 0);
-                });
-                
-                return {
-                    labels: labels,
-                    actionTypes: actionTypes,
-                    actionValues: actionValues
-                };
+    };
+    
+    // Function to display Gemini analysis results
+    function displayGeminiAnalysis(analysis, videoErrors) {
+        const geminiContent = document.getElementById('gemini-analysis-content');
+        const videoErrorsSection = document.getElementById('video-errors-section');
+        const videoErrorsList = document.getElementById('video-errors-list');
+        
+        if (!geminiContent) return;
+        
+        let html = '';
+        
+        // Hiển thị video errors nếu có
+        if (videoErrors && videoErrors.length > 0) {
+            if (videoErrorsSection) {
+                videoErrorsSection.classList.remove('hidden');
+                videoErrorsList.innerHTML = videoErrors.map(error => `<div class="mb-1">• ${error}</div>`).join('');
             }
-
-            const actionsElement = document.getElementById('actions-chart');
-            if (actionsElement) {
-                const actionsCtx = actionsElement.getContext('2d');
-                const colors = [
-                    'rgb(59, 130, 246)', 'rgb(16, 185, 129)', 'rgb(245, 158, 11)', 
-                    'rgb(239, 68, 68)', 'rgb(139, 92, 246)', 'rgb(236, 72, 153)'
-                ];
-
-                new Chart(actionsCtx, {
-                    type: 'line',
-                    data: {
-                        labels: actionLabels,
-                        datasets: actionTypes.map((actionType, index) => ({
-                            label: actionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                            data: actionValues[actionType],
-                            borderColor: colors[index % colors.length],
-                            backgroundColor: colors[index % colors.length].replace('rgb', 'rgba').replace(')', ', 0.1)'),
-                            tension: 0.1
-                        }))
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    title: function(context) {
-                                        return 'Thời gian: ' + context[0].label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 0
-                                }
-                            },
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
+        } else if (videoErrorsSection) {
+            videoErrorsSection.classList.add('hidden');
+        }
+        
+        // Hiển thị kết quả phân tích
+        if (analysis.raw_response) {
+            // Nếu có lỗi parse JSON
+            html = '<div class="text-yellow-600 p-4 bg-yellow-50 rounded-lg mb-4"><strong>Cảnh báo:</strong> ' + analysis.parse_error + '</div>';
+            html += '<div class="bg-gray-100 p-4 rounded-lg"><pre class="text-sm whitespace-pre-wrap">' + analysis.raw_response + '</pre></div>';
+        } else {
+            // Hiển thị kết quả JSON đã parse
+            html = '<div class="space-y-6">';
+            
+            // Summary
+            if (analysis.summary) {
+                html += '<div class="bg-blue-50 p-4 rounded-lg">';
+                html += '<h4 class="font-semibold text-blue-800 mb-2">📝 Tóm tắt Video</h4>';
+                html += '<div class="text-sm text-blue-700 space-y-2">';
+                if (analysis.summary.main_content) html += '<p><strong>Nội dung chính:</strong> ' + analysis.summary.main_content + '</p>';
+                if (analysis.summary.core_message) html += '<p><strong>Thông điệp cốt lõi:</strong> ' + analysis.summary.core_message + '</p>';
+                if (analysis.summary.duration_context) html += '<p><strong>Bối cảnh thời gian:</strong> ' + analysis.summary.duration_context + '</p>';
+                html += '</div></div>';
             }
-    @endif
-    @endif
-});
+            
+            // Medical Analysis
+            if (analysis.medical_analysis) {
+                html += '<div class="bg-green-50 p-4 rounded-lg">';
+                html += '<h4 class="font-semibold text-green-800 mb-2">🏥 Phân tích Y khoa</h4>';
+                html += '<div class="text-sm text-green-700 space-y-2">';
+                if (analysis.medical_analysis.elements) {
+                    html += '<p><strong>Yếu tố y khoa:</strong> ' + (Array.isArray(analysis.medical_analysis.elements) ? analysis.medical_analysis.elements.join(', ') : analysis.medical_analysis.elements) + '</p>';
+                }
+                if (analysis.medical_analysis.accuracy_evidence) html += '<p><strong>Độ chính xác & Bằng chứng:</strong> ' + analysis.medical_analysis.accuracy_evidence + '</p>';
+                if (analysis.medical_analysis.risks) html += '<p><strong>Rủi ro:</strong> ' + analysis.medical_analysis.risks + '</p>';
+                html += '</div></div>';
+            }
+            
+            // Advertising Analysis
+            if (analysis.advertising_analysis) {
+                html += '<div class="bg-purple-50 p-4 rounded-lg">';
+                html += '<h4 class="font-semibold text-purple-800 mb-2">📢 Phân tích Quảng cáo</h4>';
+                html += '<div class="text-sm text-purple-700 space-y-2">';
+                if (analysis.advertising_analysis.message) html += '<p><strong>Thông điệp:</strong> ' + analysis.advertising_analysis.message + '</p>';
+                if (analysis.advertising_analysis.strategy) html += '<p><strong>Chiến lược:</strong> ' + analysis.advertising_analysis.strategy + '</p>';
+                if (analysis.advertising_analysis.media_usage) html += '<p><strong>Sử dụng Media:</strong> ' + analysis.advertising_analysis.media_usage + '</p>';
+                html += '</div></div>';
+            }
+            
+            // Compliance & Risk
+            if (analysis.compliance_risk) {
+                html += '<div class="bg-orange-50 p-4 rounded-lg">';
+                html += '<h4 class="font-semibold text-orange-800 mb-2">⚠️ Tuân thủ & Rủi ro</h4>';
+                html += '<div class="text-sm text-orange-700 space-y-2">';
+                if (analysis.compliance_risk.compliance_level) html += '<p><strong>Mức độ tuân thủ:</strong> ' + analysis.compliance_risk.compliance_level + '</p>';
+                if (analysis.compliance_risk.misleading_signs) html += '<p><strong>Dấu hiệu gây hiểu nhầm:</strong> ' + analysis.compliance_risk.misleading_signs + '</p>';
+                html += '</div></div>';
+            }
+            
+            // Conclusion & Recommendations
+            if (analysis.conclusion_recommendations) {
+                html += '<div class="bg-indigo-50 p-4 rounded-lg">';
+                html += '<h4 class="font-semibold text-indigo-800 mb-2">💡 Kết luận & Khuyến nghị</h4>';
+                html += '<div class="text-sm text-indigo-700 space-y-2">';
+                if (analysis.conclusion_recommendations.strengths) html += '<p><strong>Điểm mạnh:</strong> ' + analysis.conclusion_recommendations.strengths + '</p>';
+                if (analysis.conclusion_recommendations.weaknesses) html += '<p><strong>Điểm cần cải thiện:</strong> ' + analysis.conclusion_recommendations.weaknesses + '</p>';
+                if (analysis.conclusion_recommendations.improvements) html += '<p><strong>Đề xuất cải tiến:</strong> ' + analysis.conclusion_recommendations.improvements + '</p>';
+                html += '</div></div>';
+            }
+            
+            html += '</div>';
+        }
+        
+        geminiContent.innerHTML = html;
+    }
+
+    window.toggleGeminiAnalysis = function() {
+        const element = document.getElementById('gemini-analysis-results');
+        if (element) {
+            element.classList.toggle('hidden');
+        }
+    };
+
+}); // Close document.addEventListener
+
 </script>
+
 </x-layouts.app>

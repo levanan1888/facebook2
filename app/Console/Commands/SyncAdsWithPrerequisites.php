@@ -281,10 +281,10 @@ class SyncAdsWithPrerequisites extends Command
                         'effective_status' => $campaign['effective_status'] ?? null,
                         'objective' => $campaign['objective'] ?? null,
                         'ad_account_id' => $adAccount->id,
-                        'created_time' => isset($campaign['created_time']) ? Carbon::parse($campaign['created_time']) : null,
-                        'updated_time' => isset($campaign['updated_time']) ? Carbon::parse($campaign['updated_time']) : null,
-                        'start_time' => isset($campaign['start_time']) ? Carbon::parse($campaign['start_time']) : null,
-                        'stop_time' => isset($campaign['stop_time']) ? Carbon::parse($campaign['stop_time']) : null,
+                        'created_time' => isset($campaign['created_time']) ? Carbon::parse($campaign['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'updated_time' => isset($campaign['updated_time']) ? Carbon::parse($campaign['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'start_time' => isset($campaign['start_time']) ? Carbon::parse($campaign['start_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'stop_time' => isset($campaign['stop_time']) ? Carbon::parse($campaign['stop_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                     ]
                 );
                 $result['campaigns']++;
@@ -334,10 +334,10 @@ class SyncAdsWithPrerequisites extends Command
                         'effective_status' => $adset['effective_status'] ?? null,
                         'campaign_id' => $adset['campaign_id'] ?? null,
                         'ad_account_id' => $adAccount->id,
-                        'created_time' => isset($adset['created_time']) ? Carbon::parse($adset['created_time']) : null,
-                        'updated_time' => isset($adset['updated_time']) ? Carbon::parse($adset['updated_time']) : null,
-                        'start_time' => isset($adset['start_time']) ? Carbon::parse($adset['start_time']) : null,
-                        'stop_time' => isset($adset['stop_time']) ? Carbon::parse($adset['stop_time']) : null,
+                        'created_time' => isset($adset['created_time']) ? Carbon::parse($adset['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'updated_time' => isset($adset['updated_time']) ? Carbon::parse($adset['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'start_time' => isset($adset['start_time']) ? Carbon::parse($adset['start_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'stop_time' => isset($adset['stop_time']) ? Carbon::parse($adset['stop_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                     ]
                 );
                 $result['adsets']++;
@@ -388,8 +388,8 @@ class SyncAdsWithPrerequisites extends Command
                         'adset_id' => $ad['adset_id'] ?? null,
                         'campaign_id' => $ad['campaign_id'] ?? null,
                         'account_id' => $adAccount->id,
-                        'created_time' => isset($ad['created_time']) ? Carbon::parse($ad['created_time']) : null,
-                        'updated_time' => isset($ad['updated_time']) ? Carbon::parse($ad['updated_time']) : null,
+                        'created_time' => isset($ad['created_time']) ? Carbon::parse($ad['created_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
+                        'updated_time' => isset($ad['updated_time']) ? Carbon::parse($ad['updated_time'])->setTimezone('Asia/Ho_Chi_Minh') : null,
                     ]
                 );
                 $result['ads']++;
