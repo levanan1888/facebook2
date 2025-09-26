@@ -710,6 +710,7 @@ function initializeDataManagement() {
     const pageSelect = document.getElementById('page-select');
     const pageSearch = document.getElementById('page-search');
     const pageSort = document.getElementById('page-sort');
+    const pageSelectForm = document.getElementById('page-select-form');
     const datePreset = document.getElementById('date_preset');
     const quickPreset = document.getElementById('quick_date_preset');
     const quickFrom = document.getElementById('quick_from');
@@ -728,6 +729,17 @@ function initializeDataManagement() {
     const debugInfoBtn = document.getElementById('debug-info');
     const postsListContainer = document.getElementById('posts-list-container');
     const aiSummaryEl = document.getElementById('ai-summary');
+    // Prevent full form submit on page select/search; use AJAX only
+    if (pageSelectForm) {
+        pageSelectForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const pid = pageSelect ? pageSelect.value : '';
+            if (pid) {
+                hideNoPageMessage();
+                loadPageData(pid);
+            }
+        });
+    }
     
     // Filter toggle functionality
     if (filterToggle && filterSection) {
@@ -1599,14 +1611,6 @@ function initializeDataManagement() {
                                     <div class="flex items-center gap-2">
                                         ${hasAds ? `
                                             <div class="flex gap-2">
-                                                <button onclick="showAdDetails('${post.id}', '${post.page_id}')"
-                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                                                    📊 Chi tiết
-                                                </button>
-                                                <a href="/facebook/data-management/post/${post.id}/page/${post.page_id}" 
-                                                   class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                                                    Xem chi tiết →
-                                                </a>
                                                 ${post.permalink_url ? `
                                                     <a href="${post.permalink_url}" target="_blank"
                                                        class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
@@ -1616,10 +1620,6 @@ function initializeDataManagement() {
                                             </div>
                                         ` : `
                                             <div class="flex gap-2">
-                                                <button onclick="showOrganicPostDetails('${post.id}', '${post.page_id}')"
-                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                                                    📊 Chi tiết
-                                                </button>
                                                 <a href="https://facebook.com/${post.id}" target="_blank"
                                                    class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
                                                     📘 Facebook
@@ -2188,30 +2188,22 @@ function initializeDataManagement() {
                             <div class="flex items-center justify-between text-xs mt-1">
                                 <div class="flex items-center gap-2">
                                         ${hasAds ? `
-                                            <div class="flex gap-2">
-                                                <button onclick="showAdDetails('${post.id}', '${post.page_id}')"
-                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                                                    📊 Chi tiết
-                                                </button>
-                                                <a href="/facebook/data-management/post/${post.id}/page/${post.page_id}" 
-                                                   class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                                            <div class=\"flex gap-2\">
+                                                <a href=\"/facebook/data-management/post/${post.id}/page/${post.page_id}\" 
+                                                   class=\"px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50\"> 
                                                     Xem chi tiết →
                                                 </a>
                                                 ${post.permalink_url ? `
-                                                    <a href="${post.permalink_url}" target="_blank"
-                                                       class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
+                                                    <a href=\"${post.permalink_url}\" target=\"_blank\"
+                                                       class=\"px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50\">
                                                         📘 Facebook
                                                     </a>
                                                 ` : ''}
                                             </div>
                                         ` : `
-                                            <div class="flex gap-2">
-                                                <button onclick="showOrganicPostDetails('${post.id}', '${post.page_id}')"
-                                                        class="px-2 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                                                    📊 Chi tiết
-                                                </button>
-                                                <a href="https://facebook.com/${post.id}" target="_blank"
-                                                   class="px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50">
+                                            <div class=\"flex gap-2\">
+                                                <a href=\"https://facebook.com/${post.id}\" target=\"_blank\"
+                                                   class=\"px-2 py-1 text-xs border border-blue-300 text-blue-700 rounded hover:bg-blue-50\">
                                                     📘 Facebook
                                                 </a>
                                             </div>
@@ -2377,12 +2369,7 @@ function initializeDataManagement() {
                 resetPageView();
             }
         });
-        
-        // Auto-load data if page is already selected
-        if (pageSelect.value) {
-            hideNoPageMessage();
-            loadPageData(pageSelect.value);
-        }
+        // Do NOT auto-load on first render to avoid heavy initial requests
     }
     
     // Filter form submission

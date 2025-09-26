@@ -69,6 +69,52 @@ class FacebookDataService
     }
 
     /**
+     * Lightweight list of pages for dropdown (no heavy counts or external lookups)
+     */
+    public function getPagesForDropdown(): Collection
+    {
+        $fanpages = \App\Models\FacebookFanpage::query()
+            ->select(['page_id', 'name', 'category', 'fan_count', 'profile_picture_url'])
+            ->orderBy('name')
+            ->get();
+
+        return new \Illuminate\Database\Eloquent\Collection(
+            $fanpages->map(function ($fp) {
+                return (object) [
+                    'id' => (string) $fp->page_id,
+                    'name' => $fp->name ?: ('Page ' . (string) $fp->page_id),
+                    'category' => $fp->category ?: 'Unknown',
+                    'fan_count' => (int) ($fp->fan_count ?: 0),
+                    'profile_picture_url' => $fp->profile_picture_url,
+                    // Keep field for UI compatibility; avoid heavy per-page counting here
+                    'ads_count' => 0,
+                ];
+            })
+        );
+    }
+
+    /**
+     * Get ads count for a list of page ids in one grouped query
+     */
+    public function getAdsCountsForPages(array $pageIds): array
+    {
+        if (empty($pageIds)) return [];
+
+        // Prefer facebook_post_ads table for counting ads per page
+        $rows = \App\Models\FacebookPostAd::query()
+            ->select(['page_id', DB::raw('COUNT(*) as cnt')])
+            ->whereIn('page_id', array_map('strval', $pageIds))
+            ->groupBy('page_id')
+            ->get();
+
+        $map = [];
+        foreach ($rows as $r) {
+            $map[(string) $r->page_id] = (int) $r->cnt;
+        }
+        return $map;
+    }
+
+    /**
      * Lấy danh sách Page có bài viết organic (không chạy ads)
      */
     public function getAvailableOrganicPages(): Collection

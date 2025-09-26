@@ -35,7 +35,27 @@ class FacebookDataController extends Controller
             'search' => null,
         ], $filters);
         
-        $data = $this->facebookDataService->getFacebookData($filters);
+        // Only fetch heavy data when a page is selected; otherwise return lightweight payload
+        if (empty($filters['page_id'])) {
+            $pages = $this->facebookDataService->getPagesForDropdown();
+            // Enrich with ads_count cheaply using a grouped query
+            if ($pages->count()) {
+                $ids = $pages->pluck('id')->map(fn($v) => (string)$v)->all();
+                $counts = $this->facebookDataService->getAdsCountsForPages($ids);
+                $pages = $pages->map(function($p) use ($counts){
+                    $p->ads_count = $counts[(string)$p->id] ?? 0;
+                    return $p;
+                });
+            }
+            $data = [
+                'pages' => $pages,
+                'selected_page' => null,
+                'posts' => collect(),
+                'spending_stats' => [],
+            ];
+        } else {
+            $data = $this->facebookDataService->getFacebookData($filters);
+        }
 
         // Bổ sung thông tin fanpage (nếu có) để hiển thị tên, fan_count, category
         if (!empty($data['pages']) && $data['pages'] instanceof \Illuminate\Support\Collection) {
