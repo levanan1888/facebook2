@@ -629,6 +629,7 @@ class FacebookHierarchy {
                             <th class="px-4 py-3 text-left">ID</th>
                             <th class="px-4 py-3 text-left">Xác minh</th>
                             <th class="px-4 py-3 text-left">Tài khoản quảng cáo</th>
+                            <th class="px-4 py-3 text-left">Số tiền đã tiêu</th>
                             <th class="px-4 py-3 text-left">Ngày đồng bộ</th>
                             <th class="px-4 py-3 text-left">Hành động</th>
                         </tr>
@@ -646,6 +647,11 @@ class FacebookHierarchy {
                                 <td class="px-4 py-3">
                                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                         ${business.ad_accounts_count ?? business.adAccounts_count ?? 0}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${business.total_spend > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">
+                                        ${business.total_spend ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(business.total_spend) : '0 VND'}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-500">${business.created_at ? new Date(business.created_at).toLocaleDateString('vi-VN') : 'N/A'}</td>
@@ -1428,9 +1434,9 @@ class FacebookHierarchy {
                             const impressions = (post.ad_impressions || 0);
                             const reach = (post.ad_reach || 0);
                             const clicks = (post.ad_clicks || 0);
-                            const postIdText = post.post_id ? (typeof post.post_id === 'string' ? post.post_id : JSON.stringify(post.post_id)) : '';
-                            const pageIdText = post.page_id ? (typeof post.page_id === 'string' ? post.page_id : JSON.stringify(post.page_id)) : '';
-                            const fallbackLink = (pageIdText && postIdText) ? `https://www.facebook.com/${pageIdText.replace(/\"/g,'').replace(/"/g,'')}/posts/${postIdText.replace(/\"/g,'').replace(/"/g,'')}` : null;
+                            const postIdText = post.post_id ? String(post.post_id).replace(/"/g, '') : '';
+                            const pageIdText = post.page_id ? String(post.page_id).replace(/"/g, '') : '';
+                            const fallbackLink = (pageIdText && postIdText) ? `https://www.facebook.com/${pageIdText}/posts/${postIdText}` : null;
                             const permalink = post.post_permalink_url || fallbackLink;
                             return `
                                 <tr class="border-t hover:bg-gray-50">
@@ -1440,7 +1446,7 @@ class FacebookHierarchy {
                                         ${post.post_created_time ? `<div class=\"text-xs text-gray-500\">${new Date(post.post_created_time).toLocaleDateString('vi-VN')}</div>` : ''}
                                     </td>
                                     <td class="px-4 py-3">
-                                        ${pageIdText ? `<a href=\"https://www.facebook.com/${pageIdText.replace(/\\\"/g,'').replace(/"/g,'')}\" target=\"_blank\" class=\"text-blue-600 hover:text-blue-800 text-xs\">${pageIdText}</a>` : '<div class="text-xs text-gray-500 font-mono">-</div>'}
+                                        ${pageIdText ? `<a href=\"https://www.facebook.com/${pageIdText}\" target=\"_blank\" class=\"text-blue-600 hover:text-blue-800 text-xs\">${pageIdText}</a>` : '<div class="text-xs text-gray-500 font-mono">-</div>'}
                                     </td>
                                     <td class="px-4 py-3"><div class="text-sm font-medium">${spend.toLocaleString('vi-VN')} đ</div></td>
                                     <td class="px-4 py-3">${Number(impressions).toLocaleString('vi-VN')}</td>
@@ -1451,6 +1457,7 @@ class FacebookHierarchy {
                                         <div class="space-y-1">
                                             ${permalink ? `<a href=\"${permalink}\" target=\"_blank\" class=\"text-blue-600 hover:text-blue-800 text-xs block\">🔗 View Post</a>` : ''}
                                             ${post.creative_link_url ? `<a href=\"${post.creative_link_url}\" target=\"_blank\" class=\"text-blue-600 hover:text-blue-800 text-xs block\">🌐 Link</a>` : ''}
+                                            ${post.post_id && post.page_id ? `<a href=\"/facebook/data-management/post/${post.post_id}/page/${post.page_id}\" target=\"_blank\" class=\"text-green-600 hover:text-green-800 text-xs block font-medium\">📊 Phân tích chi tiết</a>` : ''}
                                         </div>
                                     </td>
                                 </tr>

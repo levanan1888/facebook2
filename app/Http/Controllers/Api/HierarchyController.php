@@ -31,6 +31,24 @@ class HierarchyController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get(['id', 'name', 'verification_status', 'created_at']);
 
+            // Thêm số tiền đã tiêu cho từng Business Manager
+            $businesses->transform(function ($business) use ($from, $to) {
+                // Tính tổng spend cho Business Manager này
+                $spendQuery = FacebookAdInsight::join('facebook_ads', 'facebook_ad_insights.ad_id', '=', 'facebook_ads.id')
+                    ->join('facebook_campaigns', 'facebook_ads.campaign_id', '=', 'facebook_campaigns.id')
+                    ->join('facebook_ad_accounts', 'facebook_campaigns.ad_account_id', '=', 'facebook_ad_accounts.id')
+                    ->where('facebook_ad_accounts.business_id', $business->id);
+                
+                if (!empty($from) && !empty($to)) {
+                    $spendQuery->whereBetween('facebook_ad_insights.date', [$from, $to]);
+                }
+                
+                $spendData = $spendQuery->selectRaw('COALESCE(SUM(facebook_ad_insights.spend), 0) as total_spend')->first();
+                $business->total_spend = (float) ($spendData->total_spend ?? 0);
+                
+                return $business;
+            });
+
             // Calculate overall totals across all businesses
             $totalAccounts = FacebookAdAccount::count();
             $totalCampaigns = FacebookCampaign::count();

@@ -373,14 +373,10 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-6">
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Tỉnh/Thành (Top 10 theo reach)</h3>
                     <div class="h-72"><canvas id="regionBreakdownChart"></canvas></div>
-                </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Độ tuổi (clicks theo age bucket)</h3>
-                    <div class="h-72"><canvas id="ageBreakdownChart"></canvas></div>
                 </div>
             </div>
 
@@ -1081,7 +1077,6 @@
             const deviceChartEl = document.getElementById('deviceBreakdownChart');
             const countryChartEl = document.getElementById('countryBreakdownChart');
             const regionChartEl = document.getElementById('regionBreakdownChart');
-            const ageChartEl = document.getElementById('ageBreakdownChart');
             function pickDeviceBucket(bd){
                 if (bd && bd.impression_device) return bd.impression_device;
                 if (bd && bd.device_platform) return bd.device_platform;
@@ -1127,18 +1122,6 @@
                 window.__fbCharts.region = new Chart(rctx, {
                     type: 'bar',
                     data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#34D399' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-            }
-            if (ageChartEl) {
-                const bucket = (breakdowns && breakdowns.age) ? breakdowns.age : {};
-                const labels = Object.keys(bucket);
-                const values = labels.map(k => Number((bucket[k]?.impressions)||0));
-                const actx = ageChartEl.getContext('2d');
-                window.__fbCharts.age && window.__fbCharts.age.destroy();
-                window.__fbCharts.age = new Chart(actx, {
-                    type: 'bar',
-                    data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#60A5FA' }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             }
