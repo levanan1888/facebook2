@@ -7,6 +7,8 @@ namespace App\Console\Commands;
 use App\Services\FacebookAdsSyncService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class SyncFacebookAdsWithVideoMetrics extends Command
 {
@@ -127,6 +129,11 @@ class SyncFacebookAdsWithVideoMetrics extends Command
                 );
             }
             
+            // Consolidate messaging insights so UI totals don't drift
+            $this->info('Consolidating daily messaging insights with Ads paid conversations...');
+            $this->consolidateMessagingInsights($since, $until);
+            $this->info('Consolidation completed.');
+            
             return 0;
 
         } catch (\Exception $e) {
@@ -136,6 +143,78 @@ class SyncFacebookAdsWithVideoMetrics extends Command
                 'trace' => $e->getTraceAsString()
             ]);
             return 1;
+        }
+    }
+
+    /**
+     * Align facebook_page_daily_insights with Ads paid conversations and backfill missing days.
+     * - For each page_id seen in the date window, ensure one row/day exists in facebook_page_daily_insights
+     * - Persist raw ads_messaging_conversation_started per day from Ads
+     *   (Total/new/organic will be handled in SyncAllFacebookData::syncPageMessagingInsights)
+     */
+    private function consolidateMessagingInsights(string $since, string $until): void
+    {
+        $start = Carbon::parse($since)->startOfDay();
+        $end = Carbon::parse($until)->startOfDay();
+
+        // Collect page_ids that have either ads insights or existing page daily rows in range
+        $pageIds = DB::table('facebook_ad_insights')
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->distinct()->pluck('page_id')->toArray();
+
+        $morePageIds = DB::table('facebook_page_daily_insights')
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->distinct()->pluck('page_id')->toArray();
+
+        $pages = array_values(array_unique(array_merge($pageIds, $morePageIds)));
+        if (empty($pages)) {
+            return;
+        }
+
+        // Precompute date list
+        $dates = [];
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $dates[] = $d->toDateString();
+        }
+
+        foreach ($pages as $pageId) {
+            // Ads paid per day
+            $paidByDate = DB::table('facebook_ad_insights')
+                ->select('date', DB::raw('COALESCE(SUM(messaging_conversation_started_7d),0) as paid'))
+                ->where('page_id', $pageId)
+                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->groupBy('date')
+                ->pluck('paid', 'date');
+
+            foreach ($dates as $date) {
+                $paid = (int) ($paidByDate[$date] ?? 0);
+                // Ensure daily row exists (do not compute organic/paid totals here)
+                $existing = DB::table('facebook_page_daily_insights')
+                    ->where('page_id', $pageId)
+                    ->where('date', $date)
+                    ->first();
+
+                if ($existing) {
+                    DB::table('facebook_page_daily_insights')
+                        ->where('page_id', $pageId)
+                        ->where('date', $date)
+                        ->update([
+                            'ads_messaging_conversation_started' => $paid,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('facebook_page_daily_insights')->insert([
+                        'page_id' => $pageId,
+                        'date' => $date,
+                        'messages_new_conversations' => 0,
+                        'messages_total_connections' => 0,
+                        'messages_active_threads' => 0,
+                        'ads_messaging_conversation_started' => $paid,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
         }
     }
 }

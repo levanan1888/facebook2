@@ -280,6 +280,24 @@
                         </div>
                     </div>
                 </div>
+                @if(($data['filters']['page_id'] ?? null))
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-cyan-100 rounded-lg">
+                            <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m-2 8a9 9 0 110-18 9 9 0 010 18z"/></svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Tin nhắn Page (28 ngày)</p>
+                            <div class="text-sm text-gray-700 space-x-3">
+                                <span class="inline-flex items-center"><span class="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>Organic: <span class="font-semibold ml-1">{{ number_format($agg['page_msg_28d_organic'] ?? 0) }}</span></span>
+                                <span class="inline-flex items-center"><span class="w-2 h-2 bg-sky-500 rounded-full mr-2"></span>Paid: <span class="font-semibold ml-1">{{ number_format($agg['page_msg_28d_paid'] ?? 0) }}</span></span>
+                                <span class="inline-flex items-center"><span class="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>Total: <span class="font-semibold ml-1">{{ number_format($agg['page_msg_28d_total'] ?? 0) }}</span></span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">Gần nhất: Organic {{ number_format($agg['page_msg_day_organic'] ?? 0) }}, Paid {{ number_format($agg['page_msg_day_paid'] ?? 0) }}, Total {{ number_format($agg['page_msg_day_total'] ?? 0) }}</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                     <div class="flex items-center">
                         <div class="p-2 bg-yellow-100 rounded-lg">
@@ -304,79 +322,73 @@
 
             <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6"></div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-end mb-3">
+                <button id="btnWidgetConfig" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Tùy chọn hiển thị biểu đồ</button>
+            </div>
+            <div class="flex flex-col gap-4">
+                <div class="bg-white rounded-lg shadow p-0 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                         <h3 class="text-lg font-semibold text-gray-900">Hoạt động theo thời gian</h3>
-                        <div class="text-sm text-gray-600">
-                            @if(!empty($data['last7Days']))
-                                @php
-                                    $firstDate = \Carbon\Carbon::parse($data['last7Days'][0]['date'] ?? 'now');
-                                    $lastDate = \Carbon\Carbon::parse(end($data['last7Days'])['date'] ?? 'now');
-                                @endphp
-                                <span class="font-medium">Từ:</span> {{ $firstDate->format('d/m/Y') }} 
-                                <span class="font-medium ml-2">Đến:</span> {{ $lastDate->format('d/m/Y') }}
-                            @endif
+                        <div class="flex items-center flex-wrap gap-2">
+                            <label for="activityChartType" class="text-xs text-gray-500">Biểu đồ</label>
+                            <select id="activityChartType" class="text-sm border border-gray-300 rounded px-2 py-1">
+                                <option value="bar">Cột</option>
+                                <option value="line">Đường</option>
+                                <option value="radar">Radar</option>
+                                <option value="doughnut">Vòng</option>
+                            </select>
+                            <label class="inline-flex items-center space-x-1 text-xs text-gray-600"><input id="metricCampaigns" type="checkbox" class="rounded" checked><span>Campaigns</span></label>
+                            <label class="inline-flex items-center space-x-1 text-xs text-gray-600"><input id="metricAds" type="checkbox" class="rounded" checked><span>Ads</span></label>
+                            <label class="inline-flex items-center space-x-1 text-xs text-gray-600"><input id="metricPosts" type="checkbox" class="rounded" checked><span>Posts</span></label>
+                            <label class="inline-flex items-center space-x-1 text-xs text-gray-600"><input id="metricSpend" type="checkbox" class="rounded" checked><span>Spend</span></label>
                         </div>
                     </div>
-                    <div class="mb-2">
-                        <p class="text-xs text-gray-500 italic">
-                            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
-                            </svg>
-                            Dữ liệu hiển thị theo ngày tháng thực tế từ database
-                        </p>
+                    <div class="px-4 py-3">
+                        <div class="h-72 lg:h-80">
+                            <canvas id="activityChart" style="width:100%;height:100%"></canvas>
+                        </div>
                     </div>
-                    <div class="h-72"><canvas id="activityChart"></canvas></div>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Phân bố trạng thái Campaigns</h3>
-                    <div class="h-72">
+            </div>
+
+            <!-- Compact KPI charts grid: 4 per row on large screens -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                <div class="bg-white rounded-lg shadow p-4 overflow-hidden" data-widget="status">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Phân bố trạng thái Campaigns</h3>
+                    <div class="h-56">
                         @if(isset($data['statusStats']['campaigns']) && count($data['statusStats']['campaigns']) > 0)
                             <canvas id="statusChart"></canvas>
                         @else
                             <div class="flex items-center justify-center h-full text-gray-500">
                                 <div class="text-center">
-                                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                     </svg>
-                                    <p class="text-lg font-medium">Chưa có dữ liệu</p>
-                                    <p class="text-sm">Campaigns chưa được đồng bộ hoặc không có trạng thái</p>
+                                    <p class="text-sm">Chưa có dữ liệu trạng thái</p>
                                 </div>
                             </div>
                         @endif
                     </div>
                 </div>
-            </div>
-
-            <!-- Moved up: Video & Messaging overview -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Tổng quan Video</h3>
-                    <div class="h-72"><canvas id="videoOverviewChart"></canvas></div>
+                <div class="bg-white rounded-lg shadow p-4 overflow-hidden" data-widget="video">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Tổng quan Video</h3>
+                    <div class="h-56"><canvas id="videoOverviewChart"></canvas></div>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Tổng quan Tin nhắn</h3>
-                    <div class="h-72"><canvas id="messagingOverviewChart"></canvas></div>
+                <div class="bg-white rounded-lg shadow p-4 overflow-hidden" data-widget="messaging">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Tổng quan Tin nhắn</h3>
+                    <div class="h-56"><canvas id="messagingOverviewChart"></canvas></div>
                 </div>
-            </div>
-
-            <!-- Breakdown charts -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Thiết bị hiển thị</h3>
-                    <div class="h-72"><canvas id="deviceBreakdownChart"></canvas></div>
+                <div class="bg-white rounded-lg shadow p-4 overflow-hidden" data-widget="device">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Thiết bị hiển thị</h3>
+                    <div class="h-56"><canvas id="deviceBreakdownChart"></canvas></div>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quốc gia (Top 10 theo hiển thị)</h3>
-                    <div class="h-72"><canvas id="countryBreakdownChart"></canvas></div>
+                <div class="bg-white rounded-lg shadow p-4 overflow-hidden" data-widget="country">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Quốc gia (Top 10 theo hiển thị)</h3>
+                    <div class="h-56"><canvas id="countryBreakdownChart"></canvas></div>
                 </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Tỉnh/Thành (Top 10 theo reach)</h3>
-                    <div class="h-72"><canvas id="regionBreakdownChart"></canvas></div>
+                <div class="bg-white rounded-lg shadow p-4 overflow-hidden" data-widget="region">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Tỉnh/Thành (Top 10 theo reach)</h3>
+                    <div class="h-56"><canvas id="regionBreakdownChart"></canvas></div>
                 </div>
             </div>
 
@@ -462,6 +474,104 @@
         </div>
 
         <!-- Guide Modal - Hiển thị hướng dẫn cho 2 màn hình trong sidebar -->
+        <!-- Widget Config Modal -->
+        <div id="widgetConfigModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+            <div class="relative top-20 mx-auto p-6 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Chọn biểu đồ muốn hiển thị</h3>
+                    <button id="closeWidgetConfig" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div class="flex items-center justify-between p-2 border rounded">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded" data-widget-toggle value="activity">
+                            <span class="font-medium">Hoạt động theo thời gian</span>
+                        </label>
+                        <select class="text-xs border rounded px-2 py-1" data-widget-type="activity">
+                            <option value="bar">Cột</option>
+                            <option value="line">Đường</option>
+                            <option value="radar">Radar</option>
+                            <option value="doughnut">Vòng</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 border rounded">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded" data-widget-toggle value="status">
+                            <span class="font-medium">Phân bố trạng thái Campaigns</span>
+                        </label>
+                        <select class="text-xs border rounded px-2 py-1" data-widget-type="status">
+                            <option value="doughnut">Vòng</option>
+                            <option value="pie">Tròn</option>
+                            <option value="bar">Cột</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 border rounded">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded" data-widget-toggle value="video">
+                            <span class="font-medium">Tổng quan Video</span>
+                        </label>
+                        <select class="text-xs border rounded px-2 py-1" data-widget-type="video">
+                            <option value="bar">Cột</option>
+                            <option value="line">Đường</option>
+                            <option value="radar">Radar</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 border rounded">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded" data-widget-toggle value="messaging">
+                            <span class="font-medium">Tổng quan Tin nhắn</span>
+                        </label>
+                        <select class="text-xs border rounded px-2 py-1" data-widget-type="messaging">
+                            <option value="bar">Cột</option>
+                            <option value="line">Đường</option>
+                            <option value="radar">Radar</option>
+                            <option value="doughnut">Vòng</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 border rounded">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded" data-widget-toggle value="device">
+                            <span class="font-medium">Thiết bị hiển thị</span>
+                        </label>
+                        <select class="text-xs border rounded px-2 py-1" data-widget-type="device">
+                            <option value="bar">Cột</option>
+                            <option value="line">Đường</option>
+                            <option value="radar">Radar</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 border rounded">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded" data-widget-toggle value="country">
+                            <span class="font-medium">Quốc gia (Top 10)</span>
+                        </label>
+                        <select class="text-xs border rounded px-2 py-1" data-widget-type="country">
+                            <option value="bar">Cột</option>
+                            <option value="line">Đường</option>
+                            <option value="radar">Radar</option>
+                            <option value="doughnut">Vòng</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-2 border rounded">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="rounded" data-widget-toggle value="region">
+                            <span class="font-medium">Tỉnh/Thành (Top 10)</span>
+                        </label>
+                        <select class="text-xs border rounded px-2 py-1" data-widget-type="region">
+                            <option value="bar">Cột</option>
+                            <option value="line">Đường</option>
+                            <option value="radar">Radar</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-5 gap-2">
+                    <button id="btnWidgetReset" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Mặc định</button>
+                    <button id="btnWidgetSave" class="px-4 py-2 text-sm bg-emerald-600 text-white rounded hover:bg-emerald-700">Lưu</button>
+                </div>
+            </div>
+        </div>
+        
         <div id="guideModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
             <div class="relative top-10 mx-auto p-6 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
@@ -687,6 +797,9 @@
         
         <script>
         function initFacebookOverviewCharts() {
+            // prevent double init
+            if (window.__overviewChartsInit) return;
+            window.__overviewChartsInit = true;
             // modal/UX handlers (once)
             const guideModal = document.getElementById('guideModal');
             const btnGuide = document.getElementById('btnGuide');
@@ -808,52 +921,51 @@
                     return item.date || 'N/A';
                 });
                 
-                window.__fbCharts.activity && window.__fbCharts.activity.destroy();
-                window.__fbCharts.activity = new Chart(activityCtx, { 
-                    type: 'bar', 
-                    data: { 
-                        labels: formattedLabels, 
-                        datasets: [
-                            { 
-                                label: 'Chiến dịch', 
-                                data: activityData.map(item => item.campaigns), 
-                                backgroundColor: 'rgba(59,130,246,0.8)', 
-                                borderColor: 'rgb(59,130,246)', 
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                borderSkipped: false
-                            },
-                            { 
-                                label: 'Quảng cáo', 
-                                data: activityData.map(item => item.ads), 
-                                backgroundColor: 'rgba(16,185,129,0.8)', 
-                                borderColor: 'rgb(16,185,129)', 
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                borderSkipped: false
-                            },
-                            { 
-                                label: 'Bài đăng', 
-                                data: activityData.map(item => item.posts), 
-                                backgroundColor: 'rgba(245,158,11,0.8)', 
-                                borderColor: 'rgb(245,158,11)', 
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                borderSkipped: false
-                            },
-                            { 
-                                label: 'Chi tiêu ($)', 
-                                data: activityData.map(item => item.spend || 0), 
-                                backgroundColor: 'rgba(239,68,68,0.8)', 
-                                borderColor: 'rgb(239,68,68)', 
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                borderSkipped: false,
-                                yAxisID: 'y1' 
-                            }
-                        ] 
-                    }, 
-                    options: { 
+                function getActivityPrefs() {
+                    const def = { type: 'bar', metrics: { campaigns: true, ads: true, posts: true, spend: true } };
+                    try { return JSON.parse(localStorage.getItem('fb.activityChart')||'') || def; } catch(_) { return def; }
+                }
+                function setActivityPrefs(p) { localStorage.setItem('fb.activityChart', JSON.stringify(p)); }
+                function buildDatasets(prefs) {
+                    const ds = [];
+                    if (prefs.metrics.campaigns) ds.push({ label: 'Chiến dịch', data: activityData.map(i=>i.campaigns), backgroundColor: 'rgba(59,130,246,0.8)', borderColor: 'rgb(59,130,246)', borderWidth: 1, borderRadius: 4, borderSkipped: false });
+                    if (prefs.metrics.ads) ds.push({ label: 'Quảng cáo', data: activityData.map(i=>i.ads), backgroundColor: 'rgba(16,185,129,0.8)', borderColor: 'rgb(16,185,129)', borderWidth: 1, borderRadius: 4, borderSkipped: false });
+                    if (prefs.metrics.posts) ds.push({ label: 'Bài đăng', data: activityData.map(i=>i.posts), backgroundColor: 'rgba(245,158,11,0.8)', borderColor: 'rgb(245,158,11)', borderWidth: 1, borderRadius: 4, borderSkipped: false });
+                    if (prefs.metrics.spend) ds.push({ label: 'Chi tiêu ($)', data: activityData.map(i=> i.spend || 0), backgroundColor: 'rgba(239,68,68,0.8)', borderColor: 'rgb(239,68,68)', borderWidth: 1, borderRadius: 4, borderSkipped: false, yAxisID: 'y1' });
+                    return ds;
+                }
+                function syncControls(prefs){
+                    const t1=document.getElementById('activityChartType');
+                    const t2=document.getElementById('activityChartTypeSm');
+                    if(t1) t1.value=prefs.type; if(t2) t2.value=prefs.type;
+                    const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.checked=val; };
+                    set('metricCampaigns', prefs.metrics.campaigns); set('metricCampaignsSm', prefs.metrics.campaigns);
+                    set('metricAds', prefs.metrics.ads); set('metricAdsSm', prefs.metrics.ads);
+                    set('metricPosts', prefs.metrics.posts); set('metricPostsSm', prefs.metrics.posts);
+                    set('metricSpend', prefs.metrics.spend); set('metricSpendSm', prefs.metrics.spend);
+                }
+                function collectPrefs(){
+                    const val = (id, def)=>{ const el=document.getElementById(id); return el? !!el.checked : def; };
+                    const typeSel = document.getElementById('activityChartType') || document.getElementById('activityChartTypeSm');
+                    return {
+                        type: typeSel ? typeSel.value : 'bar',
+                        metrics: {
+                            campaigns: val('metricCampaigns', true) || val('metricCampaignsSm', true),
+                            ads: val('metricAds', true) || val('metricAdsSm', true),
+                            posts: val('metricPosts', true) || val('metricPostsSm', true),
+                            spend: val('metricSpend', true) || val('metricSpendSm', true)
+                        }
+                    };
+                }
+                function renderActivity(prefs){
+                    window.__fbCharts.activity && window.__fbCharts.activity.destroy();
+                    window.__fbCharts.activity = new Chart(activityCtx, { 
+                        type: prefs.type, 
+                        data: { 
+                            labels: formattedLabels, 
+                            datasets: buildDatasets(prefs)
+                        }, 
+                        options: { 
                         responsive: true, 
                         maintainAspectRatio: false, 
                         plugins: { 
@@ -878,7 +990,7 @@
                             mode: 'index', 
                             intersect: false 
                         }, 
-                        scales: { 
+                        scales: (['pie','doughnut','radar'].includes(prefs.type)) ? {} : { 
                             y: { 
                                 type: 'linear', 
                                 display: true, 
@@ -988,6 +1100,27 @@
                         }
                     } 
                 });
+                }
+
+                const prefs = getActivityPrefs();
+                syncControls(prefs);
+                renderActivity(prefs);
+                // Mini chart (7 days) for right column
+                const miniEl = document.getElementById('activityMiniChart');
+                if (miniEl) {
+                    const mctx = miniEl.getContext('2d');
+                    if (window.__fbCharts.activityMini) window.__fbCharts.activityMini.destroy();
+                    window.__fbCharts.activityMini = new Chart(mctx, {
+                        type: 'line',
+                        data: { labels: formattedLabels, datasets: [{ data: activityData.map(i=>i.campaigns||0), borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,.2)', fill: true, tension: .35 }]},
+                        options: { responsive: true, maintainAspectRatio: false, plugins:{ legend:{display:false}}, scales:{ x:{display:false}, y:{display:false} } }
+                    });
+                }
+                const ids = ['activityChartType','activityChartTypeSm','metricCampaigns','metricCampaignsSm','metricAds','metricAdsSm','metricPosts','metricPostsSm','metricSpend','metricSpendSm'];
+                ids.forEach(id=>{
+                    const el=document.getElementById(id); if(!el) return;
+                    el.addEventListener('change', ()=>{ const p=collectPrefs(); setActivityPrefs(p); renderActivity(p); });
+                });
             }
             if (statusEl) {
                 const statusCtx = statusEl.getContext('2d');
@@ -1025,6 +1158,16 @@
             const videoEl = document.getElementById('videoOverviewChart');
             const msgEl = document.getElementById('messagingOverviewChart');
             const agg = @json($data['overviewAgg'] ?? []);
+            // Read preferred widget types (force video to bar/line; map old radar to bar)
+            function getWidgetTypesMain(){
+                try{
+                    const obj = JSON.parse(localStorage.getItem('fb.widgets.types')||'') || {};
+                    if (obj.video === 'radar') obj.video = 'bar';
+                    if (obj.video && !['bar','line'].includes(obj.video)) obj.video = 'bar';
+                    return obj;
+                }catch(_){ return {}; }
+            }
+            const widgetTypesMain = getWidgetTypesMain();
             if (videoEl) {
                 const vctx = videoEl.getContext('2d');
                 window.__fbCharts.video && window.__fbCharts.video.destroy();
@@ -1036,30 +1179,32 @@
                 const p100 = Number(agg.v_p100||agg.video_p100_watched_actions||0);
                 const tp = Number(agg.thruplays||0);
                 const v30s = Number(agg.video_30s||agg.video_30_sec_watched||0);
-                window.__fbCharts.video = new Chart(vctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Plays','P25','P50','P75','P95','P100','Thruplays','30s'],
-                        datasets: [{
-                            label: 'Video',
-                            data: [plays,p25,p50,p75,p95,p100,tp,v30s].map(n => Number(n||0)),
-                            backgroundColor: ['#6366F1','#93C5FD','#60A5FA','#A78BFA','#F472B6','#EC4899','#10B981','#F59E0B']
-                        }]
-                    },
+                let vType = widgetTypesMain.video || 'bar';
+                if (!['bar','line'].includes(vType)) vType = 'bar';
+                const dataset = {
+                    label: 'Video',
+                    data: [plays,p25,p50,p75,p95,p100,tp,v30s].map(n => Number(n||0)),
+                    backgroundColor: vType==='line' ? 'rgba(99,102,241,0.25)' : ['#6366F1','#93C5FD','#60A5FA','#A78BFA','#F472B6','#EC4899','#10B981','#F59E0B'],
+                    borderColor: vType==='line' ? '#6366F1' : undefined,
+                    pointBackgroundColor: vType==='line' ? '#6366F1' : undefined,
+                };
+                const cfg = {
+                    type: vType,
+                    data: { labels: ['Plays','P25','P50','P75','P95','P100','Thruplays','30s'], datasets: [dataset] },
                     options: {
-                        indexAxis: 'y',
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
-                        scales: { x: { beginAtZero: true } }
                     }
-                });
+                };
+                if (vType === 'bar') cfg.options.scales = { y: { beginAtZero: true } };
+                window.__fbCharts.video = new Chart(vctx, cfg);
             }
             if (msgEl) {
                 const mctx = msgEl.getContext('2d');
                 window.__fbCharts.msg && window.__fbCharts.msg.destroy();
                 window.__fbCharts.msg = new Chart(mctx, {
-                    type: 'bar',
+                    type: widgetTypesMain.messaging || 'bar',
                     data: {
                         labels: ['Conversations started (7 days)','Message replies (7 days)','Welcome message views','Total messaging connections'],
                         datasets: [{
@@ -1090,7 +1235,7 @@
                 const dctx = deviceChartEl.getContext('2d');
                 window.__fbCharts.device && window.__fbCharts.device.destroy();
                 window.__fbCharts.device = new Chart(dctx, {
-                    type: 'bar',
+                    type: widgetTypesMain.device || 'bar',
                     data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#93C5FD' }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
@@ -1105,7 +1250,7 @@
                 const cctx = countryChartEl.getContext('2d');
                 window.__fbCharts.country && window.__fbCharts.country.destroy();
                 window.__fbCharts.country = new Chart(cctx, {
-                    type: 'bar',
+                    type: widgetTypesMain.country || 'bar',
                     data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#F59E0B' }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
@@ -1120,7 +1265,7 @@
                 const rctx = regionChartEl.getContext('2d');
                 window.__fbCharts.region && window.__fbCharts.region.destroy();
                 window.__fbCharts.region = new Chart(rctx, {
-                    type: 'bar',
+                    type: widgetTypesMain.region || 'bar',
                     data: { labels, datasets: [{ label: 'Impressions', data: values, backgroundColor: '#34D399' }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
@@ -1494,6 +1639,113 @@
             // Delay để tránh conflict
             setTimeout(initOverviewPage, 150);
         });
+
+        // Widget visibility preferences
+        (function initWidgetPrefs(){
+            const KEY='fb.widgets.visible';
+            const defaults=['activity','status','video','messaging','device','country','region'];
+            function get(){ try{ return JSON.parse(localStorage.getItem(KEY)||'') || defaults; }catch(_){ return defaults; } }
+            function set(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
+            function apply(arr){
+                const all = document.querySelectorAll('[data-widget]');
+                all.forEach(el=>{ const id=el.getAttribute('data-widget'); el.style.display = arr.includes(id)? '':'none'; });
+            }
+            // initial apply
+            const vis = get(); apply(vis);
+            // open/close modal
+            const modal=document.getElementById('widgetConfigModal');
+            const btn=document.getElementById('btnWidgetConfig');
+            const close=document.getElementById('closeWidgetConfig');
+            const btnSave=document.getElementById('btnWidgetSave');
+            const btnReset=document.getElementById('btnWidgetReset');
+            function syncChecks(arr){
+                document.querySelectorAll('[data-widget-toggle]').forEach(chk=>{
+                    chk.checked = arr.includes(chk.value);
+                });
+            }
+            if (btn && modal && close && btnSave && btnReset){
+                btn.addEventListener('click', ()=>{ 
+                    syncChecks(get()); 
+                    modal.classList.remove('hidden');
+                    // render previews (lazy load Chart.js if needed)
+                    const ensureChart = () => new Promise(res=>{ if(window.Chart) return res(); const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/chart.js'; s.onload=res; document.head.appendChild(s); });
+                    ensureChart().then(()=>{
+                        try { renderPreviewCharts(); } catch(e) { console.warn('preview error', e); }
+                    });
+                });
+                const hide=()=> modal.classList.add('hidden');
+                close.addEventListener('click', hide); modal.addEventListener('click', e=>{ if(e.target===modal) hide(); });
+                btnReset.addEventListener('click', ()=>{ syncChecks(defaults); });
+                btnSave.addEventListener('click', ()=>{
+                    const arr=[]; document.querySelectorAll('[data-widget-toggle]').forEach(chk=>{ if(chk.checked) arr.push(chk.value); });
+                    set(arr); apply(arr); hide();
+                });
+            }
+            function getWidgetTypes(){
+                const KEY_T='fb.widgets.types';
+                const def={activity:'bar',status:'doughnut',video:'bar',messaging:'bar',device:'bar',country:'bar',region:'bar'};
+                try{ return JSON.parse(localStorage.getItem(KEY_T)||'') || def; }catch(_){ return def; }
+            }
+            function setWidgetTypes(obj){ localStorage.setItem('fb.widgets.types', JSON.stringify(obj)); }
+
+            function renderPreviewCharts(){
+                const last7 = @json($data['last7Days'] ?? []);
+                const labels = last7.map(i=> (i.date ? new Date(i.date).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' }) : ''));
+                const smallOpts = { plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}, responsive:true, maintainAspectRatio:false };
+                const use = (id, cfg) => { const el=document.getElementById(id); if(!el) return; const ctx=el.getContext('2d'); if(el._c) { el._c.destroy(); } el._c=new Chart(ctx, cfg); };
+                const types = getWidgetTypes();
+                function renderOne(key){
+                    if(key==='activity'){
+                        use('preview-activity', { type: types.activity || 'line', data:{ labels, datasets:[{ data:last7.map(i=>i.ads||0), borderColor:'#10B981', backgroundColor:'rgba(16,185,129,0.25)', fill: types.activity==='line'? false : true }] }, options: smallOpts });
+                        return;
+                    }
+                    if(key==='status'){
+                        const st = @json($data['statusStats']['campaigns'] ?? []);
+                        use('preview-status', { type: types.status || 'doughnut', data:{ labels:Object.keys(st), datasets:[{ data:Object.values(st), backgroundColor:['#10B981','#F59E0B','#EF4444','#6B7280'] }] }, options: smallOpts });
+                        return;
+                    }
+                    if(key==='video'){
+                        const ag = @json($data['overviewAgg'] ?? []);
+                        use('preview-video', { type: types.video || 'bar', data:{ labels:['Plays','Thruplays'], datasets:[{ data:[Number(ag.video_views||0), Number(ag.thruplays||0)], backgroundColor:['#6366F1','#10B981'] }] }, options: smallOpts });
+                        return;
+                    }
+                    if(key==='messaging'){
+                        const ag = @json($data['overviewAgg'] ?? []);
+                        use('preview-messaging', { type: types.messaging || 'bar', data:{ labels:['Start','Replies'], datasets:[{ data:[Number(ag.msg_started||0), Number(ag.msg_replied||0)], backgroundColor:['#06B6D4','#60A5FA'] }] }, options: smallOpts });
+                        return;
+                    }
+                    if(key==='device'){
+                        const dev = @json(($data['breakdowns']['impression_device'] ?? $data['breakdowns']['device_platform'] ?? $data['breakdowns']['action_device'] ?? []) );
+                        const dLabels = Object.keys(dev || {}).slice(0,3);
+                        const dVals = dLabels.map(k=> Number((dev[k]?.impressions)||0));
+                        use('preview-device', { type: types.device || 'bar', data:{ labels:dLabels, datasets:[{ data:dVals, backgroundColor:'#93C5FD' }] }, options: smallOpts });
+                        return;
+                    }
+                    if(key==='country'){
+                        const ctry = @json($data['breakdowns']['country'] ?? []);
+                        const cEntries = Object.entries(ctry||{}).map(([k,v])=>({k, v:Number((v?.impressions)||0)})).sort((a,b)=>b.v-a.v).slice(0,3);
+                        use('preview-country', { type: types.country || 'bar', data:{ labels:cEntries.map(x=>x.k), datasets:[{ data:cEntries.map(x=>x.v), backgroundColor:'#F59E0B' }] }, options: smallOpts });
+                        return;
+                    }
+                    if(key==='region'){
+                        const reg = @json($data['breakdowns']['region'] ?? []);
+                        const rEntries = Object.entries(reg||{}).map(([k,v])=>({k, v:Number((v?.impressions)||0)})).sort((a,b)=>b.v-a.v).slice(0,3);
+                        use('preview-region', { type: types.region || 'bar', data:{ labels:rEntries.map(x=>x.k), datasets:[{ data:rEntries.map(x=>x.v), backgroundColor:'#34D399' }] }, options: smallOpts });
+                    }
+                }
+                // initial render all
+                ['activity','status','video','messaging','device','country','region'].forEach(renderOne);
+
+                // Sync selects with current types
+                document.querySelectorAll('[data-widget-type]').forEach(sel=>{
+                    const key=sel.getAttribute('data-widget-type'); sel.value = types[key] || sel.value;
+                    sel.addEventListener('change', ()=>{
+                        const t = getWidgetTypes();
+                        t[key] = sel.value; setWidgetTypes(t); renderOne(key);
+                    });
+                });
+            }
+        })();
         
         function initFilterLogic() {
             // Chỉ khởi tạo filter nếu chưa có

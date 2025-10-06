@@ -73,6 +73,24 @@
                     <option value="ads_desc">Quảng cáo nhiều nhất</option>
                     <option value="ads_asc">Quảng cáo ít nhất</option>
                 </select>
+
+                <!-- Compact Date Range Controls (top bar) -->
+                <select id="quick_date_preset" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="this_month">Tháng này</option>
+                    <option value="last_7_days">7 ngày qua</option>
+                    <option value="last_28_days">28 ngày qua</option>
+                    <option value="last_30_days">30 ngày qua</option>
+                    <option value="this_week">Tuần này</option>
+                    <option value="last_week">Tuần trước</option>
+                    <option value="today">Hôm nay</option>
+                    <option value="yesterday">Hôm qua</option>
+                </select>
+                <input id="quick_from" type="date" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                <span class="text-gray-400">→</span>
+                <input id="quick_to" type="date" class="rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                <button id="quick_apply" type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 shadow">
+                    Áp dụng
+                </button>
             </div>
         </div>
 
@@ -260,17 +278,21 @@
                 </div>
                 
                 <div>
-                    <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">Từ ngày</label>
-                    <input type="date" id="date_from" name="date_from" 
-                           value="{{ $filters['date_from'] ?? '' }}"
-                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <label for="date_from_text" class="block text-sm font-medium text-gray-700 mb-1">Từ ngày</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="date_from_text" placeholder="dd/mm/yyyy" inputmode="numeric" pattern="^(0?[1-9]|[12][0-9]|3[01])\/(0?[1-9]|1[0-2])\/\d{4}$" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="{{ isset($filters['date_from']) && $filters['date_from'] ? (\Carbon\Carbon::parse($filters['date_from'])->format('d/m/Y')) : '' }}">
+                        <button type="button" onclick="document.getElementById('date_from').showPicker?.(); document.getElementById('date_from').focus();" class="px-3 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">📅</button>
+                    </div>
+                    <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="hidden">
                 </div>
                 
                 <div>
-                    <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">Đến ngày</label>
-                    <input type="date" id="date_to" name="date_to" 
-                           value="{{ $filters['date_to'] ?? '' }}"
-                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <label for="date_to_text" class="block text-sm font-medium text-gray-700 mb-1">Đến ngày</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="date_to_text" placeholder="dd/mm/yyyy" inputmode="numeric" pattern="^(0?[1-9]|[12][0-9]|3[01])\/(0?[1-9]|1[0-2])\/\d{4}$" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="{{ isset($filters['date_to']) && $filters['date_to'] ? (\Carbon\Carbon::parse($filters['date_to'])->format('d/m/Y')) : '' }}">
+                        <button type="button" onclick="document.getElementById('date_to').showPicker?.(); document.getElementById('date_to').focus();" class="px-3 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">📅</button>
+                    </div>
+                    <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="hidden">
                 </div>
                 
                 <div>
@@ -812,6 +834,25 @@ function initializeDataManagement() {
         
         // Build query string
         const timeIncrementSel = document.getElementById('time_increment');
+        // Default date range to This Month if none provided
+        (function ensureDefaultDateRange(){
+            const df = document.getElementById('date_from');
+            const dt = document.getElementById('date_to');
+            const preset = document.getElementById('date_preset');
+            const hasFilterDates = (filters && (filters.date_from || filters.date_to));
+            const hasInputs = (df && df.value) || (dt && dt.value);
+            if (!hasFilterDates && !hasInputs) {
+                const today = new Date();
+                const first = new Date(today.getFullYear(), today.getMonth(), 1);
+                const fmt = d => d.toISOString().slice(0,10);
+                const since = fmt(first);
+                const until = fmt(today);
+                if (df) df.value = since;
+                if (dt) dt.value = until;
+                if (preset) preset.value = 'this_month';
+                filters = { ...filters, date_from: since, date_to: until };
+            }
+        })();
         const params = new URLSearchParams({ 
             page_id: pageId, 
             view_type: (viewTypeInput?.value || 'combined'), 
@@ -850,6 +891,8 @@ function initializeDataManagement() {
             })
             .then(data => {
                 // console.debug('Received data');
+                // Expose latest payload for UI sections needing derived totals
+                try { window.__lastPageData = data; } catch(_) {}
                 
                 // Save to cache
                 if (window.__dmCache) {
@@ -1134,19 +1177,186 @@ function initializeDataManagement() {
                             <div class="text-center">
                                 <div class="text-sm font-semibold text-blue-800 mb-2">Thời gian dữ liệu</div>
                                   <div class="text-xs text-blue-600">
-                                      ${data.posts && data.posts.length > 0 ? 
-                                         (() => {
-                                             const dates = data.posts.map(p => new Date(p.created_time)).filter(d => !isNaN(d.getTime()));
-                                             if (dates.length === 0) return 'Không có dữ liệu hợp lệ';
-                                             
-                                             const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-                                             const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-                                             
-                                             return `Từ ${formatDate(minDate.toISOString())} đến ${formatDate(maxDate.toISOString())}`;
-                                         })()
-                                          : 'Không có dữ liệu'
-                                      }
+                                      ${(() => {
+                                            try {
+                                                const st = (window.history && window.history.state && window.history.state.filters) ? window.history.state.filters : {};
+                                                const f = st.date_from || '';
+                                                const t = st.date_to || '';
+                                                if (f && t) {
+                                                    return `Từ ${formatDate(new Date(f).toISOString())} đến ${formatDate(new Date(t).toISOString())}`;
+                                                }
+                                            } catch(_) {}
+                                            return (data.posts && data.posts.length > 0) ? (() => {
+                                                const dates = data.posts.map(p => new Date(p.created_time)).filter(d => !isNaN(d.getTime()));
+                                                if (dates.length === 0) return 'Không có dữ liệu hợp lệ';
+                                                const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+                                                const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                                                return `Từ ${formatDate(minDate.toISOString())} đến ${formatDate(maxDate.toISOString())}`;
+                                            })() : 'Không có dữ liệu';
+                                      })()}
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tin nhắn Page: ưu tiên tổng theo khoảng ngày (nếu có), fallback ảnh chụp ngày gần nhất -->
+                        <div class="bg-cyan-50 rounded-lg p-4 mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="text-sm font-semibold text-cyan-800">💬 Tin nhắn Page</div>
+                                <div class="text-[11px] text-cyan-700">
+                                    ${(() => { try { const st = (window.history && window.history.state && window.history.state.filters) ? window.history.state.filters : {}; if (st.date_from && st.date_to) { return `Khoảng ngày: ${new Date(st.date_from).toLocaleDateString('vi-VN')} - ${new Date(st.date_to).toLocaleDateString('vi-VN')}`; } } catch(_) {} return ''; })()}
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3 text-center">
+                                <div class="col-span-3">
+                                    ${(() => {
+                                        try {
+                                            // Lọc theo khoảng ngày đã chọn (nếu có)
+                                            let since = null, until = null;
+                                            try {
+                                                const st = (window.history && window.history.state && window.history.state.filters) ? window.history.state.filters : {};
+                                                if (st.date_from) since = new Date(st.date_from);
+                                                if (st.date_to) { until = new Date(st.date_to); until.setHours(23,59,59,999); }
+                                            } catch(_) {}
+
+                                            const withinRange = (d) => {
+                                                if (!d || isNaN(d.getTime())) return true; // không có ngày → không lọc
+                                                if (since && d < since) return false;
+                                                if (until && d > until) return false;
+                                                return true;
+                                            };
+
+                                            const toNumber = (v) => { const n = Number(v); return isNaN(n) ? null : n; };
+
+                                            const getTotal = (payload) => {
+                                                if (!payload) return null;
+                                                if (Array.isArray(payload)) {
+                                                    const nums = payload.map(x=>{
+                                                        if (typeof x === 'number' || typeof x === 'string') return toNumber(x);
+                                                        if (x && typeof x === 'object') {
+                                                            const dStr = x.date || x.end_time || x.time || x.timestamp;
+                                                            const d = dStr ? new Date(dStr) : null;
+                                                            if (!withinRange(d)) return null;
+                                                            return toNumber(x.value ?? x.values ?? x.count ?? x.total ?? x.messages ?? x.metric ?? x[1]);
+                                                        }
+                                                        return null;
+                                                    }).filter(n=>n!==null);
+                                                    return nums.length ? nums.reduce((s,n)=>s+n,0) : null;
+                                                }
+                                                if (Array.isArray(payload.values)) {
+                                                    const nums = payload.values.map(x=>{
+                                                        if (typeof x === 'number' || typeof x === 'string') return toNumber(x);
+                                                        if (x && typeof x === 'object') {
+                                                            const dStr = x.date || x.end_time || x.time || x.timestamp;
+                                                            const d = dStr ? new Date(dStr) : null;
+                                                            if (!withinRange(d)) return null;
+                                                            return toNumber(x.value ?? x.count ?? x.total ?? x.messages ?? x.metric);
+                                                        }
+                                                        return null;
+                                                    }).filter(n=>n!==null);
+                                                    return nums.length ? nums.reduce((s,n)=>s+n,0) : null;
+                                                }
+                                                if (Array.isArray(payload.data)) {
+                                                    const nums = payload.data.map(x=>{
+                                                        if (typeof x === 'number' || typeof x === 'string') return toNumber(x);
+                                                        if (x && typeof x === 'object') {
+                                                            const dStr = x.date || x.end_time || x.time || x.timestamp;
+                                                            const d = dStr ? new Date(dStr) : null;
+                                                            if (!withinRange(d)) return null;
+                                                            return toNumber(x.value ?? x.count ?? x.total ?? x.messages ?? x.metric);
+                                                        }
+                                                        return null;
+                                                    }).filter(n=>n!==null);
+                                                    return nums.length ? nums.reduce((s,n)=>s+n,0) : null;
+                                                }
+                                                if (payload.series && Array.isArray(payload.series)) {
+                                                    const nums = payload.series.flatMap(s=>Array.isArray(s.data)?s.data:[]).map(x=>{
+                                                        if (typeof x === 'number' || typeof x === 'string') return toNumber(x);
+                                                        if (x && typeof x === 'object') {
+                                                            const dStr = x.date || x.end_time || x.time || x.timestamp;
+                                                            const d = dStr ? new Date(dStr) : null;
+                                                            if (!withinRange(d)) return null;
+                                                            return toNumber(x.value ?? x.count ?? x.total ?? x.messages ?? x.metric);
+                                                        }
+                                                        return null;
+                                                    }).filter(n=>n!==null);
+                                                    return nums.length ? nums.reduce((s,n)=>s+n,0) : null;
+                                                }
+                                                if (typeof payload === 'object') {
+                                                    // Chỉ cộng khi keys là ngày hợp lệ (YYYY-MM-DD) hoặc item có trường date
+                                                    const dateKey = /^\d{4}-\d{2}-\d{2}$/;
+                                                    const entries = Object.entries(payload).map(([k,v])=>{
+                                                        if (!dateKey.test(String(k))) return null; // bỏ qua summary như total_new, paid...
+                                                        const d = new Date(k);
+                                                        if (!withinRange(d)) return null;
+                                                        return toNumber(v && v.value !== undefined ? v.value : v);
+                                                    }).filter(n=>n!==null);
+                                                    return entries.length ? entries.reduce((s,n)=>s+n,0) : null;
+                                                }
+                                                return null;
+                                            };
+                                            const p = (typeof data !== 'undefined') ? data : (window.__lastPageData || {});
+                                            const candidates = [
+                                                p.messages_data,
+                                                p.messages,
+                                                p.page_messages,
+                                                p.messagesDaily,
+                                                p.page_messages_daily,
+                                                p.messages_summary,
+                                                p.messagesSummary,
+                                                p.page_messages_summary,
+                                                p.messages_total,
+                                                p.messagesSeries,
+                                                p.messages_timeseries,
+                                                p.page_daily_insights,
+                                                p.page_daily_messages,
+                                                p.messages_over_time
+                                            ];
+                                            let total = null;
+                                            for (const c of candidates) { total = getTotal(c); if (total !== null) break; }
+                                            if (total !== null) {
+                                                const ms = (p.messages_summary || p.messagesSummary || {});
+                                                const totalAll = Number(ms.total_new || 0);
+                                                const adsStarted = Number(ms.ads_started || 0);
+                                                const paid = Number(ms.paid || 0);
+                                                // Derive organic from Total - Ads Started if possible; else fallback
+                                                const organic = (totalAll && adsStarted >= 0) ? Math.max(totalAll - adsStarted, 0) : Number(ms.organic || 0);
+                                                
+                                                return `
+                                                    <div class=\"text-2xl font-bold text-gray-900\">${numberFormat(totalAll || total)}</div>
+                                                    <div class=\"text-xs text-gray-600 mb-2\">Tổng tin nhắn (theo khoảng ngày đã chọn)</div>
+                                                    <div class=\"grid grid-cols-2 md:grid-cols-2 gap-3 max-w-xl mx-auto\">
+                                                        <div class=\"bg-white rounded border border-cyan-200 p-2\">
+                                                            <div class=\"text-[11px] text-cyan-700\">Organic</div>
+                                                            <div class=\"text-sm font-semibold text-cyan-900\">${numberFormat(organic)}</div>
+                                                        </div>
+                                                        
+                                                        ${adsStarted ? `\n                                                        <div class=\"bg-white rounded border border-amber-200 p-2\">\n                                                            <div class=\"text-[11px] text-amber-700\">Bắt đầu từ quảng cáo</div>\n                                                            <div class=\"text-sm font-semibold text-amber-900\">${numberFormat(adsStarted)}</div>\n                                                        </div>\n                                                        ` : ''}
+                                                    </div>
+                                                `;
+                                            }
+                                        } catch(_) {}
+                                        return `
+                                            <div class=\"grid grid-cols-3 gap-3\">
+                                                <div>
+                                                    <div class=\"text-lg font-bold text-emerald-600\">${numberFormat(fp.msg_organic_conversations_day || 0)}</div>
+                                                    <div class=\"text-xs text-gray-600\">Organic (ngày)</div>
+                                                </div>
+                                                <div>
+                                                    <div class=\"text-lg font-bold text-sky-600\">${numberFormat(fp.msg_paid_conversations_day || 0)}</div>
+                                                    <div class=\"text-xs text-gray-600\">Paid (ngày)</div>
+                                                </div>
+                                                <div>
+                                                    <div class=\"text-lg font-bold text-gray-800\">${numberFormat(fp.msg_new_conversations_day || 0)}</div>
+                                                    <div class=\"text-xs text-gray-600\">Total (ngày)</div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    })()}
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2 text-center">
+                                ${fp.messages_last_synced_at ? `Cập nhật: ${new Date(fp.messages_last_synced_at).toLocaleString('vi-VN')}` : ''}
+                                <div class="mt-1 text-[11px] text-gray-500">Dùng bộ lọc ngày để xem tổng theo khoảng thời gian (mặc định: Tháng này).</div>
                             </div>
                         </div>
                         
@@ -1175,48 +1385,7 @@ function initializeDataManagement() {
                         </div>
                     </div>
                     
-                    <!-- Phân tích Reactions -->
-                    <div class="border-t pt-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Phân tích Reactions</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-blue-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.likes_count || 0) : 0), 0) : 0)}</div>
-                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
-                                    </svg>
-                                    Like
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-green-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.comments_count || 0) : 0), 0) : 0)}</div>
-                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Comment
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-purple-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.shares_count || 0) : 0), 0) : 0)}</div>
-                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path>
-                                    </svg>
-                                    Share
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-red-600">${numberFormat(data.posts ? data.posts.reduce((sum, post) => sum + (!post.has_ads ? (post.love_count || 0) : 0), 0) : 0)}</div>
-                                <div class="text-xs text-gray-600 flex items-center justify-center gap-1">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Love
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </div>
             `;
         }
@@ -1328,18 +1497,24 @@ function initializeDataManagement() {
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Biểu đồ tổng hợp của Page</h3>
                           <div class="text-sm text-gray-600">
-                              ${data.posts && data.posts.length > 0 ? 
-                                 (() => {
-                                     const dates = data.posts.map(p => new Date(p.created_time)).filter(d => !isNaN(d.getTime()));
-                                     if (dates.length === 0) return 'Không có dữ liệu hợp lệ';
-                                     
-                                     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-                                     const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-                                     
-                                     return `Từ ${formatDate(minDate.toISOString())} đến ${formatDate(maxDate.toISOString())}`;
-                                 })()
-                                  : 'Không có dữ liệu'
-                              }
+                              ${(() => {
+                                    try {
+                                        const st = (window.history && window.history.state && window.history.state.filters) ? window.history.state.filters : {};
+                                        const f = st.date_from || '';
+                                        const t = st.date_to || '';
+                                        if (f && t) {
+                                            return `Từ ${formatDate(new Date(f).toISOString())} đến ${formatDate(new Date(t).toISOString())}`;
+                                        }
+                                    } catch(_) {}
+                                    if (data.posts && data.posts.length > 0) {
+                                        const dates = data.posts.map(p => new Date(p.created_time)).filter(d => !isNaN(d.getTime()));
+                                        if (dates.length === 0) return 'Không có dữ liệu hợp lệ';
+                                        const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+                                        const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                                        return `Từ ${formatDate(minDate.toISOString())} đến ${formatDate(maxDate.toISOString())}`;
+                                    }
+                                    return 'Không có dữ liệu';
+                              })()}
                         </div>
                     </div>
                     <div class="max-w-4xl mx-auto"><canvas id="overview-chart" class="w-full" style="height:160px" height="160"></canvas></div>
@@ -1663,13 +1838,13 @@ function initializeDataManagement() {
             // Decision charts removed
             
         } else {
-            html = `
-                <div class="text-center py-8">
+            html += `
+                <div class="text-center py-12">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     <h3 class="mt-2 text-sm font-medium text-gray-900">Không có bài viết nào</h3>
-                    <p class="mt-1 text-sm text-gray-500">Không tìm thấy bài viết nào phù hợp với bộ lọc hiện tại.</p>
+                    <p class="mt-1 text-sm text-gray-500">Không tìm thấy bài viết phù hợp với bộ lọc hiện tại. Hãy điều chỉnh khoảng thời gian hoặc bộ lọc phía trên.</p>
                 </div>
             `;
             contentArea.innerHTML = html;
@@ -2413,20 +2588,46 @@ function initializeDataManagement() {
     // Date validation
     const dateFrom = document.getElementById('date_from');
     const dateTo = document.getElementById('date_to');
+    const dateFromText = document.getElementById('date_from_text');
+    const dateToText = document.getElementById('date_to_text');
     
+    // helpers convert formats
+    const toIso = (dmy) => {
+        const m = String(dmy || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (!m) return '';
+        const dd = m[1].padStart(2,'0');
+        const mm = m[2].padStart(2,'0');
+        const yyyy = m[3];
+        return `${yyyy}-${mm}-${dd}`;
+    };
+    const toDmy = (iso) => {
+        if (!iso) return '';
+        const [y,m,d] = iso.split('-');
+        if (!y || !m || !d) return '';
+        return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
+    };
+
     if (dateFrom && dateTo) {
+        // Calendar -> Text
         dateFrom.addEventListener('change', function() {
-            if (dateTo.value && this.value > dateTo.value) {
-                dateTo.value = this.value;
-            }
+            if (dateFromText) dateFromText.value = toDmy(this.value);
+            if (dateTo.value && this.value > dateTo.value) { dateTo.value = this.value; if (dateToText) dateToText.value = toDmy(dateTo.value); }
         });
-        
         dateTo.addEventListener('change', function() {
-            if (dateFrom.value && this.value < dateFrom.value) {
-                dateFrom.value = this.value;
-            }
+            if (dateToText) dateToText.value = toDmy(this.value);
+            if (dateFrom.value && this.value < dateFrom.value) { dateFrom.value = this.value; if (dateFromText) dateFromText.value = toDmy(dateFrom.value); }
         });
     }
+
+    // Text -> Calendar
+    const bindTextSync = (textEl, calEl) => {
+        if (!textEl || !calEl) return;
+        const commit = () => { const iso = toIso(textEl.value); if (iso) calEl.value = iso; };
+        textEl.addEventListener('blur', commit);
+        textEl.addEventListener('keydown', (e)=>{ if (e.key==='Enter') { e.preventDefault(); commit(); textEl.blur(); } });
+    };
+    bindTextSync(dateFromText, dateFrom);
+    bindTextSync(dateToText, dateTo);
     
     // Refresh data button
     if (refreshDataBtn) {

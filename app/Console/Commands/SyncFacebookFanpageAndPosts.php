@@ -500,6 +500,9 @@ class SyncFacebookFanpageAndPosts extends Command
                 ->where('post_id', $post['id'])
                 ->first();
             
+            // Cache media locally (images/thumbs) for long-term availability
+            $cached = $this->cachePostMedia($post, (string) $pageId);
+
             $postData = [
                 'post_id' => $post['id'],
                 'page_id' => $pageId,
@@ -514,7 +517,19 @@ class SyncFacebookFanpageAndPosts extends Command
                 'description' => $post['description'] ?? null,
                 'caption' => $post['caption'] ?? null,
                 'name' => $post['name'] ?? null,
-                'attachments' => isset($post['attachments']) ? json_encode($post['attachments']) : null,
+                // Embed cached local URLs into attachments JSON without changing schema
+                'attachments' => (function() use ($post, $cached) {
+                    if (!isset($post['attachments'])) return null;
+                    $att = $post['attachments'];
+                    if (is_array($att)) {
+                        $att['cached_urls'] = array_filter([
+                            'picture_local' => $cached['picture_local'] ?? null,
+                            'full_picture_local' => $cached['full_picture_local'] ?? null,
+                            'video_thumbnail_local' => $cached['video_thumbnail_local'] ?? null,
+                        ]);
+                    }
+                    return json_encode($att);
+                })(),
                 'properties' => isset($post['properties']) ? json_encode($post['properties']) : null,
                 'is_published' => $post['is_published'] ?? true,
                 'is_hidden' => $post['is_hidden'] ?? false,
@@ -598,6 +613,61 @@ class SyncFacebookFanpageAndPosts extends Command
         }
         
         return $insightsCount;
+    }
+
+    /**
+     * Download and cache post media (images/thumbs) into public storage.
+     * Returns array of local URLs. Skips videos to keep sync fast, only caches available image/thumb URLs.
+     */
+    private function cachePostMedia(array $post, string $pageId): array
+    {
+        try {
+            \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory("facebook_media/{$pageId}");
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        $out = [];
+        $candidates = [];
+        if (!empty($post['picture'])) $candidates['picture_local'] = (string) $post['picture'];
+        if (!empty($post['full_picture'])) $candidates['full_picture_local'] = (string) $post['full_picture'];
+        // try to find thumbnail in attachments
+        if (!empty($post['attachments']['data'][0]['media']['image']['src'])) {
+            $candidates['video_thumbnail_local'] = (string) $post['attachments']['data'][0]['media']['image']['src'];
+        }
+
+        foreach ($candidates as $key => $url) {
+            try {
+                $local = $this->downloadToPublic($url, $pageId);
+                if ($local) { $out[$key] = $local; }
+            } catch (\Throwable $e) {
+                // skip on error
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Download a remote file to storage/app/public and return Storage::url path.
+     * Uses SHA1 of URL for stable filename. Avoids re-downloading if exists.
+     */
+    private function downloadToPublic(string $url, string $pageId): ?string
+    {
+        try {
+            $hash = sha1($url);
+            $ext = pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
+            $relPath = "facebook_media/{$pageId}/{$hash}.{$ext}";
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            if ($disk->exists($relPath)) {
+                return $disk->url($relPath);
+            }
+            $resp = \Illuminate\Support\Facades\Http::timeout(15)->get($url);
+            if (!$resp->successful()) return null;
+            $disk->put($relPath, $resp->body());
+            return $disk->url($relPath);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
 }

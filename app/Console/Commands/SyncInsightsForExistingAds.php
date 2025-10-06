@@ -6,6 +6,8 @@ namespace App\Console\Commands;
 
 use App\Services\FacebookAdsSyncService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class SyncInsightsForExistingAds extends Command
 {
@@ -65,6 +67,11 @@ class SyncInsightsForExistingAds extends Command
             $this->info('>>> calling saveAdPostsLifetime');
             $this->saveAdPostsLifetime($since, $until);
             $this->info('<<< finished saveAdPostsLifetime');
+            
+            // Persist raw paid per day only; organic/paid totals are derived later by SyncAllFacebookData
+            $this->info('Persisting raw Ads paid per day (ads_messaging_conversation_started)...');
+            $this->persistRawPaidPerDay($since, $until);
+            $this->info('Done saving raw paid per day.');
             $this->info('Completed.');
             $this->table(
                 ['Metric', 'Count'],
@@ -123,6 +130,12 @@ class SyncInsightsForExistingAds extends Command
                 $details = $api->getPostDetails($postId);
                 if (!is_array($details) || isset($details['error'])) { continue; }
 
+                // Cache media (images/thumbs) to public storage for longevity
+                $cached = $this->cacheAdPostMedia($details, $pageId);
+                if (is_array($details)) {
+                    $details['cached_urls'] = array_filter($cached);
+                }
+
                 // Parse created_time from Facebook API (ISO 8601 format with timezone)
                 // Always convert to UTC to ensure consistency
                 $createdTime = null;
@@ -164,6 +177,114 @@ class SyncInsightsForExistingAds extends Command
             $this->info("Saved post details for ads to facebook_post_ads (lifetime). saved={$saved}, skipped_existing={$skipped}");
         } catch (\Throwable $e) {
             $this->warn('Could not save post details for ads: ' . $e->getMessage());
+        }
+    }
+    private function cacheAdPostMedia(array $details, string $pageId): array
+    {
+        $out = [];
+        $candidates = [];
+        if (!empty($details['picture'])) $candidates['picture_local'] = (string) $details['picture'];
+        if (!empty($details['full_picture'])) $candidates['full_picture_local'] = (string) $details['full_picture'];
+        if (!empty($details['attachments']['data'][0]['media']['image']['src'])) {
+            $candidates['video_thumbnail_local'] = (string) $details['attachments']['data'][0]['media']['image']['src'];
+        }
+        foreach ($candidates as $key => $url) {
+            $local = $this->downloadToPublicSimple($url, $pageId);
+            if ($local) $out[$key] = $local;
+        }
+        return $out;
+    }
+
+    private function downloadToPublicSimple(string $url, string $pageId): ?string
+    {
+        try {
+            $hash = sha1($url);
+            $ext = pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
+            $relPath = "facebook_media/{$pageId}/{$hash}.{$ext}";
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            if ($disk->exists($relPath)) return $disk->url($relPath);
+            $resp = \Illuminate\Support\Facades\Http::timeout(15)->get($url);
+            if (!$resp->successful()) return null;
+            $disk->put($relPath, $resp->body());
+            return $disk->url($relPath);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Align facebook_page_daily_insights with Ads paid conversations and backfill missing days.
+     * Same logic as in SyncFacebookAdsWithVideoMetrics, colocated here to run after insights-only sync.
+     */
+    private function persistRawPaidPerDay(string $since, string $until): void
+    {
+        $start = Carbon::parse($since)->startOfDay();
+        $end = Carbon::parse($until)->startOfDay();
+
+        $pageIds = DB::table('facebook_ad_insights')
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->distinct()->pluck('page_id')->toArray();
+
+        $morePageIds = DB::table('facebook_page_daily_insights')
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->distinct()->pluck('page_id')->toArray();
+
+        $pages = array_values(array_unique(array_merge($pageIds, $morePageIds)));
+        if (empty($pages)) { return; }
+
+        $dates = [];
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $dates[] = $d->toDateString();
+        }
+
+        foreach ($pages as $pageId) {
+            $paidByDate = DB::table('facebook_ad_insights')
+                ->select('date', DB::raw('COALESCE(SUM(messaging_conversation_started_7d),0) as paid'))
+                ->where('page_id', $pageId)
+                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->groupBy('date')
+                ->pluck('paid', 'date');
+
+            $nonZero = 0; $totalPaid = 0;
+
+            foreach ($dates as $date) {
+                $paid = (int) ($paidByDate[$date] ?? 0);
+                if ($paid > 0) { $nonZero++; $totalPaid += $paid; }
+                $exists = DB::table('facebook_page_daily_insights')
+                    ->where('page_id', $pageId)
+                    ->where('date', $date)
+                    ->exists();
+
+                if ($exists) {
+                    DB::table('facebook_page_daily_insights')
+                        ->where('page_id', $pageId)
+                        ->where('date', $date)
+                        ->update([
+                            'ads_messaging_conversation_started' => $paid,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('facebook_page_daily_insights')->insert([
+                        'page_id' => $pageId,
+                        'date' => $date,
+                        'messages_new_conversations' => 0,
+                        'messages_total_connections' => 0,
+                        'messages_active_threads' => 0,
+                        'ads_messaging_conversation_started' => $paid,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            // Summary per page id for quick diagnostics
+            \Log::info('ads_messaging_conversation_started persisted', [
+                'page_id' => $pageId,
+                'since' => $start->toDateString(),
+                'until' => $end->toDateString(),
+                'non_zero_days' => $nonZero,
+                'total_paid' => $totalPaid,
+            ]);
         }
     }
 }

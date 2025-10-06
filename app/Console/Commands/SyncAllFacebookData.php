@@ -53,7 +53,7 @@ class SyncAllFacebookData extends Command
         if ($postsOnly) $this->info("📝 Posts only mode");
         
         $startTime = now();
-        $totalSteps = 4;
+        $totalSteps = 6;
         $currentStep = 0;
         
         try {
@@ -79,7 +79,15 @@ class SyncAllFacebookData extends Command
                 $this->info("✅ Fanpages and posts sync completed");
             }
             
-            // Step 2: Sync Enhanced Post Insights (for video posts)
+            // Step 2: Sync Page Images (profile & cover)
+            if (!$postsOnly) {
+                $currentStep++;
+                $this->info("\n🖼️ Step {$currentStep}/{$totalSteps}: Syncing Page Images (profile & cover)...");
+                $this->syncPageImages((int) $limit);
+                $this->info("✅ Page images sync completed");
+            }
+            
+            // Step 3: Sync Enhanced Post Insights (for video posts)
             if (!$pagesOnly) {
                 $currentStep++;
                 $this->info("\n📊 Step {$currentStep}/{$totalSteps}: Syncing Enhanced Post Insights...");
@@ -91,7 +99,7 @@ class SyncAllFacebookData extends Command
                 $this->info("✅ Enhanced post insights sync completed");
             }
             
-            // Step 3: Sync Facebook Ads (if needed)
+            // Step 4: Sync Facebook Ads (if needed)
             if (!$pagesOnly) {
                 $currentStep++;
                 $this->info("\n💰 Step {$currentStep}/{$totalSteps}: Syncing Facebook Ads...");
@@ -106,7 +114,15 @@ class SyncAllFacebookData extends Command
                 }
             }
             
-            // Step 4: Generate Summary Report
+            // Step 5: Sync Page Messaging Insights (daily) AFTER ads to ensure Paid is populated
+            if (!$pagesOnly) {
+                $currentStep++;
+                $this->info("\n💬 Step {$currentStep}/{$totalSteps}: Syncing Page Messaging Insights (daily)...");
+                $this->syncPageMessagingInsights((int) $days, (int) $limit);
+                $this->info("✅ Page messaging insights sync completed");
+            }
+            
+            // Step 6: Generate Summary Report
             $currentStep++;
             $this->info("\n📈 Step {$currentStep}/{$totalSteps}: Generating Summary Report...");
             $this->generateSummaryReport();
@@ -124,6 +140,192 @@ class SyncAllFacebookData extends Command
             $this->error("❌ Sync failed: " . $e->getMessage());
             $this->error("💡 Try running with --force option or check your access tokens");
             return 1;
+        }
+    }
+
+    /**
+     * Sync Page messaging insights (period=day) for all pages with tokens
+     * Metrics per v23: page_messages_new_conversations_unique, page_messages_total_messaging_connections, page_messages_active_threads_unique
+     * We derive paid vs organic using ad actions (messaging_conversation_started_7d) when available in our insights table
+     *
+     * @param int $days       Number of days back to fetch
+     * @param int $limitPages Limit number of pages to process
+     */
+    private function syncPageMessagingInsights(int $days, int $limitPages = 100): void
+    {
+        $since = now()->subDays($days)->toDateString();
+        $until = now()->toDateString();
+
+        $pages = DB::table('facebook_fanpage')
+            ->whereNotNull('access_token')
+            ->where('access_token', '!=', '')
+            ->limit($limitPages)
+            ->get(['page_id', 'access_token']);
+
+        if ($pages->isEmpty()) {
+            $this->warn('No pages with access_token to sync messaging insights.');
+            return;
+        }
+
+        foreach ($pages as $p) {
+            $pageId = $p->page_id;
+            $token = $p->access_token;
+
+            // Fetch Page Insights daily
+            $metrics = [
+                'page_messages_new_conversations_unique',
+                'page_messages_total_messaging_connections',
+                'page_messages_active_threads_unique',
+            ];
+            $url = sprintf('https://graph.facebook.com/v23.0/%s/insights', $pageId);
+            try {
+                $response = Http::timeout(30)->get($url, [
+                    'metric' => implode(',', $metrics),
+                    'period' => 'day',
+                    'since' => $since,
+                    'until' => $until,
+                    'access_token' => $token,
+                ]);
+            } catch (\Exception $e) {
+                $this->warn("Failed to fetch page insights for {$pageId}: {$e->getMessage()}");
+                continue;
+            }
+
+            if (!$response->successful()) {
+                $this->warn("Non-200 when fetching page insights for {$pageId}: " . $response->status());
+                continue;
+            }
+
+            $data = $response->json('data') ?? [];
+            if (!is_array($data) || empty($data)) {
+                $this->warn("Empty insights for page {$pageId}");
+                continue;
+            }
+
+            // Normalize values by date
+            $byDate = [];
+            foreach ($data as $metric) {
+                $name = $metric['name'] ?? '';
+                $values = $metric['values'] ?? [];
+                foreach ($values as $row) {
+                    $endTime = $row['end_time'] ?? null;
+                    $value = (int) ($row['value'] ?? 0);
+                    if (!$endTime) { continue; }
+                    // end_time is period end; convert to date (UTC)
+                    $d = substr($endTime, 0, 10);
+                    $byDate[$d] = $byDate[$d] ?? [
+                        'messages_new_conversations' => 0,
+                        'messages_total_connections' => 0,
+                        'messages_active_threads' => 0,
+                    ];
+                    if ($name === 'page_messages_new_conversations_unique') {
+                        $byDate[$d]['messages_new_conversations'] = $value;
+                    } elseif ($name === 'page_messages_total_messaging_connections') {
+                        $byDate[$d]['messages_total_connections'] = $value;
+                    } elseif ($name === 'page_messages_active_threads_unique') {
+                        $byDate[$d]['messages_active_threads'] = $value;
+                    }
+                }
+            }
+
+            if (empty($byDate)) { continue; }
+
+            // Paid conversations per day: use raw persisted from Ads only (no fallback)
+            $paidByDate = DB::table('facebook_page_daily_insights')
+                ->where('page_id', $pageId)
+                ->whereBetween('date', [$since, $until])
+                ->pluck('ads_messaging_conversation_started', 'date');
+
+            foreach ($byDate as $date => $vals) {
+                $paid = (int) ($paidByDate[$date] ?? 0);
+                $organic = max(($vals['messages_new_conversations'] ?? 0) - $paid, 0);
+
+                DB::table('facebook_page_daily_insights')->updateOrInsert(
+                    ['page_id' => $pageId, 'date' => $date],
+                    [
+                        'messages_new_conversations' => (int) ($vals['messages_new_conversations'] ?? 0),
+                        'messages_total_connections' => (int) ($vals['messages_total_connections'] ?? 0),
+                        'messages_active_threads' => (int) ($vals['messages_active_threads'] ?? 0),
+                        'messages_paid_conversations' => $paid,
+                        'messages_organic_conversations' => $organic,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+
+            // Update facebook_fanpage snapshot only (no 28d aggregation)
+            $latestDay = array_key_last($byDate);
+            if ($latestDay) {
+                $snap = $byDate[$latestDay];
+                $paid = (int) ($paidByDate[$latestDay] ?? 0);
+                $organic = max(($snap['messages_new_conversations'] ?? 0) - $paid, 0);
+
+                DB::table('facebook_fanpage')->where('page_id', $pageId)->update([
+                    'msg_new_conversations_day' => (int) ($snap['messages_new_conversations'] ?? 0),
+                    'msg_paid_conversations_day' => $paid,
+                    'msg_organic_conversations_day' => $organic,
+                    'messages_last_synced_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Sync page profile picture and cover photo URLs for pages with tokens.
+     */
+    private function syncPageImages(int $limitPages = 100): void
+    {
+        $pages = DB::table('facebook_fanpage')
+            ->whereNotNull('access_token')
+            ->where('access_token', '!=', '')
+            ->limit($limitPages)
+            ->get(['page_id', 'access_token']);
+
+        if ($pages->isEmpty()) {
+            $this->warn('No pages with access_token to sync images.');
+            return;
+        }
+
+        foreach ($pages as $p) {
+            $pageId = $p->page_id;
+            $token = $p->access_token;
+
+            try {
+                // Fetch picture and cover in one request
+                $url = sprintf('https://graph.facebook.com/v23.0/%s', $pageId);
+                $response = Http::timeout(20)->get($url, [
+                    'fields' => 'picture{url},cover',
+                    'access_token' => $token,
+                ]);
+            } catch (\Exception $e) {
+                $this->warn("Failed to fetch page images for {$pageId}: {$e->getMessage()}");
+                continue;
+            }
+
+            if (!$response->successful()) {
+                $this->warn("Non-200 when fetching page images for {$pageId}: " . $response->status());
+                continue;
+            }
+
+            $body = $response->json();
+            $pictureUrl = $body['picture']['data']['url'] ?? null;
+            $coverUrl = $body['cover']['source'] ?? null;
+
+            $update = [
+                'updated_at' => now(),
+            ];
+            if ($pictureUrl) {
+                $update['profile_picture_url'] = $pictureUrl;
+            }
+            if ($coverUrl) {
+                $update['cover_photo_url'] = $coverUrl;
+            }
+
+            if (count($update) > 1) {
+                DB::table('facebook_fanpage')->where('page_id', $pageId)->update($update);
+            }
         }
     }
     

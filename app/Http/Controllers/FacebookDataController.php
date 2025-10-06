@@ -8,6 +8,8 @@ use App\Http\Requests\FacebookDataFilterRequest;
 use App\Services\FacebookDataService;
 use App\Http\Resources\FacebookPostResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class FacebookDataController extends Controller
@@ -172,6 +174,14 @@ class FacebookDataController extends Controller
                 'is_published' => $fanpage->is_published,
                 'is_verified' => $fanpage->is_verified,
                 'last_synced_at' => $fanpage->last_synced_at,
+                // Messaging summaries (added)
+                'msg_new_conversations_day' => (int) ($fanpage->msg_new_conversations_day ?? 0),
+                'msg_paid_conversations_day' => (int) ($fanpage->msg_paid_conversations_day ?? 0),
+                'msg_organic_conversations_day' => (int) ($fanpage->msg_organic_conversations_day ?? 0),
+                'msg_new_conversations_28d' => (int) ($fanpage->msg_new_conversations_28d ?? 0),
+                'msg_paid_conversations_28d' => (int) ($fanpage->msg_paid_conversations_28d ?? 0),
+                'msg_organic_conversations_28d' => (int) ($fanpage->msg_organic_conversations_28d ?? 0),
+                'messages_last_synced_at' => $fanpage->messages_last_synced_at,
             ] : null,
             'spending_stats' => $this->facebookDataService->getPostSpendingStats($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
             'page_summary' => $this->facebookDataService->getPageSummary($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
@@ -182,6 +192,50 @@ class FacebookDataController extends Controller
                 'correlation' => $this->facebookDataService->getBudgetResultConversionCorrelation($pageId, $filters['date_from'] ?? null, $filters['date_to'] ?? null),
             ],
         ];
+
+        // Messaging totals and series by selected date range (server-side)
+        try {
+            $since = $filters['date_from'] ?? null;
+            $until = $filters['date_to'] ?? null;
+
+            $rows = DB::table('facebook_page_daily_insights')
+                ->where('page_id', (string) $pageId)
+                ->when($since, fn($q) => $q->where('date', '>=', $since))
+                ->when($until, fn($q) => $q->where('date', '<=', $until))
+                ->orderBy('date')
+                ->get(['date','messages_new_conversations','ads_messaging_conversation_started','messages_paid_conversations','messages_organic_conversations']);
+
+            if ($rows->count()) {
+                $sumTotal   = (int) $rows->sum('messages_new_conversations');
+                $sumPaid    = (int) $rows->sum('messages_paid_conversations');
+                $sumStarted = (int) $rows->sum('ads_messaging_conversation_started');
+                // Derive organic from total - paid to guarantee consistency
+                // Organic = Total - Ads Started (raw) as per requirement
+                $sumOrganic = max($sumTotal - $sumStarted, 0);
+
+                $data['messages_summary'] = [
+                    'total_new'   => $sumTotal,
+                    'ads_started' => $sumStarted,
+                    'paid'        => $sumPaid,
+                    'organic'     => $sumOrganic,
+                    'days'        => $rows->count(),
+                    'since'       => $since,
+                    'until'       => $until,
+                ];
+
+                $data['page_messages_daily'] = [
+                    'labels' => $rows->pluck('date'),
+                    'series' => [
+                        ['name' => 'Total', 'data' => $rows->pluck('messages_new_conversations')->map(fn($v)=>(int) $v)],
+                        ['name' => 'Paid', 'data' => $rows->pluck('messages_paid_conversations')->map(fn($v)=>(int) $v)],
+                        ['name' => 'Organic', 'data' => $rows->pluck('messages_organic_conversations')->map(fn($v)=>(int) $v)],
+                        ['name' => 'Ads Started', 'data' => $rows->pluck('ads_messaging_conversation_started')->map(fn($v)=>(int) $v)],
+                    ],
+                ];
+            }
+        } catch (\Throwable $e) {
+            // fail silently; FE will fallback to snapshot values
+        }
         
         return response()->json($data);
     }

@@ -195,7 +195,28 @@ class FacebookDashboardController extends Controller
               ->selectRaw('COALESCE(SUM(omni_initiated_checkout),0) as omni_initiated_checkout');
 
             $row = $q->first();
-            return $row ? $row->toArray() : [];
+            $agg = $row ? $row->toArray() : [];
+
+            // Also enrich with Page-level organic vs paid conversations (28d) if page filter is selected
+            if ($selectedPageId) {
+                $pageAgg = \Illuminate\Support\Facades\DB::table('facebook_fanpage')
+                    ->where('page_id', $selectedPageId)
+                    ->first([
+                        'msg_new_conversations_day', 'msg_paid_conversations_day', 'msg_organic_conversations_day',
+                        'msg_new_conversations_28d', 'msg_paid_conversations_28d', 'msg_organic_conversations_28d',
+                        'messages_last_synced_at',
+                    ]);
+                if ($pageAgg) {
+                    $agg['page_msg_day_total'] = (int) ($pageAgg->msg_new_conversations_day ?? 0);
+                    $agg['page_msg_day_paid'] = (int) ($pageAgg->msg_paid_conversations_day ?? 0);
+                    $agg['page_msg_day_organic'] = (int) ($pageAgg->msg_organic_conversations_day ?? 0);
+                    $agg['page_msg_28d_total'] = (int) ($pageAgg->msg_new_conversations_28d ?? 0);
+                    $agg['page_msg_28d_paid'] = (int) ($pageAgg->msg_paid_conversations_28d ?? 0);
+                    $agg['page_msg_28d_organic'] = (int) ($pageAgg->msg_organic_conversations_28d ?? 0);
+                }
+            }
+
+            return $agg;
         });
 
         // Debug: cho phép dd nhanh aggregate video khi có ?dd=video
