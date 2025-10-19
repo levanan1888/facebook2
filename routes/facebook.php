@@ -23,6 +23,11 @@ Route::middleware(['auth', 'verified'])->prefix('facebook')->name('facebook.')->
     Route::get('data-raw', [App\Http\Controllers\FacebookDashboardController::class, 'dataRaw'])
         ->middleware(['permission.404:facebook.data_raw'])
         ->name('data-raw');
+
+    // Messaging report
+    Route::get('messaging/report', [App\Http\Controllers\FacebookMessagingReportController::class, 'index'])
+        ->middleware(['permission.404:facebook.analytics'])
+        ->name('messaging.report');
 });
 
 // Facebook sync routes

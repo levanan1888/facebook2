@@ -743,7 +743,13 @@ class FacebookAdsService
                 'until' => $until ?: date('Y-m-d')
             ]),
             // Quan trọng: yêu cầu dữ liệu theo ngày để lưu xuống DB (giống Ads Manager)
-            'time_increment' => $timeIncrement
+            'time_increment' => $timeIncrement,
+            // Align with Ads Manager defaults unless overridden
+            'action_report_time' => 'impression',
+            'action_attribution_windows' => json_encode(['7d_click','1d_view']),
+            // Thêm các tham số để đảm bảo lấy đủ dữ liệu
+            'level' => 'ad',
+            'use_unified_attribution_setting' => 'true'
         ];
 
         $result = $this->makeRequest($url, $params);
@@ -751,7 +757,9 @@ class FacebookAdsService
         Log::info("Ad Insights response", [
             'ad_id' => $adId,
             'fields' => implode(',', $fields),
-            'has_data' => isset($result['data']) && !empty($result['data'])
+            'has_data' => isset($result['data']) && !empty($result['data']),
+            'data_count' => isset($result['data']) ? count($result['data']) : 0,
+            'sample_actions' => isset($result['data'][0]['actions']) ? $result['data'][0]['actions'] : null
         ]);
 
         return $result;

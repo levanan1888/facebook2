@@ -238,12 +238,19 @@ class SyncInsightsForExistingAds extends Command
         }
 
         foreach ($pages as $pageId) {
+            // Map Ads → Page using two sources: direct page_id on insights, or via post mapping (facebook_post_ads)
+            // Also align to Page Insights day by shifting date - 1 day
             $paidByDate = DB::table('facebook_ad_insights')
-                ->select('date', DB::raw('COALESCE(SUM(messaging_conversation_started_7d),0) as paid'))
-                ->where('page_id', $pageId)
+                ->select(DB::raw('DATE(DATE_SUB(date, INTERVAL 1 DAY)) as mapped_date'), DB::raw('COALESCE(SUM(messaging_conversation_started_7d),0) as paid'))
                 ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-                ->groupBy('date')
-                ->pluck('paid', 'date');
+                ->where(function($q) use ($pageId) {
+                    $q->where('page_id', $pageId)
+                      ->orWhereIn('post_id', function($sq) use ($pageId) {
+                          $sq->from('facebook_post_ads')->select('post_id')->where('page_id', $pageId);
+                      });
+                })
+                ->groupBy('mapped_date')
+                ->pluck('paid', 'mapped_date');
 
             $nonZero = 0; $totalPaid = 0;
 

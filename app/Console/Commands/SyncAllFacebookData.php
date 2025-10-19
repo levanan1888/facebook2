@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
 
 class SyncAllFacebookData extends Command
 {
@@ -14,7 +15,9 @@ class SyncAllFacebookData extends Command
      * @var string
      */
     protected $signature = 'facebook:sync-all-data 
-                            {--days=30 : Number of days to sync}
+                            {--days=30 : Number of days to sync (ignored if since/until provided)}
+                            {--since= : Start date (Y-m-d)}
+                            {--until= : End date (Y-m-d)}
                             {--limit=100 : Limit number of posts to sync}
                             {--force : Force sync even if data exists}
                             {--user-id= : Facebook user ID (optional)}
@@ -36,7 +39,9 @@ class SyncAllFacebookData extends Command
     {
         $this->info('🚀 Starting comprehensive Facebook data sync...');
         
-        $days = $this->option('days');
+        $days = (int) $this->option('days');
+        $sinceOpt = $this->option('since');
+        $untilOpt = $this->option('until');
         $limit = $this->option('limit');
         $force = $this->option('force');
         $userId = $this->option('user-id');
@@ -44,7 +49,20 @@ class SyncAllFacebookData extends Command
         $pagesOnly = $this->option('pages-only');
         $postsOnly = $this->option('posts-only');
         
-        $this->info("📅 Date range: {$days} days");
+        // Resolve date range: since/until take precedence over days
+        if ($sinceOpt || $untilOpt) {
+            $until = $untilOpt ? Carbon::parse((string) $untilOpt) : now();
+            $since = $sinceOpt ? Carbon::parse((string) $sinceOpt) : $until->copy()->subDays(max($days, 1) - 1);
+            if ($since->gt($until)) {
+                [$since, $until] = [$until->copy(), $since->copy()];
+            }
+            $days = $since->diffInDays($until) + 1;
+        } else {
+            $until = now();
+            $since = $until->copy()->subDays(max($days, 1) - 1);
+        }
+        
+        $this->info("📅 Date range: {$since->toDateString()} → {$until->toDateString()} ({$days} days)");
         $this->info("📊 Limit: {$limit} posts per page");
         $this->info("🔄 Force mode: " . ($force ? 'Yes' : 'No'));
         if ($userId) $this->info("👤 User ID: {$userId}");
@@ -68,7 +86,9 @@ class SyncAllFacebookData extends Command
                 
                 $fanpageParams = [
                     '--days' => $days,
-                    '--limit' => $limit
+                    '--limit' => $limit,
+                    '--since' => $since->toDateString(),
+                    '--until' => $until->toDateString(),
                 ];
                 
                 if ($userId) $fanpageParams['--user-id'] = $userId;
@@ -92,8 +112,8 @@ class SyncAllFacebookData extends Command
                 $currentStep++;
                 $this->info("\n📊 Step {$currentStep}/{$totalSteps}: Syncing Enhanced Post Insights...");
                 $this->call('facebook:sync-enhanced-post-insights', [
-                    '--since' => now()->subDays($days)->format('Y-m-d'),
-                    '--until' => now()->format('Y-m-d'),
+                    '--since' => $since->toDateString(),
+                    '--until' => $until->toDateString(),
                     '--limit' => $limit
                 ]);
                 $this->info("✅ Enhanced post insights sync completed");
@@ -118,7 +138,7 @@ class SyncAllFacebookData extends Command
             if (!$pagesOnly) {
                 $currentStep++;
                 $this->info("\n💬 Step {$currentStep}/{$totalSteps}: Syncing Page Messaging Insights (daily)...");
-                $this->syncPageMessagingInsights((int) $days, (int) $limit);
+                $this->syncPageMessagingInsights($since->toDateString(), $until->toDateString(), (int) $limit);
                 $this->info("✅ Page messaging insights sync completed");
             }
             
@@ -151,10 +171,19 @@ class SyncAllFacebookData extends Command
      * @param int $days       Number of days back to fetch
      * @param int $limitPages Limit number of pages to process
      */
-    private function syncPageMessagingInsights(int $days, int $limitPages = 100): void
+    private function syncPageMessagingInsights(string $sinceDate, string $untilDate, int $limitPages = 100): void
     {
-        $since = now()->subDays($days)->toDateString();
-        $until = now()->toDateString();
+        // Normalize input dates
+        try {
+            $since = Carbon::parse($sinceDate)->toDateString();
+        } catch (\Throwable $e) {
+            $since = now()->subDays(29)->toDateString();
+        }
+        try {
+            $until = Carbon::parse($untilDate)->toDateString();
+        } catch (\Throwable $e) {
+            $until = now()->toDateString();
+        }
 
         $pages = DB::table('facebook_fanpage')
             ->whereNotNull('access_token')
@@ -211,8 +240,23 @@ class SyncAllFacebookData extends Command
                     $endTime = $row['end_time'] ?? null;
                     $value = (int) ($row['value'] ?? 0);
                     if (!$endTime) { continue; }
-                    // end_time is period end; convert to date (UTC)
-                    $d = substr($endTime, 0, 10);
+                    // For period=day, Facebook returns end_time as the end of the period (exclusive),
+                    // typically 00:00:00 of the next day in UTC. Map data to the actual day by subtracting 1 day.
+                    // Then format as date string (no timezone shift to avoid off-by-one issues).
+                    try {
+                        $dt = Carbon::parse($endTime);
+                        // If the timestamp is exactly at start-of-day (00:00:00), it represents the previous day.
+                        if ($dt->format('H:i:s') === '00:00:00') {
+                            $dt = $dt->subDay();
+                        } else {
+                            // Safety: still subtract a day to align with FB Insights convention.
+                            $dt = $dt->subDay();
+                        }
+                        $d = $dt->toDateString();
+                    } catch (\Throwable $e) {
+                        // Fallback to raw date portion
+                        $d = substr((string) $endTime, 0, 10);
+                    }
                     $byDate[$d] = $byDate[$d] ?? [
                         'messages_new_conversations' => 0,
                         'messages_total_connections' => 0,
@@ -229,6 +273,15 @@ class SyncAllFacebookData extends Command
             }
 
             if (empty($byDate)) { continue; }
+
+            // Strict mode: do not infer/approximate totals. Log when total is missing while new conversations exist.
+            foreach ($byDate as $d => $vals) {
+                $hasNew = isset($vals['messages_new_conversations']) && (int) $vals['messages_new_conversations'] > 0;
+                $hasTotal = isset($vals['messages_total_connections']) && (int) $vals['messages_total_connections'] > 0;
+                if ($hasNew && !$hasTotal) {
+                    $this->warn("Missing page_messages_total_messaging_connections for {$pageId} on {$d} while new_conversations>0. Keeping total=0 per docs.");
+                }
+            }
 
             // Paid conversations per day: use raw persisted from Ads only (no fallback)
             $paidByDate = DB::table('facebook_page_daily_insights')

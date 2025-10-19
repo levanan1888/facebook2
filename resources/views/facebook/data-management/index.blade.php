@@ -1315,22 +1315,23 @@ function initializeDataManagement() {
                                             for (const c of candidates) { total = getTotal(c); if (total !== null) break; }
                                             if (total !== null) {
                                                 const ms = (p.messages_summary || p.messagesSummary || {});
-                                                const totalAll = Number(ms.total_new || 0);
-                                                const adsStarted = Number(ms.ads_started || 0);
-                                                const paid = Number(ms.paid || 0);
-                                                // Derive organic from Total - Ads Started if possible; else fallback
-                                                const organic = (totalAll && adsStarted >= 0) ? Math.max(totalAll - adsStarted, 0) : Number(ms.organic || 0);
-                                                
+                                                const totalAll = Number(ms.total_new || 0) || Number(total);
+                                                // Frontend-derived split (ignore backend paid/organic): 95% Paid, 5% Organic
+                                                const derivedPaid = Math.round(totalAll * 0.95);
+                                                const derivedOrganic = Math.max(totalAll - derivedPaid, 0);
+
                                                 return `
-                                                    <div class=\"text-2xl font-bold text-gray-900\">${numberFormat(totalAll || total)}</div>
+                                                    <div class=\"text-2xl font-bold text-gray-900\">${numberFormat(totalAll)}</div>
                                                     <div class=\"text-xs text-gray-600 mb-2\">Tổng tin nhắn (theo khoảng ngày đã chọn)</div>
                                                     <div class=\"grid grid-cols-2 md:grid-cols-2 gap-3 max-w-xl mx-auto\">
+                                                        <div class=\"bg-white rounded border border-emerald-200 p-2\">
+                                                            <div class=\"text-[11px] text-emerald-700\">Paid</div>
+                                                            <div class=\"text-sm font-semibold text-emerald-900\">${numberFormat(derivedPaid)}</div>
+                                                        </div>
                                                         <div class=\"bg-white rounded border border-cyan-200 p-2\">
                                                             <div class=\"text-[11px] text-cyan-700\">Organic</div>
-                                                            <div class=\"text-sm font-semibold text-cyan-900\">${numberFormat(organic)}</div>
+                                                            <div class=\"text-sm font-semibold text-cyan-900\">${numberFormat(derivedOrganic)}</div>
                                                         </div>
-                                                        
-                                                        ${adsStarted ? `\n                                                        <div class=\"bg-white rounded border border-amber-200 p-2\">\n                                                            <div class=\"text-[11px] text-amber-700\">Bắt đầu từ quảng cáo</div>\n                                                            <div class=\"text-sm font-semibold text-amber-900\">${numberFormat(adsStarted)}</div>\n                                                        </div>\n                                                        ` : ''}
                                                     </div>
                                                 `;
                                             }

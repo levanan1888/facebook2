@@ -37,6 +37,9 @@
                         <flux:navlist.item icon="document-text" :href="route('facebook.data-management.index')" :current="request()->routeIs('facebook.data-management.*')" wire:navigate>{{ __('Data Management') }}</flux:navlist.item>
                         <flux:navlist.item icon="users" :href="route('facebook.data-management.pages')" :current="request()->routeIs('facebook.data-management.pages')" wire:navigate>{{ __('Quản lý Page') }}</flux:navlist.item>
                     @endcan
+                    @can('facebook.analytics')
+                        <flux:navlist.item icon="chart-bar" :href="route('facebook.messaging.report')" :current="request()->routeIs('facebook.messaging.report')" wire:navigate>{{ __('Messaging Report') }}</flux:navlist.item>
+                    @endcan
                 </flux:navlist.group>
             </flux:navlist>
 

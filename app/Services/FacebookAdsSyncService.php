@@ -3131,7 +3131,12 @@ class FacebookAdsSyncService
                         }
                         // Messaging extras
                         if (\Illuminate\Support\Facades\Schema::hasColumn('facebook_ad_insights', 'messaging_first_reply')) {
-                            $out['messaging_first_reply'] = (int) ($actionTotals['onsite_conversion.messaging_first_reply'] ?? 0);
+                            // Include possible variants if present to align with Ads Manager
+                            $out['messaging_first_reply'] = (int) (
+                                ($actionTotals['onsite_conversion.messaging_first_reply'] ?? 0)
+                                + ($actionTotals['messaging_first_reply'] ?? 0)
+                                + ($actionTotals['omni_messaging_first_reply'] ?? 0)
+                            );
                         }
                         if (\Illuminate\Support\Facades\Schema::hasColumn('facebook_ad_insights', 'messaging_user_depth_2_message_send')) {
                             $out['messaging_user_depth_2_message_send'] = (int) ($actionTotals['onsite_conversion.messaging_user_depth_2_message_send'] ?? 0);
