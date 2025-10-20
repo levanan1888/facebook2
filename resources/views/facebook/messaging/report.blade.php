@@ -29,6 +29,11 @@
             $totalOrganic = max((int)($totals['organic'] ?? 0), 0);
             $totalAll = max((int)($totals['total'] ?? ($totalNew)), 0);
             $totalReturning = max($totalAll - $totalNew, 0);
+            
+            // Calculate percentages
+            $totalConversations = $totalPaid + $totalOrganic;
+            $paidPercentage = $totalConversations > 0 ? round(($totalPaid / $totalConversations) * 100, 1) : 0;
+            $organicPercentage = $totalConversations > 0 ? round(($totalOrganic / $totalConversations) * 100, 1) : 0;
         @endphp
 
         <div class="grid grid-cols-12 gap-4 items-start">
@@ -46,12 +51,14 @@
                         <div class="text-3xl font-bold text-gray-900">{{ number_format($totalNew) }}</div>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-4 border">
-                        <div class="text-sm text-gray-600">Paid</div>
-                        <div class="text-3xl font-bold text-gray-900">{{ number_format($totalPaid) }}</div>
+                        <div class="text-sm text-gray-600">Organic</div>
+                        <div class="text-3xl font-bold text-gray-900">{{ $organicPercentage }}%</div>
+                        <div class="text-xs text-gray-500">{{ number_format($totalOrganic) }} cuộc trò chuyện</div>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm p-4 border">
-                        <div class="text-sm text-gray-600">Organic</div>
-                        <div class="text-3xl font-bold text-gray-900">{{ number_format($totalOrganic) }}</div>
+                        <div class="text-sm text-gray-600">Paid</div>
+                        <div class="text-3xl font-bold text-gray-900">{{ $paidPercentage }}%</div>
+                        <div class="text-xs text-gray-500">{{ number_format($totalPaid) }} cuộc trò chuyện</div>
                     </div>
                 </div>
 
@@ -108,7 +115,7 @@
             new Chart(ctxDonut, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Paid', 'Organic'],
+                    labels: [`Paid ({{ $paidPercentage }}%)`, `Organic ({{ $organicPercentage }}%)`],
                     datasets: [{
                         data: [paid, organic],
                         backgroundColor: ['#10b981', '#6366f1'],
