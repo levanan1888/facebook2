@@ -39,6 +39,7 @@
                     @endcan
                     @can('facebook.analytics')
                         <flux:navlist.item icon="chart-bar" :href="route('facebook.messaging.report')" :current="request()->routeIs('facebook.messaging.report')" wire:navigate>{{ __('Messaging Report') }}</flux:navlist.item>
+                        <flux:navlist.item icon="film" :href="route('facebook.content-insights')" :current="request()->routeIs('facebook.content-insights')" wire:navigate>{{ __('Content Insights') }}</flux:navlist.item>
                     @endcan
                 </flux:navlist.group>
             </flux:navlist>

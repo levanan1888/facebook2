@@ -28,6 +28,15 @@ Route::middleware(['auth', 'verified'])->prefix('facebook')->name('facebook.')->
     Route::get('messaging/report', [App\Http\Controllers\FacebookMessagingReportController::class, 'index'])
         ->middleware(['permission.404:facebook.analytics'])
         ->name('messaging.report');
+
+    // Content insights
+    Route::get('content-insights', [App\Http\Controllers\FacebookContentInsightsController::class, 'index'])
+        ->middleware(['permission.404:facebook.analytics'])
+        ->name('content-insights');
+    
+    Route::get('content-insights/api', [App\Http\Controllers\FacebookContentInsightsController::class, 'api'])
+        ->middleware(['permission.404:facebook.analytics'])
+        ->name('content-insights.api');
 });
 
 // Facebook sync routes
@@ -56,6 +65,9 @@ Route::middleware(['auth', 'verified', 'permission.404:facebook.sync'])->group(f
     
     Route::post('facebook/sync/reset', [App\Http\Controllers\FacebookSyncController::class, 'resetSync'])
         ->name('facebook.sync.reset');
+    
+    Route::post('facebook/sync-content-insights', [App\Http\Controllers\FacebookContentInsightsController::class, 'syncContentInsights'])
+        ->name('facebook.sync-content-insights');
 });
 
 // Facebook Data Management routes
